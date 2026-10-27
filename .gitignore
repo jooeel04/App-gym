@@ -1,0 +1,48 @@
+# Variables de entorno: nunca se suben. Solo la plantilla.
+.env
+.env.*
+!.env.example
+
+# Dependencias
+/node_modules
+/.pnp
+.pnp.*
+
+# Next.js
+/.next/
+/out/
+/build
+next-env.d.ts
+*.tsbuildinfo
+
+# Supabase CLI (estado local)
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+supabase/.env.*
+
+# Despliegue
+.vercel
+.netlify
+
+# Tests y cobertura
+/coverage
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# Claves y certificados
+*.pem
+*.key

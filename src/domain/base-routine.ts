@@ -1,0 +1,357 @@
+import type { Exercise } from "./types";
+
+// Rutina base importada del Excel (pestaña Rutina).
+export const BASE_ROUTINE: readonly Exercise[] = [
+  {
+    "id": 0,
+    "day": 1,
+    "group": "Torso",
+    "name": "Press inclinado en multipower",
+    "note": "Foco en pecho superior.",
+    "prescription": "3 × 8–10",
+    "sets": 3,
+    "target": "8–10",
+    "optionalLast": false
+  },
+  {
+    "id": 1,
+    "day": 1,
+    "group": "Torso",
+    "name": "Dominadas excéntricas",
+    "note": "Salta al cajón y frena la bajada durante 3–5 s. Haz este bloque antes de las dominadas con goma.",
+    "prescription": "2–3 · sin rango",
+    "sets": 3,
+    "target": "Sin rango",
+    "optionalLast": true
+  },
+  {
+    "id": 2,
+    "day": 1,
+    "group": "Torso",
+    "name": "Dominadas con goma actual",
+    "note": "Haz este bloque justo después de las excéntricas.",
+    "prescription": "2–3 × 6–8",
+    "sets": 3,
+    "target": "6–8",
+    "optionalLast": true
+  },
+  {
+    "id": 3,
+    "day": 1,
+    "group": "Torso",
+    "name": "Press plano con mancuernas",
+    "note": "Usa un rango libre y baja profundo para estirar el pecho.",
+    "prescription": "3 × 10–12",
+    "sets": 3,
+    "target": "10–12",
+    "optionalLast": false
+  },
+  {
+    "id": 4,
+    "day": 1,
+    "group": "Torso",
+    "name": "Remo con barra",
+    "note": "Movimiento principal para trabajar densidad de espalda.",
+    "prescription": "3 × 8–10",
+    "sets": 3,
+    "target": "8–10",
+    "optionalLast": false
+  },
+  {
+    "id": 5,
+    "day": 1,
+    "group": "Torso",
+    "name": "Cruce de poleas desde arriba",
+    "note": "Mantén la tensión durante todo el recorrido.",
+    "prescription": "3 × 12–15",
+    "sets": 3,
+    "target": "12–15",
+    "optionalLast": false
+  },
+  {
+    "id": 6,
+    "day": 1,
+    "group": "Torso",
+    "name": "Pullover en polea alta",
+    "note": "Usa cuerda o barra. Enfoque en dorsal con poca intervención del bíceps.",
+    "prescription": "3 × 12–15",
+    "sets": 3,
+    "target": "12–15",
+    "optionalLast": false
+  },
+  {
+    "id": 7,
+    "day": 2,
+    "group": "Pierna",
+    "name": "Hip thrust en máquina",
+    "note": "",
+    "prescription": "3 × 8–10",
+    "sets": 3,
+    "target": "8–10",
+    "optionalLast": false
+  },
+  {
+    "id": 8,
+    "day": 2,
+    "group": "Pierna",
+    "name": "Sentadilla búlgara contralateral",
+    "note": "",
+    "prescription": "2 × 10–12",
+    "sets": 2,
+    "target": "10–12",
+    "optionalLast": false
+  },
+  {
+    "id": 9,
+    "day": 2,
+    "group": "Pierna",
+    "name": "Sentadilla en multipower",
+    "note": "",
+    "prescription": "3 × 10–12",
+    "sets": 3,
+    "target": "10–12",
+    "optionalLast": false
+  },
+  {
+    "id": 10,
+    "day": 2,
+    "group": "Pierna",
+    "name": "Extensión de cuádriceps",
+    "note": "",
+    "prescription": "3 × 10–15",
+    "sets": 3,
+    "target": "10–15",
+    "optionalLast": false
+  },
+  {
+    "id": 11,
+    "day": 2,
+    "group": "Pierna",
+    "name": "Curl femoral tumbado",
+    "note": "",
+    "prescription": "3 × 10–15",
+    "sets": 3,
+    "target": "10–15",
+    "optionalLast": false
+  },
+  {
+    "id": 12,
+    "day": 2,
+    "group": "Pierna",
+    "name": "Gemelo en máquina",
+    "note": "",
+    "prescription": "3 × 12–15",
+    "sets": 3,
+    "target": "12–15",
+    "optionalLast": false
+  },
+  {
+    "id": 13,
+    "day": 3,
+    "group": "Empujes",
+    "name": "Press militar con mancuernas",
+    "note": "",
+    "prescription": "3 × 6–8",
+    "sets": 3,
+    "target": "6–8",
+    "optionalLast": false
+  },
+  {
+    "id": 14,
+    "day": 3,
+    "group": "Empujes",
+    "name": "Press inclinado en máquina",
+    "note": "",
+    "prescription": "3 × 8–10",
+    "sets": 3,
+    "target": "8–10",
+    "optionalLast": false
+  },
+  {
+    "id": 15,
+    "day": 3,
+    "group": "Empujes",
+    "name": "Fondos excéntricos",
+    "note": "Salta hasta bloquear los codos y controla la bajada. Haz este bloque antes de los fondos asistidos.",
+    "prescription": "2–3 · sin rango",
+    "sets": 3,
+    "target": "Sin rango",
+    "optionalLast": true
+  },
+  {
+    "id": 16,
+    "day": 3,
+    "group": "Empujes",
+    "name": "Fondos con goma o contrapeso",
+    "note": "Inclina ligeramente el torso hacia delante para enfatizar el pectoral inferior.",
+    "prescription": "2–3 · sin rango",
+    "sets": 3,
+    "target": "Sin rango",
+    "optionalLast": true
+  },
+  {
+    "id": 17,
+    "day": 3,
+    "group": "Empujes",
+    "name": "Elevaciones laterales en polea unilateral",
+    "note": "",
+    "prescription": "3 × 10–15",
+    "sets": 3,
+    "target": "10–15",
+    "optionalLast": false
+  },
+  {
+    "id": 18,
+    "day": 3,
+    "group": "Empujes",
+    "name": "Press francés con mancuernas",
+    "note": "",
+    "prescription": "3 × 8–12",
+    "sets": 3,
+    "target": "8–12",
+    "optionalLast": false
+  },
+  {
+    "id": 19,
+    "day": 3,
+    "group": "Empujes",
+    "name": "Crunch abdominal en máquina",
+    "note": "",
+    "prescription": "3 × 10–15",
+    "sets": 3,
+    "target": "10–15",
+    "optionalLast": false
+  },
+  {
+    "id": 20,
+    "day": 4,
+    "group": "Tirones",
+    "name": "Remo en T con agarre neutro",
+    "note": "",
+    "prescription": "3 × 8–12",
+    "sets": 3,
+    "target": "8–12",
+    "optionalLast": false
+  },
+  {
+    "id": 21,
+    "day": 4,
+    "group": "Tirones",
+    "name": "Jalón prono al pecho",
+    "note": "Añade volumen de espalda sin repetir el esfuerzo de dominadas del Día 1.",
+    "prescription": "3 × 12–15",
+    "sets": 3,
+    "target": "12–15",
+    "optionalLast": false
+  },
+  {
+    "id": 22,
+    "day": 4,
+    "group": "Tirones",
+    "name": "Face pull en polea",
+    "note": "Enfoque en postura y salud del hombro.",
+    "prescription": "3 × 12–15",
+    "sets": 3,
+    "target": "12–15",
+    "optionalLast": false
+  },
+  {
+    "id": 23,
+    "day": 4,
+    "group": "Tirones",
+    "name": "Dead curl",
+    "note": "",
+    "prescription": "3 × 6–8",
+    "sets": 3,
+    "target": "6–8",
+    "optionalLast": false
+  },
+  {
+    "id": 24,
+    "day": 4,
+    "group": "Tirones",
+    "name": "Curl de bíceps bayasi unilateral",
+    "note": "",
+    "prescription": "3 × 10–12",
+    "sets": 3,
+    "target": "10–12",
+    "optionalLast": false
+  },
+  {
+    "id": 25,
+    "day": 4,
+    "group": "Tirones",
+    "name": "Aductor en máquina",
+    "note": "Cierra las piernas durante el movimiento.",
+    "prescription": "3 × 10–12",
+    "sets": 3,
+    "target": "10–12",
+    "optionalLast": false
+  },
+  {
+    "id": 26,
+    "day": 5,
+    "group": "Hombros y brazos",
+    "name": "Press militar en máquina",
+    "note": "",
+    "prescription": "2 × 10–12",
+    "sets": 2,
+    "target": "10–12",
+    "optionalLast": false
+  },
+  {
+    "id": 27,
+    "day": 5,
+    "group": "Hombros y brazos",
+    "name": "Elevaciones laterales con mancuernas",
+    "note": "",
+    "prescription": "3 × 10–15",
+    "sets": 3,
+    "target": "10–15",
+    "optionalLast": false
+  },
+  {
+    "id": 28,
+    "day": 5,
+    "group": "Hombros y brazos",
+    "name": "Curl Scott en máquina",
+    "note": "",
+    "prescription": "3 × 8–10",
+    "sets": 3,
+    "target": "8–10",
+    "optionalLast": false
+  },
+  {
+    "id": 29,
+    "day": 5,
+    "group": "Hombros y brazos",
+    "name": "Extensión de tríceps en polea unilateral",
+    "note": "",
+    "prescription": "3 × 12–15",
+    "sets": 3,
+    "target": "12–15",
+    "optionalLast": false
+  },
+  {
+    "id": 30,
+    "day": 5,
+    "group": "Hombros y brazos",
+    "name": "Curl martillo con mancuernas",
+    "note": "Enfoca el braquial.",
+    "prescription": "3 × 10–12",
+    "sets": 3,
+    "target": "10–12",
+    "optionalLast": false
+  },
+  {
+    "id": 31,
+    "day": 5,
+    "group": "Hombros y brazos",
+    "name": "Crunch abdominal en máquina",
+    "note": "Segundo día de abdomen para trabajar la estabilización del core.",
+    "prescription": "3 × 10–15",
+    "sets": 3,
+    "target": "10–15",
+    "optionalLast": false
+  }
+];
