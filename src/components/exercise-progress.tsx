@@ -79,8 +79,12 @@ function ExerciseCard({ exercise: x }: { exercise: Exercise }) {
 
 // Progreso por ejercicio de cada día de rutina: lo que hiciste la última vez y cómo evoluciona.
 export function ExerciseProgress() {
-  const { model, day: currentDay } = useWorkout();
+  const { model, stats, day: currentDay } = useWorkout();
   const [day, setDay] = useState(currentDay);
+  // Solo los ejercicios con registros ocupan una tarjeta; el resto se agrupa en una línea.
+  const list = model.exercisesOfDay(day);
+  const withData = list.filter((x) => stats.exerciseHistory(x).length > 0);
+  const pending = list.filter((x) => !withData.includes(x));
 
   return (
     <section className="chart">
@@ -93,9 +97,12 @@ export function ExerciseProgress() {
         ))}
       </div>
       <div className="exprog-list">
-        {model.exercisesOfDay(day).map((x) => <ExerciseCard key={x.id} exercise={x} />)}
-        {model.exercisesOfDay(day).length === 0 && <div className="empty">Este día no tiene ejercicios.</div>}
+        {withData.map((x) => <ExerciseCard key={x.id} exercise={x} />)}
+        {list.length === 0 && <div className="empty">Este día no tiene ejercicios.</div>}
       </div>
+      {pending.length > 0 && (
+        <p className="exprog-pending"><b>Sin registros todavía:</b> {pending.map((x) => x.name).join(" · ")}</p>
+      )}
     </section>
   );
 }

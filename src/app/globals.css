@@ -447,3 +447,120 @@ button:disabled,input:disabled{opacity:.6}
   .navbtn svg{width:24px;height:24px}
   .caldot{width:26px;height:26px}
   }
+
+/* ===========================================================================
+   Liquid Glass (estilo iOS 26): fondo con luz ambiental, superficies de cristal
+   translúcido con brillo en el borde, barra inferior flotante y botones en
+   cápsula. Va al final para refinar las reglas anteriores sin tocarlas.
+   El desenfoque real (backdrop-filter) solo se usa en elementos flotantes
+   (barra, ventanas, temporizador, avisos) para que el móvil vaya fluido.
+   ======================================================================== */
+:root{
+  --glass:rgba(255,255,255,.045);--glass-strong:rgba(255,255,255,.085);--glass-line:rgba(255,255,255,.11);
+  --glass-hi:rgba(255,255,255,.2);--glass-float:rgba(18,20,26,.58);--glass-modal:rgba(20,22,28,.74);
+  --glass-shadow:0 12px 40px rgba(0,0,0,.42);--glass-blur:saturate(180%) blur(24px);
+  --glow-1:rgba(46,139,255,.30);--glow-2:rgba(124,92,255,.14);--glow-3:rgba(25,158,112,.13);
+  --accent-grad:linear-gradient(180deg,#56a6ff,#1f74ef);--r:24px;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Inter,"Segoe UI",system-ui,sans-serif;
+}
+:root[data-theme="light"]{
+  --bg:#eef2f8;--glass:rgba(255,255,255,.55);--glass-strong:rgba(255,255,255,.72);--glass-line:rgba(255,255,255,.9);
+  --glass-hi:rgba(255,255,255,1);--glass-float:rgba(255,255,255,.6);--glass-modal:rgba(255,255,255,.8);
+  --glass-shadow:0 10px 30px rgba(30,45,80,.10);
+  --glow-1:rgba(31,111,229,.20);--glow-2:rgba(232,123,164,.18);--glow-3:rgba(27,175,122,.14);
+  --accent-grad:linear-gradient(180deg,#3d8bff,#1a63d8);
+}
+
+/* Fondo: luz ambiental fija detrás del cristal */
+body{background:transparent;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+  radial-gradient(70% 45% at 0% 0%,var(--glow-1),transparent 70%),
+  radial-gradient(55% 40% at 100% 35%,var(--glow-2),transparent 70%),
+  radial-gradient(60% 45% at 25% 100%,var(--glow-3),transparent 70%),var(--bg)}
+
+/* Tipografía más ligera y elegante */
+h1{font-weight:760;letter-spacing:-.035em}
+.eyebrow{font-weight:700;letter-spacing:.14em;opacity:.9}
+.exname,.settings-head h2,.charttitle h2,.session h2,.routine-head h2{font-weight:700}
+.brand-word{font-weight:800}
+.brand-icon{background:var(--accent-grad);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 6px 18px rgba(46,139,255,.35)}
+
+/* Tarjetas de cristal */
+.chart,.exercise,.routine-day,.today-card,.settings-card,.stat{
+  background:linear-gradient(180deg,var(--glass-strong),var(--glass));border:1px solid var(--glass-line);
+  border-radius:var(--r);box-shadow:inset 0 1px 0 var(--glass-hi),var(--glass-shadow)}
+.exercise[open]{border-color:var(--glass-line);background:linear-gradient(180deg,rgba(255,255,255,.1),var(--glass))}
+:root[data-theme="light"] .exercise[open]{background:linear-gradient(180deg,#fff,var(--glass-strong))}
+.streak-card{background:linear-gradient(135deg,rgba(46,139,255,.22),var(--glass))}
+
+/* Elementos interiores: cristal fino, sin sombra (menos "cajas dentro de cajas") */
+.exprog,.record,.calinfo,.settings-list,.account-row,.switch-row,.cycle-week,.wk-day,.libitem,.body-field,
+.leaders li,.summary-grid div,.pending-row,.diary-session,.import-preview,.share-code,.expreview,.check-label,
+.bar-visual,.theme-option,.preset,.rest-option,.segmented{
+  background:var(--glass);border:1px solid var(--glass-line);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+:root[data-theme="light"] :is(.exprog,.record,.calinfo,.settings-list,.account-row,.switch-row,.cycle-week,.wk-day,.libitem,.body-field,.leaders li,.summary-grid div,.pending-row,.diary-session,.import-preview,.share-code,.expreview,.check-label,.bar-visual,.theme-option,.preset,.rest-option,.segmented){box-shadow:inset 0 1px 0 #fff,0 1px 2px rgba(30,45,80,.05)}
+.exprog,.record,.calinfo,.account-row,.switch-row,.cycle-week,.libitem,.leaders li,.summary-grid div,.pending-row,.diary-session,.settings-list{border-radius:18px}
+.settings-row{border-top-color:var(--glass-line)}
+.wk-day.train{background:var(--glass-strong)}
+.wk-day.today,.body-field.active,.preset.active,.theme-option.active,.leaders li.me{
+  background:rgba(46,139,255,.16);border-color:rgba(46,139,255,.55)}
+
+/* Campos de texto */
+.field input,.form-label input,.form-label textarea,.setnote input,.exsearch{
+  background:var(--glass);border:1px solid var(--glass-line);border-radius:14px;box-shadow:inset 0 1px 2px rgba(0,0,0,.18)}
+:root[data-theme="light"] :is(.field input,.form-label input,.form-label textarea,.setnote input,.exsearch){background:rgba(255,255,255,.8);box-shadow:inset 0 1px 2px rgba(30,45,80,.08)}
+.field input:focus,.form-label input:focus,.exsearch:focus{border-color:rgba(46,139,255,.7);outline:none;box-shadow:0 0 0 3px rgba(46,139,255,.2)}
+
+/* Botones: principales con relieve azul, secundarios de cristal en cápsula */
+.modal-actions .primary,.restbar .rest-skip,.modal .close,.rest-option.active,.segmented button[aria-selected="true"],
+.segmented button[aria-pressed="true"],.mark,.excheck.done,.theme-check,.routine-pick.on .pick-check,.switch:checked{
+  background:var(--accent-grad);border-color:transparent;color:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 6px 16px rgba(46,139,255,.32)}
+.modal-actions button,.quiet,.tool-btn,.weekaction,.start,.edit-ex,.settings-btn,.ex-order button,.monthnav button,
+.cycle-week button,.restbar button,.add-ex,.add-warmup,.libadd{
+  background:var(--glass-strong);border:1px solid var(--glass-line);box-shadow:inset 0 1px 0 var(--glass-hi);border-radius:999px}
+.ex-order button{border-radius:10px}
+.cycle-week button,.monthnav button{border-radius:50%}
+.add-ex,.add-warmup{border-radius:16px;color:var(--accent)}
+.remove-ex{border-radius:999px}
+.start{color:var(--accent)}
+.segmented{border-radius:999px;padding:4px}
+.segmented button{border-radius:999px}
+
+/* Chips de días */
+.day,.daychip{background:var(--glass);border:1px solid var(--glass-line);box-shadow:inset 0 1px 0 rgba(255,255,255,.06);border-radius:18px}
+.daychip{border-radius:999px}
+.day.active,.daychip.active{background:rgba(46,139,255,.18);border-color:rgba(46,139,255,.6);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 4px 14px rgba(46,139,255,.18)}
+
+/* Casilla de ejercicio hecho: redonda como en iOS */
+.excheck{border-radius:50%;width:26px;height:26px;border:1.5px solid var(--line2);background:transparent}
+.idx{border-radius:12px;background:rgba(46,139,255,.14)}
+
+/* Barra inferior flotante de cristal */
+.nav{left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));max-width:520px;margin:0 auto;padding:6px;
+  border-radius:32px;background:var(--glass-float);border:1px solid var(--glass-line);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  box-shadow:inset 0 1px 0 var(--glass-hi),0 14px 40px rgba(0,0,0,.45);gap:4px}
+:root[data-theme="light"] .nav{box-shadow:inset 0 1px 0 #fff,0 12px 32px rgba(30,45,80,.16)}
+.navbtn{border-radius:26px;transition:background .2s,color .2s}
+.navbtn.active{background:rgba(46,139,255,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 0 0 1px rgba(46,139,255,.35)}
+@media(max-width:600px){.nav{padding:5px;gap:3px}.navbtn{min-height:58px}}
+.app{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+
+/* Flotantes: temporizador, aviso, ventanas */
+.restbar{bottom:calc(96px + env(safe-area-inset-bottom));background:var(--glass-float);border:1px solid var(--glass-line);
+  border-radius:26px;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  box-shadow:inset 0 1px 0 var(--glass-hi),0 14px 40px rgba(0,0,0,.4)}
+.toast{bottom:calc(96px + env(safe-area-inset-bottom));border-radius:999px;padding:11px 16px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+body:has(.restbar) .toast{bottom:calc(166px + env(safe-area-inset-bottom))}
+.backdrop{background:rgba(0,0,0,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+:root[data-theme="light"] .backdrop{background:rgba(30,40,60,.22)}
+.modal,.bm-zoom-card{background:var(--glass-modal);border:1px solid var(--glass-line);border-radius:28px;
+  backdrop-filter:saturate(180%) blur(30px);-webkit-backdrop-filter:saturate(180%) blur(30px);
+  box-shadow:inset 0 1px 0 var(--glass-hi),0 24px 60px rgba(0,0,0,.45)}
+:root[data-theme="light"] :is(.modal,.bm-zoom-card){box-shadow:inset 0 1px 0 #fff,0 20px 50px rgba(30,45,80,.18)}
+.syncpill{background:var(--glass-float);border-color:var(--glass-line);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
+.auth-page .modal{max-width:420px}
+:root[data-theme="light"] :is(.field input,.form-label input,.form-label textarea,.setnote input,.exsearch){border-color:rgba(13,18,32,.12)}
+.exprog-pending{margin:12px 2px 0;color:var(--muted);font-size:calc(11px * var(--fs));line-height:1.5}
+.exprog-pending b{color:var(--soft);font-weight:700}
