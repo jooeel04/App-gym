@@ -564,3 +564,35 @@ body:has(.restbar) .toast{bottom:calc(166px + env(safe-area-inset-bottom))}
 :root[data-theme="light"] :is(.field input,.form-label input,.form-label textarea,.setnote input,.exsearch){border-color:rgba(13,18,32,.12)}
 .exprog-pending{margin:12px 2px 0;color:var(--muted);font-size:calc(11px * var(--fs));line-height:1.5}
 .exprog-pending b{color:var(--soft);font-weight:700}
+
+/* ===== Transiciones integradas ===== */
+/* Lente de la barra inferior: viaja entre botones y sigue al dedo al deslizar */
+.nav{--nav-gap:4px;gap:var(--nav-gap)}
+@media(max-width:600px){.nav{--nav-gap:3px}}
+.navbtn{position:relative;z-index:1;flex:1;min-width:0}
+.navbtn.active{background:transparent;box-shadow:none}
+.nav-lens{position:absolute;z-index:0;top:5px;bottom:5px;left:5px;width:calc((100% - 10px - 3 * var(--nav-gap)) / 4);
+  border-radius:26px;background:rgba(46,139,255,.2);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 0 0 1px rgba(46,139,255,.38),0 4px 16px rgba(46,139,255,.22);
+  pointer-events:none;will-change:transform}
+.navbtn svg{transition:transform .35s cubic-bezier(.32,.72,0,1)}
+.navbtn.active svg{transform:translateY(-1px) scale(1.08)}
+
+/* Ventanas: aparecen desde abajo con un ligero rebote */
+@keyframes sheet-in{from{opacity:0;transform:translateY(28px) scale(.97)}}
+@keyframes fade-in{from{opacity:0}}
+@keyframes fade-up{from{opacity:0;transform:translateY(10px)}}
+.backdrop.open{animation:fade-in .22s ease-out}
+.backdrop.open>.modal{animation:sheet-in .38s cubic-bezier(.32,.72,0,1)}
+
+/* Contenido que cambia dentro de una pestaña: aparece suavemente */
+.list,.exprog-list,.leaders,.calinfo{animation:fade-up .32s cubic-bezier(.32,.72,0,1)}
+.exercise[open] .exbody{animation:fade-up .3s cubic-bezier(.32,.72,0,1)}
+.exercise .chev{transition:transform .35s cubic-bezier(.32,.72,0,1)}
+.day,.daychip,.wk-day,.preset,.rest-option,.theme-option,.excheck,.body-field{transition:background-color .25s,border-color .25s,transform .2s,box-shadow .25s}
+.day:active,.daychip:active,.preset:active,.rest-option:active,.body-field:active,.navbtn:active{transform:scale(.96)}
+
+@media(prefers-reduced-motion:reduce){
+  .nav-lens,.navbtn svg{transition:none!important}
+  .backdrop.open,.backdrop.open>.modal,.list,.exprog-list,.leaders,.calinfo,.exercise[open] .exbody{animation:none}
+}

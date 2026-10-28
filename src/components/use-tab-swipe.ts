@@ -22,13 +22,16 @@ interface SwipeHandlers {
   onPeek: (index: number | null) => void;
   // El gesto termina en otra pestaña (la animación de salida ya ha acabado).
   onCommit: (index: number) => void;
+  // Progreso del arrastre hacia la vecina (0 = en su sitio, ±1 = vecina), para que
+  // el resaltado de la barra inferior siga al dedo; `ms` es la duración de la animación.
+  onDrag?: (offset: number, ms: number) => void;
 }
 
 // Deslizar con el dedo sobre `rootRef` mueve `pagerRef` (la pestaña actual junto a
 // la vecina que asoma). Al soltar, o termina de deslizar hasta la vecina desde
 // donde estaba el dedo, o vuelve a su sitio; nunca salta.
 export function useTabSwipe(rootRef: RefObject<HTMLElement | null>, pagerRef: RefObject<HTMLElement | null>,
-  index: number, count: number, { onPeek, onCommit }: SwipeHandlers) {
+  index: number, count: number, { onPeek, onCommit, onDrag }: SwipeHandlers) {
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
@@ -73,6 +76,7 @@ export function useTabSwipe(rootRef: RefObject<HTMLElement | null>, pagerRef: Re
       }
       dx = exists ? x : x * EDGE_RESISTANCE;
       move(dx);
+      onDrag?.(-dx / (root.clientWidth + PEEK_GAP), 0);
     };
 
     const onEnd = () => {
@@ -86,8 +90,10 @@ export function useTabSwipe(rootRef: RefObject<HTMLElement | null>, pagerRef: Re
         // Termina el deslizamiento a la velocidad del dedo (entre 140 y 320 ms).
         const remaining = width - Math.abs(dx);
         const ms = Math.round(Math.min(320, Math.max(140, remaining / Math.max(Math.abs(velocity), 1.2))));
+        onDrag?.(-side, ms);
         move(side * width, ms, () => { mode = "idle"; onCommit(target); });
       } else {
+        onDrag?.(0, 220);
         move(0, 220, () => { mode = "idle"; onPeek(null); });
       }
     };
@@ -102,5 +108,5 @@ export function useTabSwipe(rootRef: RefObject<HTMLElement | null>, pagerRef: Re
       root.removeEventListener("touchend", onEnd);
       root.removeEventListener("touchcancel", onEnd);
     };
-  }, [rootRef, pagerRef, index, count, onPeek, onCommit]);
+  }, [rootRef, pagerRef, index, count, onPeek, onCommit, onDrag]);
 }

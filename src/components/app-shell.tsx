@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
-import { switchTab, useWorkout } from "@/controllers/workout-controller";
+import { registerTabAnimator, switchTab, useWorkout } from "@/controllers/workout-controller";
 import { syncThemeBar } from "@/lib/theme";
 import { DaySummary } from "./day-summary";
 import { LoadProblem } from "./load-problem";
@@ -24,15 +24,11 @@ const NAV = [
 
 const tabIndex = (path: string) => Math.max(0, NAV.findIndex((n) => n.href === path));
 
-// Enlace de pestaña: cambia de vista al instante en el navegador. Con Ctrl/Cmd o
-// clic central se deja al navegador abrirlo en otra pestaña.
-function onTabClick(href: string) {
-  return (e: MouseEvent<HTMLAnchorElement>) => {
-    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    e.preventDefault();
-    switchTab(href);
-  };
-}
+// Clic normal en un enlace de pestaña (con Ctrl/Cmd o clic central se deja al navegador
+// abrirlo en otra pestaña).
+const isPlainClick = (e: MouseEvent<HTMLAnchorElement>) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
+const SLIDE_MS = 420;
+const EASE = "cubic-bezier(.32,.72,0,1)"; // curva tipo muelle de iOS
 
 // Estructura común: cabecera, contenido, navegación inferior y aviso flotante.
 // Las vistas se pintan aquí según la URL, así cambiar de pestaña no espera al servidor;
@@ -69,7 +65,51 @@ export function AppShell({ children }: { children: ReactNode }) {
     setSwipedTo(NAV[i].href);
     switchTab(NAV[i].href, false);
   }, []);
-  useTabSwipe(mainRef, pagerRef, index, NAV.length, { onPeek, onCommit });
+  // Resaltado de la barra inferior (lente): viaja entre botones y sigue al dedo.
+  const lensRef = useRef<HTMLSpanElement>(null);
+  const indexRef = useRef(index);
+  const setLens = useCallback((offset: number, ms: number) => {
+    const lens = lensRef.current;
+    if (!lens) return;
+    lens.style.transition = ms ? `transform ${ms}ms ${EASE}` : "none";
+    lens.style.transform = `translateX(calc(${indexRef.current + offset} * (100% + var(--nav-gap))))`;
+  }, []);
+  useTabSwipe(mainRef, pagerRef, index, NAV.length, { onPeek, onCommit, onDrag: setLens });
+  useLayoutEffect(() => {
+    const first = indexRef.current === index && !lensRef.current?.style.transform;
+    indexRef.current = index;
+    setLens(0, first ? 0 : 450);
+  }, [index, setLens]);
+
+  // Botones de la barra: el mismo movimiento que al deslizar (la pestaña de destino
+  // entra pegada a la actual), para que todo se sienta como una sola superficie.
+  const animating = useRef(false);
+  const goToTab = useCallback((i: number) => {
+    if (i === indexRef.current || animating.current) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce || !pagerRef.current || !mainRef.current) { switchTab(NAV[i].href); return; }
+    animating.current = true;
+    const dir = i > indexRef.current ? -1 : 1, width = mainRef.current.clientWidth + PEEK_GAP;
+    setPeek({ index: i, top: window.scrollY });
+    setLens(i - indexRef.current, SLIDE_MS);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const pager = pagerRef.current;
+      if (pager) {
+        pager.style.transition = `transform ${SLIDE_MS}ms ${EASE}`;
+        pager.style.transform = `translate3d(${dir * width}px,0,0)`;
+      }
+      setTimeout(() => { animating.current = false; onCommit(i); }, SLIDE_MS);
+    }));
+  }, [onCommit, setLens]);
+  useEffect(() => {
+    registerTabAnimator((path) => goToTab(tabIndex(path)));
+    return () => registerTabAnimator(null);
+  }, [goToTab]);
+  const onNavClick = (i: number) => (e: MouseEvent<HTMLAnchorElement>) => {
+    if (!isPlainClick(e)) return;
+    e.preventDefault();
+    goToTab(i);
+  };
 
   // Tras un cambio por deslizamiento, antes de pintar: la pista vuelve a su sitio
   // (la pestaña nueva ya ocupa el lugar de la actual) y se sube al principio.
@@ -90,7 +130,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <>
       <div className="app">
         <header className="topbar">
-          <a className="brand" href="/entrenar" aria-label="Inicio" onClick={onTabClick("/entrenar")}>
+          <a className="brand" href="/entrenar" aria-label="Inicio" onClick={onNavClick(0)}>
             <span className="brand-icon"><BrandIcon /></span>
             <span><span className="brand-word">RUTINA</span><span className="brand-sub">SEGUIMIENTO</span></span>
           </a>
@@ -125,8 +165,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
       <nav className="nav" aria-label="Navegación">
-        {NAV.map(({ href, label, Icon }) => (
-          <a key={href} href={href} className={"navbtn" + (href === current.href ? " active" : "")} aria-current={href === current.href ? "page" : undefined} onClick={onTabClick(href)}>
+        <span className="nav-lens" ref={lensRef} aria-hidden="true" />
+        {NAV.map(({ href, label, Icon }, i) => (
+          <a key={href} href={href} className={"navbtn" + (href === current.href ? " active" : "")} aria-current={href === current.href ? "page" : undefined} onClick={onNavClick(i)}>
             <Icon />{label}
           </a>
         ))}

@@ -167,7 +167,7 @@ export function WorkoutProvider({ mode, initialSnapshot, email, children }: Prov
   const stats = useMemo(() => new WorkoutStats(model), [model]);
   const actions = useMemo(
     () => createActions({
-      model, stats, sync, showToast, setWeek, setDay, goTo: switchTab, setRest, setSummary,
+      model, stats, sync, showToast, setWeek, setDay, goTo: navigateTab, setRest, setSummary,
       addRecord: (hit: RecordHit) => setRecords((list) => [...list, hit]),
     }),
     [model, stats, sync, showToast],
@@ -431,6 +431,17 @@ function createToaster(setToast: (update: (t: { text: string; visible: boolean }
 
 // Cambio de pestaña instantáneo: se actualiza la URL en el navegador (Next sincroniza
 // usePathname con history.pushState) sin pedir la página al servidor.
+// Navegación entre pestañas desde dentro de la app (p. ej. "Entrenar →" en Rutina): si
+// AppShell ha registrado su animación de carrusel se usa; si no, cambio directo.
+let tabAnimator: ((path: string) => void) | null = null;
+export function registerTabAnimator(fn: ((path: string) => void) | null) {
+  tabAnimator = fn;
+}
+export function navigateTab(path: string) {
+  if (tabAnimator) tabAnimator(path);
+  else switchTab(path);
+}
+
 export function switchTab(path: string, resetScroll = true) {
   if (window.location.pathname === path) return;
   window.history.pushState(null, "", path);

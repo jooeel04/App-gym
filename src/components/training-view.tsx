@@ -63,7 +63,7 @@ export function TrainingView() {
         <div className={"daycount" + (done ? " done" : "")}><strong>{done ? "✓ Día completado" : dt.n + " / " + dt.p + " series"}</strong>{done ? dt.n + " / " + dt.p + " series anotadas" : "anotadas"}</div>
       </div>
 
-      <div className="list">
+      <div className="list" key={day}>
         {list.map((x, i) => (
           <ExerciseCard key={x.id + "-" + week + "-" + day} exercise={x} index={i}
             superset={x.superset && i < list.length - 1 ? "first" : list[i - 1]?.superset ? "second" : null} />

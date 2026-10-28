@@ -96,7 +96,7 @@ export function ExerciseProgress() {
           </button>
         ))}
       </div>
-      <div className="exprog-list">
+      <div className="exprog-list" key={day}>
         {withData.map((x) => <ExerciseCard key={x.id} exercise={x} />)}
         {list.length === 0 && <div className="empty">Este día no tiene ejercicios.</div>}
       </div>
