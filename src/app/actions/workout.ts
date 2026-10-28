@@ -28,9 +28,10 @@ export async function applyWorkoutChanges(changes: unknown, snapshot: unknown): 
 
   const repository = await requireRepository();
   const current = (needsSnapshot ? snapshot : null) as WorkoutSnapshot;
+  // Se esperan todas a la vez: si una falla, ninguna promesa queda sin gestionar
+  // (un rechazo sin gestionar tumba el proceso del servidor).
   const writes = changes.map((c) => repository.apply(c, current));
-  await repository.flush();
-  await Promise.all(writes);
+  await Promise.all([...writes, repository.flush()]);
 }
 
 const isInt = (v: unknown, min: number, max: number) => Number.isInteger(v) && (v as number) >= min && (v as number) <= max;

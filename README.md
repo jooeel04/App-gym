@@ -25,6 +25,7 @@ En el SQL Editor del proyecto, ejecuta en orden los archivos de `supabase/migrat
 3. `20261030000000_schedule_and_daily_log.sql`
 4. `20261031000000_exercise_checks.sql`
 5. `20261101000000_multi_user_accounts.sql`
+6. `20261102000000_allow_exercise_check_rows.sql`
 
 En Authentication → URL Configuration, añade `https://tu-dominio/auth/confirm` (y `http://localhost:3000/auth/confirm`) a las Redirect URLs: es el enlace del correo de confirmación de cuenta.
 

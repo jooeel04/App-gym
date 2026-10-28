@@ -35,6 +35,9 @@ interface WorkoutContextValue {
   actions: ReturnType<typeof createActions>;
 }
 
+const MAX_WEIGHT = 9999.99;
+const MAX_REPS = 999;
+
 const WorkoutContext = createContext<WorkoutContextValue | null>(null);
 
 export function useWorkout() {
@@ -137,6 +140,9 @@ function createActions({ model, showToast, setWeek, setDay, goTo }: ActionDeps) 
     },
 
     setEntry(w: number, d: number, id: number, s: number, field: SetField, value: string) {
+      // Límites de la base de datos: carga hasta 9999,99 kg; repeticiones razonables.
+      const max = field === "weight" ? MAX_WEIGHT : field === "reps" ? MAX_REPS : Infinity;
+      if (Number(value) > max) { showToast(field === "weight" ? "La carga máxima es 9999 kg" : "Máximo 999 repeticiones"); return; }
       model.setEntryField(w, d, id, s, field, value, todayISO());
       if (model.syncDayCompleted(w, d)) showToast("¡Día completado!");
     },
