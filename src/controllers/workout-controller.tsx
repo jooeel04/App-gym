@@ -2,7 +2,6 @@
 
 import { createContext, use, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import { BackupService } from "@/domain/backup-service";
 import { BASE_ROUTINE } from "@/domain/base-routine";
 import { formatShortDate, todayISO } from "@/domain/calendar";
@@ -56,7 +55,6 @@ interface ProviderProps {
 // Controlador: guarda el estado de la interfaz (semana, día, avisos), traduce
 // las acciones del usuario en cambios del modelo y expone el modelo a las vistas.
 export function WorkoutProvider({ mode, initialSnapshot, children }: ProviderProps) {
-  const router = useRouter();
   const [model] = useState(() => createModel(mode, initialSnapshot));
   const [ready, setReady] = useState(initialSnapshot !== null);
   // null = seguir el día de hoy; un número = elegido por el usuario.
@@ -104,8 +102,8 @@ export function WorkoutProvider({ mode, initialSnapshot, children }: ProviderPro
 
   const stats = useMemo(() => new WorkoutStats(model), [model]);
   const actions = useMemo(
-    () => createActions({ model, showToast, setWeek, setDay, goTo: (path: string) => router.push(path) }),
-    [model, showToast, router],
+    () => createActions({ model, showToast, setWeek, setDay, goTo: switchTab }),
+    [model, showToast],
   );
 
   const focus = today ? calendar.focusFor(today) : null;
@@ -225,6 +223,14 @@ function createToaster(setToast: (update: (t: { text: string; visible: boolean }
     clearTimeout(timer);
     timer = setTimeout(() => setToast((t) => ({ ...t, visible: false })), 1800);
   };
+}
+
+// Cambio de pestaña instantáneo: se actualiza la URL en el navegador (Next sincroniza
+// usePathname con history.pushState) sin pedir la página al servidor.
+export function switchTab(path: string) {
+  if (window.location.pathname === path) return;
+  window.history.pushState(null, "", path);
+  window.scrollTo(0, 0);
 }
 
 // Vuelve a leer la fecha cuando la app vuelve a primer plano (p. ej. al día siguiente).
