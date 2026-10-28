@@ -2,7 +2,7 @@
 // - Estáticos de Next (/_next/static, con hash): primero caché.
 // - Páginas y demás GET del propio origen: primero red, caché como respaldo.
 // - Peticiones a Supabase y a otros orígenes: no se tocan (los datos siempre van a la red).
-const CACHE = "rutina-seguimiento-v5";
+const CACHE = "rutina-seguimiento-v6";
 const PRECACHE = ["/icon.svg", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {

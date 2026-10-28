@@ -4,16 +4,16 @@ import { useWorkout } from "@/controllers/workout-controller";
 import { formatShortDate, WEEKDAY_SHORT } from "@/domain/calendar";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { Exercise, SetField } from "@/domain/types";
-import { percent } from "@/domain/workout-stats";
 import { ChevronIcon } from "./icons";
 import { TodayPanel } from "./today-panel";
 
 const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 
-// Vista "Entrenar": selector de semana y día, series por ejercicio y resumen lateral.
+// Vista "Entrenar": qué toca hoy, selector de día y series por ejercicio. El día se
+// marca como completado automáticamente cuando todos sus ejercicios están anotados.
 export function TrainingView() {
   const { model, stats, calendar, today, week, day, actions } = useWorkout();
-  const dt = stats.day(week, day), wt = stats.week(week), pct = percent(wt.n, wt.p);
+  const dt = stats.day(week, day);
   const done = model.isDayCompleted(week, day);
   const planned = calendar.plannedDate(week, day);
   const recovering = !!(today && planned && planned < today && !calendar.isDone(week, day));
@@ -24,30 +24,12 @@ export function TrainingView() {
         <div>
           <div className="eyebrow">Tu plan de entrenamiento</div>
           <h1>Entrenar</h1>
-          <p className="lede">Anota tus series y sigue el avance semana a semana.</p>
+          <p className="lede">Anota tus series: cada día se marca como completado al terminar todos sus ejercicios.</p>
         </div>
         <div className="headnote">Se guarda automáticamente<br />mientras escribes.</div>
       </div>
 
       <TodayPanel />
-
-      <section className="cycle">
-        <div className="cyclecopy">
-          <strong>Semana {week} <span style={{ display: "inline", color: "var(--muted)", fontWeight: 500 }}>de {model.weeksCount}</span></strong>
-          <span>{wt.n} series anotadas esta semana</span>
-        </div>
-        <div className="cyclecontrols">
-          <div className="weeks">
-            {range(model.weeksCount).map((w) => (
-              <button key={w} className={"week" + (w === week ? " active" : "") + (stats.week(w).n ? " has" : "")} aria-label={"Semana " + w} onClick={() => actions.selectWeek(w)}>{w}</button>
-            ))}
-          </div>
-          <div className="weekactions">
-            <button className="weekaction" type="button" onClick={() => actions.removeWeek(week)}>− Eliminar semana</button>
-            <button className="weekaction" type="button" onClick={actions.addWeek}>＋ Añadir semana</button>
-          </div>
-        </div>
-      </section>
 
       <div className="days">
         {DAYS.map((d) => (
@@ -69,35 +51,11 @@ export function TrainingView() {
             </p>
           </div>
         </div>
-        <div className="daycount"><strong>{dt.n} / {dt.p} series</strong>anotadas</div>
+        <div className={"daycount" + (done ? " done" : "")}><strong>{done ? "✓ Día completado" : dt.n + " / " + dt.p + " series"}</strong>{done ? dt.n + " / " + dt.p + " series anotadas" : "anotadas"}</div>
       </div>
 
-      <div className="layout">
-        <section>
-          <div className="list">
-            {model.exercisesOfDay(day).map((x, i) => <ExerciseCard key={x.id + "-" + week + "-" + day} exercise={x} index={i} />)}
-          </div>
-          <div className="actions">
-            <span className="savehint">Guardado automáticamente</span>
-            <button className={"complete" + (done ? " done" : "")} onClick={() => actions.toggleDayCompleted(week, day)}>{done ? "✓ Día completado" : "Marcar día completado"}</button>
-          </div>
-        </section>
-        <aside className="side">
-          <div className="sidecard">
-            <h3>Semana {week}</h3>
-            <div className="kpi"><strong>{pct}%</strong><span>de las series<br />anotadas</span></div>
-            <div className="track"><div className="fill" style={{ width: pct + "%" }} /></div>
-            <div className="side-small"><span>{wt.n} anotadas</span><span>{wt.p} previstas</span></div>
-            <hr style={{ border: 0, borderTop: "1px solid var(--line)", margin: "14px 0" }} />
-            {DAYS.map((d) => {
-              const t = stats.day(week, d);
-              return <div className="mini" key={d}><span>Día {d} · {DAY_NAMES[d]}</span><strong>{t.n}/{t.p}</strong></div>;
-            })}
-          </div>
-          <div className="sidecard sideinfo">
-            <b>Cómo usarlo</b><br />Abre cada ejercicio, registra kg y repeticiones por serie. Las series opcionales aparecen señaladas; las notas se guardan junto a cada serie.
-          </div>
-        </aside>
+      <div className="list">
+        {model.exercisesOfDay(day).map((x, i) => <ExerciseCard key={x.id + "-" + week + "-" + day} exercise={x} index={i} />)}
       </div>
     </section>
   );
@@ -105,7 +63,7 @@ export function TrainingView() {
 
 function ExerciseCard({ exercise: x, index }: { exercise: Exercise; index: number }) {
   const { model, week, day, actions } = useWorkout();
-  const n = model.loggedSets(week, day, x);
+  const n = model.loggedSets(week, day, x), done = model.isExerciseDone(week, day, x);
   const set = (s: number, field: SetField) => (e: React.ChangeEvent<HTMLInputElement>) => actions.setEntry(week, day, x.id, s, field, e.target.value);
 
   return (
@@ -113,7 +71,8 @@ function ExerciseCard({ exercise: x, index }: { exercise: Exercise; index: numbe
       <summary>
         <span className="idx">{String(index + 1).padStart(2, "0")}</span>
         <span className="exmain"><span className="exname">{x.name}</span><span className="pres">{x.prescription}</span></span>
-        <span className={"exprogress" + (n === x.sets ? " complete" : "")}>{n}/{x.sets}</span>
+        <span className="exprogress">{n}/{x.sets}</span>
+        <span className={"excheck" + (done ? " done" : "")} role="img" aria-label={done ? "Ejercicio completado" : "Ejercicio pendiente"}>{done && "✓"}</span>
         <ChevronIcon />
       </summary>
       <div className="exbody">

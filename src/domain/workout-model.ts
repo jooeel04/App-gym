@@ -145,14 +145,26 @@ export class WorkoutModel {
     return n;
   }
 
+  // Un ejercicio está hecho cuando tiene anotadas todas sus series (la opcional no cuenta).
+  isExerciseDone(w: number, d: number, exercise: Exercise) {
+    const required = exercise.sets - (exercise.optionalLast ? 1 : 0);
+    for (let s = 1; s <= required; s++) if (!isLogged(this.getEntry(w, d, exercise.id, s))) return false;
+    return true;
+  }
+
   // ---- Días completados ----
 
   isDayCompleted(w: number, d: number) {
     return !!this.state.completed[dayKey(w, d)];
   }
 
-  toggleDayCompleted(w: number, d: number) {
-    const k = dayKey(w, d), done = !this.state.completed[k];
+  // Marca el día como completado cuando todos sus ejercicios están hechos (y lo
+  // desmarca si deja de estarlo). Devuelve true si el día acaba de completarse.
+  syncDayCompleted(w: number, d: number) {
+    const list = this.exercisesOfDay(d);
+    const done = list.length > 0 && list.every((x) => this.isExerciseDone(w, d, x));
+    if (done === this.isDayCompleted(w, d)) return false;
+    const k = dayKey(w, d);
     const completed = { ...this.state.completed };
     if (done) completed[k] = true;
     else delete completed[k];

@@ -121,7 +121,6 @@ function createActions({ model, showToast, setWeek, setDay, goTo }: ActionDeps) 
   const backup = new BackupService(model);
 
   return {
-    selectWeek: setWeek,
     selectDay: setDay,
 
     startDay(d: number) {
@@ -131,6 +130,7 @@ function createActions({ model, showToast, setWeek, setDay, goTo }: ActionDeps) 
 
     setEntry(w: number, d: number, id: number, s: number, field: SetField, value: string) {
       model.setEntryField(w, d, id, s, field, value, todayISO());
+      if (model.syncDayCompleted(w, d)) showToast("¡Día completado!");
     },
 
     // Vuelve a seguir el día de hoy.
@@ -161,25 +161,6 @@ function createActions({ model, showToast, setWeek, setDay, goTo }: ActionDeps) 
       setWeek(null);
       setDay(null);
       showToast("Fecha de inicio actualizada");
-    },
-
-    toggleDayCompleted(w: number, d: number) {
-      const done = model.toggleDayCompleted(w, d);
-      showToast(done ? "Día marcado como completado" : "Marca quitada");
-    },
-
-    addWeek() {
-      const w = model.addWeek();
-      setWeek(w);
-      showToast("Semana " + w + " añadida");
-    },
-
-    removeWeek(w: number) {
-      if (model.weeksCount <= 1) { showToast("Debe quedar al menos una semana"); return; }
-      if (model.weekHasData(w) && !confirm("La semana " + w + " tiene registros. Al eliminarla se borrarán y las semanas posteriores se renumerarán. ¿Continuar?")) return;
-      model.removeWeek(w);
-      setWeek(Math.min(w, model.weeksCount));
-      showToast("Semana eliminada");
     },
 
     addExercise(d: number, data: NewExerciseInput) {
