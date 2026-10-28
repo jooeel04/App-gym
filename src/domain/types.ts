@@ -28,6 +28,7 @@ export type WeekSchedule = Record<string, number>;
 // Estado completo de la app. Es también el formato de las copias JSON.
 // entries:   "semana|día|ejercicio|serie" → SetEntry
 // completed: "semana|día" → true
+// checked:   "semana|día|ejercicio" → fecha en que se marcó a mano con el tick
 // schedule:  día de la rutina → día de la semana
 // startDate: lunes en que empieza la semana 1 del ciclo
 export interface WorkoutSnapshot {
@@ -35,6 +36,7 @@ export interface WorkoutSnapshot {
   weeksCount: number;
   entries: Record<string, SetEntry>;
   completed: Record<string, boolean>;
+  checked?: Record<string, string>;
   routine: Exercise[];
   schedule?: WeekSchedule;
   startDate?: string;
@@ -51,6 +53,7 @@ export interface NewExerciseInput {
 export type WorkoutChange =
   | { type: "entry"; week: number; day: number; exerciseId: number; set: number; entry: SetEntry | null }
   | { type: "completed"; week: number; day: number; done: boolean }
+  | { type: "exerciseChecked"; week: number; day: number; exerciseId: number; date: string | null }
   | { type: "exerciseAdded"; exercise: Exercise; position: number }
   | { type: "exerciseRemoved"; exerciseId: number }
   | { type: "weeksCount"; weeksCount: number }

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { blankSnapshot, dayKey, entryKey, parseKey } from "@/domain/snapshot";
+import { blankSnapshot, dayKey, entryKey, exerciseKey, parseKey } from "@/domain/snapshot";
 import { isISODate } from "@/domain/calendar";
 import type { Exercise, SetEntry, WeekSchedule, WorkoutChange, WorkoutSnapshot } from "@/domain/types";
 import type { WorkoutRepository } from "./workout-repository";
@@ -7,6 +7,9 @@ import type { WorkoutRepository } from "./workout-repository";
 const ENTRY_DEBOUNCE_MS = 600;
 const PAGE_SIZE = 1000;
 const LOG_CONFLICT = "program_id,week,day,exercise_local_id,set_number";
+// Un ejercicio marcado a mano con el tick se guarda como la "serie 0" en set_logs,
+// con la fecha en logged_on: así se borra en cascada y se copia con el resto de series.
+const CHECK_SET = 0;
 
 type EntryChange = Extract<WorkoutChange, { type: "entry" }>;
 type Batch = { promise: Promise<void>; resolve: () => void; reject: (e: unknown) => void };
@@ -60,7 +63,12 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
     snapshot.weeksCount = program.weeks_count;
     if (program.schedule) snapshot.schedule = program.schedule;
     if (program.start_date) snapshot.startDate = program.start_date;
-    logs.forEach((r) => { snapshot.entries[entryKey(r.week, r.day, r.exercise_local_id, r.set_number)] = fromLogRow(r); });
+    const checked: Record<string, string> = {};
+    logs.forEach((r) => {
+      if (r.set_number === CHECK_SET) checked[exerciseKey(r.week, r.day, r.exercise_local_id)] = r.logged_on ?? "";
+      else snapshot.entries[entryKey(r.week, r.day, r.exercise_local_id, r.set_number)] = fromLogRow(r);
+    });
+    snapshot.checked = checked;
     completed.forEach((r) => { snapshot.completed[dayKey(r.week, r.day)] = true; });
     return snapshot;
   }
@@ -125,6 +133,12 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
         const key = { program_id: programId, week: change.week, day: change.day };
         if (change.done) await must(db.from("completed_days").upsert(key, { onConflict: "program_id,week,day", ignoreDuplicates: true }));
         else await must(db.from("completed_days").delete().match(key));
+        return;
+      }
+      case "exerciseChecked": {
+        const key = { program_id: programId, week: change.week, day: change.day, exercise_local_id: change.exerciseId, set_number: CHECK_SET };
+        if (change.date) await must(db.from("set_logs").upsert({ ...key, logged_on: change.date }, { onConflict: LOG_CONFLICT }));
+        else await must(db.from("set_logs").delete().match(key));
         return;
       }
       case "exerciseAdded":
@@ -229,6 +243,10 @@ function toProgramPayload(snapshot: WorkoutSnapshot) {
     const [week, day, exercise, set] = parseKey(k);
     const row = toLogRow(week, day, exercise, set, entry);
     if (row) logs.push({ week, day, exercise, set, weight: row.weight, reps: row.reps, note: row.note, date: row.logged_on });
+  });
+  Object.entries(snapshot.checked ?? {}).forEach(([k, date]) => {
+    const [week, day, exercise] = parseKey(k);
+    logs.push({ week, day, exercise, set: CHECK_SET, weight: null, reps: null, note: null, date: isISODate(date) ? date : null });
   });
   Object.keys(snapshot.completed).forEach((k) => {
     if (!snapshot.completed[k]) return;

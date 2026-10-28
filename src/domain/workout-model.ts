@@ -1,6 +1,6 @@
 import type { WorkoutRepository } from "@/repositories/workout-repository";
 import { isISODate, mondayOf } from "./calendar";
-import { blankSnapshot, DAY_NAMES, dayKey, DEFAULT_SCHEDULE, DEFAULT_WEEKS, entryKey, isLogged, parseKey } from "./snapshot";
+import { blankSnapshot, DAY_NAMES, dayKey, DEFAULT_SCHEDULE, DEFAULT_WEEKS, entryKey, exerciseKey, isLogged, parseKey } from "./snapshot";
 import type { Exercise, NewExerciseInput, SetEntry, SetField, WeekSchedule, WorkoutChange, WorkoutSnapshot } from "./types";
 
 type Listener = () => void;
@@ -111,6 +111,7 @@ export class WorkoutModel {
     Object.entries(this.state.entries).forEach(([k, v]) => { if (parseKey(k)[2] !== id) entries[k] = v; });
     this.state.routine = this.state.routine.filter((x) => x.id !== id);
     this.state.entries = entries;
+    this.state.checked = Object.fromEntries(Object.entries(this.checked).filter(([k]) => parseKey(k)[2] !== id));
     this.commit({ type: "exerciseRemoved", exerciseId: id });
   }
 
@@ -145,8 +146,38 @@ export class WorkoutModel {
     return n;
   }
 
-  // Un ejercicio está hecho cuando tiene anotadas todas sus series (la opcional no cuenta).
+  // Ejercicios marcados a mano con el tick: "semana|día|ejercicio" → fecha en que se marcó.
+  private get checked(): Record<string, string> {
+    return this.state.checked ?? {};
+  }
+
+  isExerciseChecked(w: number, d: number, id: number) {
+    return exerciseKey(w, d, id) in this.checked;
+  }
+
+  // Marca o desmarca a mano un ejercicio (p. ej. si no se pudo hacer). Devuelve el nuevo estado.
+  toggleExerciseChecked(w: number, d: number, id: number, today: string) {
+    const k = exerciseKey(w, d, id), checked = { ...this.checked };
+    const on = !(k in checked);
+    if (on) checked[k] = today;
+    else delete checked[k];
+    this.state.checked = checked;
+    this.commit({ type: "exerciseChecked", week: w, day: d, exerciseId: id, date: on ? today : null });
+    return on;
+  }
+
+  // Fechas en que se marcaron ejercicios a mano, por semana y día de rutina.
+  checkedDates(): { week: number; day: number; date: string }[] {
+    return Object.entries(this.checked).map(([k, date]) => {
+      const [week, day] = parseKey(k);
+      return { week, day, date };
+    });
+  }
+
+  // Un ejercicio está hecho si se marcó con el tick o si tiene anotadas todas sus
+  // series (la opcional no cuenta).
   isExerciseDone(w: number, d: number, exercise: Exercise) {
+    if (this.isExerciseChecked(w, d, exercise.id)) return true;
     const required = exercise.sets - (exercise.optionalLast ? 1 : 0);
     for (let s = 1; s <= required; s++) if (!isLogged(this.getEntry(w, d, exercise.id, s))) return false;
     return true;
@@ -181,6 +212,13 @@ export class WorkoutModel {
     return this.state.weeksCount;
   }
 
+  // Amplía el ciclo para que llegue al menos hasta la semana `w` (el calendario avanza solo).
+  ensureWeeks(w: number) {
+    if (w <= this.state.weeksCount) return;
+    this.state.weeksCount = w;
+    this.commit({ type: "weeksCount", weeksCount: w });
+  }
+
   weekHasData(w: number) {
     const inWeek = (k: string) => parseKey(k)[0] === w;
     return Object.keys(this.state.entries).some(inWeek) || Object.keys(this.state.completed).some(inWeek);
@@ -200,6 +238,7 @@ export class WorkoutModel {
     };
     this.state.entries = shift(this.state.entries);
     this.state.completed = shift(this.state.completed);
+    this.state.checked = shift(this.checked);
     this.state.weeksCount--;
     this.commit({ type: "weekRemoved", week: removed });
   }
@@ -242,9 +281,10 @@ export class WorkoutModel {
     this.commit({ type: "replaced" });
   }
 
-  // Borra registros y días completados; conserva la rutina y el número de semanas.
+  // Borra registros, ticks y días completados; conserva la rutina y el número de semanas.
   clearLogs() {
     this.state.entries = {};
+    this.state.checked = {};
     this.state.completed = {};
     this.commit({ type: "logsCleared" });
   }

@@ -2,18 +2,19 @@
 
 import { useRef } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
-import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import { percent } from "@/domain/workout-stats";
+import { ActivityCalendar } from "./activity-calendar";
 import { DailyLog } from "./daily-log";
+import { DayProgressCharts } from "./day-progress-charts";
 
 const small = { fontSize: 12, fontWeight: 500 };
 
-// Vista "Progreso": totales, actividad por semana, historial de cargas y herramientas de datos.
+// Vista "Progreso": totales, calendario de días entrenados, progreso por día de rutina,
+// registro diario y herramientas de datos.
 export function ProgressView() {
   const { model, stats, week, mode, actions } = useWorkout();
   const fileInput = useRef<HTMLInputElement>(null);
   const all = stats.all(), cur = stats.week(week);
-  const history = stats.loadHistory();
   const cloud = mode === "cloud";
 
   return (
@@ -28,47 +29,14 @@ export function ProgressView() {
 
       <div className="stats">
         <div className="stat"><span>Series anotadas</span><strong>{all.n} <small style={small}>/ {all.p}</small></strong><small>en todo el ciclo</small></div>
-        <div className="stat"><span>Semana seleccionada</span><strong>{cur.n} <small style={small}>/ {cur.p}</small></strong><small>Semana {week} · {percent(cur.n, cur.p)}% de series</small></div>
+        <div className="stat"><span>Semana actual</span><strong>{cur.n} <small style={small}>/ {cur.p}</small></strong><small>Semana {week} · {percent(cur.n, cur.p)}% de series</small></div>
       </div>
 
-      <section className="chart">
-        <div className="charttitle"><h2>Actividad por semana</h2><span>Series anotadas</span></div>
-        <div className="bars">
-          {Array.from({ length: model.weeksCount }, (_, i) => i + 1).map((w) => {
-            const t = stats.week(w);
-            return (
-              <div className="weekcol" key={w}>
-                <div className="barwrap"><div className={"bar" + (w === week ? " current" : "")} style={{ height: Math.max(3, percent(t.n, t.p)) + "%" }}><span className="barval">{t.n}</span></div></div>
-                <span className="weeklabel">S{w}</span>
-              </div>
-            );
-          })}
-        </div>
-        <div className="breakdown">
-          {DAYS.map((d) => {
-            const t = stats.day(week, d);
-            return <div className="break" key={d}><span>Día {d}</span><strong>{t.n}<small> / {t.p}</small></strong><small>{DAY_NAMES[d]}</small></div>;
-          })}
-        </div>
-      </section>
+      <ActivityCalendar />
+
+      <DayProgressCharts />
 
       <DailyLog />
-
-      <section className="chart">
-        <div className="charttitle"><h2>Historial de cargas</h2><span>Primera a última carga</span></div>
-        <div className="history">
-          {history.length === 0 && <div className="empty">Al registrar una carga, aparecerá aquí la evolución por ejercicio.</div>}
-          {history.map(({ exercise: x, first, last, delta }) => (
-            <div className="historyrow" key={x.id}>
-              <div><strong>{x.name}</strong><span>Día {x.day} · {DAY_NAMES[x.day]}</span></div>
-              <div className="historyvalue">
-                <span>{first} kg → {last} kg</span>
-                {delta !== 0 && <b> {delta > 0 ? "+" : ""}{String(Number(delta.toFixed(1))).replace(".", ",")} kg</b>}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
 
       <section className="chart">
         <div className="charttitle"><h2>Tus datos</h2><span>{cloud ? "Sincronizados en la nube" : "Guardados localmente"}</span></div>

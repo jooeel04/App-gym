@@ -26,6 +26,10 @@ export function dayKey(w: number, d: number) {
   return w + "|" + d;
 }
 
+export function exerciseKey(w: number, d: number, id: number) {
+  return [w, d, id].join("|");
+}
+
 export function parseKey(k: string) {
   return k.split("|").map(Number);
 }

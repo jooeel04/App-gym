@@ -1,4 +1,4 @@
-import { hasAny, parseKey } from "./snapshot";
+import { hasAny, isLogged, parseKey } from "./snapshot";
 import type { Exercise, SetEntry } from "./types";
 import type { WorkoutCalendar } from "./workout-calendar";
 import type { WorkoutModel } from "./workout-model";
@@ -63,6 +63,22 @@ export class WorkoutDiary {
           })
           .sort((a, b) => a.week - b.week || a.day - b.day),
       }));
+  }
+
+  // Días de rutina hechos en cada fecha real (series anotadas o ejercicios marcados con el tick).
+  activity(): Map<string, Set<number>> {
+    const byDate = new Map<string, Set<number>>();
+    const add = (date: string, day: number) => {
+      if (!date) return;
+      const days = byDate.get(date) ?? new Set<number>();
+      days.add(day);
+      byDate.set(date, days);
+    };
+    Object.entries(this.model.snapshot.entries).forEach(([k, entry]) => {
+      if (entry.date && isLogged(entry)) add(entry.date, parseKey(k)[1]);
+    });
+    this.model.checkedDates().forEach(({ day, date }) => add(date, day));
+    return byDate;
   }
 
   // Series anotadas antes de que la app guardara fechas.

@@ -74,6 +74,12 @@ export function WorkoutProvider({ mode, initialSnapshot, children }: ProviderPro
     if (ready && today && !model.startDate) model.setStartDate(calendar.suggestStartDate(today));
   }, [ready, today, model, calendar]);
 
+  // Al empezar una semana nueva del calendario se añade al ciclo (semana 2, 3, 4…).
+  useEffect(() => {
+    const current = ready && today ? calendar.cycleWeekOf(today) : null;
+    if (current) model.ensureWeeks(current);
+  }, [ready, today, version, model, calendar]);
+
   // Primera carga en el navegador: modo local, o base de datos todavía vacía
   // (se crea a partir de los datos locales de este dispositivo, si los hay).
   useEffect(() => {
@@ -130,6 +136,12 @@ function createActions({ model, showToast, setWeek, setDay, goTo }: ActionDeps) 
 
     setEntry(w: number, d: number, id: number, s: number, field: SetField, value: string) {
       model.setEntryField(w, d, id, s, field, value, todayISO());
+      if (model.syncDayCompleted(w, d)) showToast("¡Día completado!");
+    },
+
+    // Tick manual: cuenta el ejercicio como hecho aunque no tenga series anotadas.
+    toggleExerciseChecked(w: number, d: number, id: number) {
+      model.toggleExerciseChecked(w, d, id, todayISO());
       if (model.syncDayCompleted(w, d)) showToast("¡Día completado!");
     },
 

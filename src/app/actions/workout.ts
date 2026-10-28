@@ -42,6 +42,8 @@ function isWorkoutChange(c: unknown): c is WorkoutChange {
     }
     case "completed":
       return isInt(x.week, 1, 520) && isInt(x.day, 1, 5) && typeof x.done === "boolean";
+    case "exerciseChecked":
+      return isInt(x.week, 1, 520) && isInt(x.day, 1, 5) && isInt(x.exerciseId, 0, 1e6) && (x.date === null || isISODate(x.date));
     case "exerciseAdded": {
       const ex = x.exercise as Record<string, unknown>;
       return !!ex && isInt(ex.id, 0, 1e6) && isInt(ex.day, 1, 5) && isInt(ex.sets, 1, 10)

@@ -64,6 +64,9 @@ export function TrainingView() {
 function ExerciseCard({ exercise: x, index }: { exercise: Exercise; index: number }) {
   const { model, week, day, actions } = useWorkout();
   const n = model.loggedSets(week, day, x), done = model.isExerciseDone(week, day, x);
+  const checked = model.isExerciseChecked(week, day, x.id);
+  // Con todas las series anotadas el tick ya está puesto y no se puede quitar a mano.
+  const filled = done && !checked;
   const set = (s: number, field: SetField) => (e: React.ChangeEvent<HTMLInputElement>) => actions.setEntry(week, day, x.id, s, field, e.target.value);
 
   return (
@@ -72,7 +75,18 @@ function ExerciseCard({ exercise: x, index }: { exercise: Exercise; index: numbe
         <span className="idx">{String(index + 1).padStart(2, "0")}</span>
         <span className="exmain"><span className="exname">{x.name}</span><span className="pres">{x.prescription}</span></span>
         <span className="exprogress">{n}/{x.sets}</span>
-        <span className={"excheck" + (done ? " done" : "")} role="img" aria-label={done ? "Ejercicio completado" : "Ejercicio pendiente"}>{done && "✓"}</span>
+        <button
+          type="button"
+          className={"excheck" + (done ? " done" : "")}
+          role="checkbox"
+          aria-checked={done}
+          aria-disabled={filled}
+          aria-label={x.name + (done ? ", hecho" : ", marcar como hecho")}
+          title={filled ? "Hecho: todas las series anotadas" : done ? "Quitar marca" : "Marcar como hecho"}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (!filled) actions.toggleExerciseChecked(week, day, x.id); }}
+        >
+          {done && "✓"}
+        </button>
         <ChevronIcon />
       </summary>
       <div className="exbody">
