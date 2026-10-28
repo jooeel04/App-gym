@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { formatShortDate, WEEKDAY_SHORT } from "@/domain/calendar";
 import { MUSCLE_NAMES, musclesFor } from "@/domain/exercise-library";
@@ -19,13 +19,23 @@ const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 // Vista "Entrenar": qué toca hoy, selector de día y series por ejercicio. El día se
 // marca como completado automáticamente cuando todos sus ejercicios están anotados.
 export function TrainingView() {
-  const { model, stats, calendar, today, week, day, actions } = useWorkout();
+  const { model, stats, calendar, today, week, day, active, actions } = useWorkout();
   const [plates, setPlates] = useState(false);
   const dt = stats.day(week, day);
   const done = model.isDayCompleted(week, day);
   const planned = calendar.plannedDate(week, day);
   const recovering = !!(today && planned && planned < today && !calendar.isDone(week, day));
   const list = model.exercisesOfDay(day);
+  // Entreno en curso en este día: se abre el siguiente ejercicio por hacer.
+  const live = !!active && active.week === week && active.day === day;
+  const next = live ? list.findIndex((x) => !model.isExerciseDone(week, day, x)) : -1;
+  const listRef = useRef<HTMLDivElement>(null);
+  // Al empezar y al terminar cada ejercicio, la pantalla baja hasta el siguiente.
+  useEffect(() => {
+    if (next < 0) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    listRef.current?.querySelector(".exercise.next")?.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
+  }, [next]);
 
   return (
     <section className="view active">
@@ -57,15 +67,23 @@ export function TrainingView() {
               {DAY_NAMES[day]} · Semana {week}
               {planned && <> · {formatShortDate(planned)}</>}
               {recovering && <span className="tag">Recuperando hoy</span>}
+              {live && <span className="tag live-tag">En curso</span>}
             </p>
           </div>
         </div>
         <div className={"daycount" + (done ? " done" : "")}><strong>{done ? "✓ Día completado" : dt.n + " / " + dt.p + " series"}</strong>{done ? dt.n + " / " + dt.p + " series anotadas" : "anotadas"}</div>
       </div>
 
-      <div className="list" key={day}>
+      {!live && !done && list.length > 0 && (
+        <button type="button" className="start-workout" onClick={() => actions.startWorkout(week, day)}>
+          <span aria-hidden="true">▶</span> Empezar entreno
+          <small>Cronómetro en marcha y pantalla siempre encendida</small>
+        </button>
+      )}
+
+      <div className="list" key={day} ref={listRef}>
         {list.map((x, i) => (
-          <ExerciseCard key={x.id + "-" + week + "-" + day} exercise={x} index={i}
+          <ExerciseCard key={x.id + "-" + week + "-" + day} exercise={x} index={i} open={live ? i === next : i === 0} next={i === next}
             superset={x.superset && i < list.length - 1 ? "first" : list[i - 1]?.superset ? "second" : null} />
         ))}
       </div>
@@ -95,7 +113,7 @@ function SetRow({ exercise: x, set: s, label, old, oldWeek }: { exercise: Exerci
   );
 }
 
-function ExerciseCard({ exercise: x, index, superset }: { exercise: Exercise; index: number; superset: "first" | "second" | null }) {
+function ExerciseCard({ exercise: x, index, open, next, superset }: { exercise: Exercise; index: number; open: boolean; next: boolean; superset: "first" | "second" | null }) {
   const { model, stats, week, day, actions } = useWorkout();
   const n = model.loggedSets(week, day, x), done = model.isExerciseDone(week, day, x);
   const checked = model.isExerciseChecked(week, day, x.id);
@@ -111,12 +129,12 @@ function ExerciseCard({ exercise: x, index, superset }: { exercise: Exercise; in
   const filled = done && !checked;
 
   return (
-    <details className={"exercise" + (superset ? " superset " + superset : "")} open={index === 0}>
+    <details className={"exercise" + (superset ? " superset " + superset : "") + (next ? " next" : "")} open={open}>
       <summary>
         <span className="idx">{String(index + 1).padStart(2, "0")}</span>
         <span className="exmain">
           <span className="exname">{x.name}</span>
-          <span className="pres">{x.prescription}{superset && <span className="ss-tag">Superserie</span>}</span>
+          <span className="pres">{x.prescription}{superset && <span className="ss-tag">Superserie</span>}{next && <span className="next-tag">Ahora</span>}</span>
         </span>
         <span className="exprogress">{n}/{x.sets}</span>
         <button

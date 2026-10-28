@@ -5,6 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import type { MouseEvent, ReactNode } from "react";
 import { registerTabAnimator, switchTab, useWorkout } from "@/controllers/workout-controller";
 import { syncThemeBar } from "@/lib/theme";
+import { ActiveWorkoutBar } from "./active-workout-bar";
 import { DaySummary } from "./day-summary";
 import { LoadProblem } from "./load-problem";
 import { BrandIcon, ProgressIcon, RoutineIcon, SettingsIcon, TrainingIcon } from "./icons";
@@ -172,6 +173,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </a>
         ))}
       </nav>
+      {ready && <ActiveWorkoutBar />}
       {ready && <RestTimerBar />}
       {ready && <DaySummary />}
       <div className={"toast" + (toast.visible ? " show" : "")} role="status" aria-live="polite">{toast.text}</div>

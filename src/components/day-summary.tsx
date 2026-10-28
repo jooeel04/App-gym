@@ -5,7 +5,7 @@ import { DAY_NAMES } from "@/domain/snapshot";
 
 const fmt = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 1 });
 
-// Resumen al completar un día: duración, series, carga movida y récords batidos.
+// Resumen al completar un día o terminar el entreno en curso: duración, series, carga movida y récords batidos.
 export function DaySummary() {
   const { summary, model, stats, records, actions } = useWorkout();
   if (!summary) return null;
@@ -15,12 +15,14 @@ export function DaySummary() {
   const volume = sessions.reduce((sum, s) => sum + s.volume, 0);
   const reps = sessions.reduce((sum, s) => sum + s.reps, 0);
   const prs = records.filter((r) => r.day === day);
+  // Se puede terminar un entreno sin haber completado el día.
+  const complete = model.isDayCompleted(week, day);
 
   return (
     <div className="backdrop open summary-backdrop" role="dialog" aria-modal="true" aria-labelledby="summaryTitle" onClick={(e) => { if (e.target === e.currentTarget) actions.closeSummary(); }}>
       <div className="modal summary">
-        <div className="summary-emoji" aria-hidden="true">🎉</div>
-        <h2 id="summaryTitle">¡Día completado!</h2>
+        <div className="summary-emoji" aria-hidden="true">{complete ? "🎉" : "💪"}</div>
+        <h2 id="summaryTitle">{complete ? "¡Día completado!" : "Entreno terminado"}</h2>
         <p>Día {day} · {DAY_NAMES[day]} · Semana {week}</p>
         <div className="summary-grid">
           <div><strong>{minutes ? minutes + " min" : "—"}</strong><span>Duración</span></div>

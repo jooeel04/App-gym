@@ -15,6 +15,7 @@ Varias personas, cada una con su cuenta (correo y contraseña) y sus propios dat
 - Resumen por semana y día, historial de cargas y exportación a CSV.
 - Copia y restauración de datos en JSON.
 - Entrenar: temporizador de descanso, sugerencia de progresión (doble progresión), récords personales, series de calentamiento, superseries, calculadora de discos y resumen al completar el día.
+- Entreno en curso: botón "Empezar entreno" (o empieza solo al anotar la primera serie), barra flotante con el tiempo y los ejercicios hechos en todas las pestañas, el siguiente ejercicio se abre solo, la pantalla no se apaga y "Terminar" muestra el resumen.
 - Progreso: racha de semanas, fuerza (1RM estimado) por ejercicio, récords, peso corporal y medidas.
 - Amigos: compartir la rutina con un código y clasificación de días entrenados por grupos.
 - Recuperación de contraseña por correo.

@@ -13,6 +13,7 @@ import { WorkoutCalendar, type PlannedSession } from "@/domain/workout-calendar"
 import { WorkoutDiary } from "@/domain/workout-diary";
 import { WorkoutModel } from "@/domain/workout-model";
 import { WorkoutStats } from "@/domain/workout-stats";
+import { getActiveWorkout, setActiveWorkout, subscribeActiveWorkout, type ActiveWorkout } from "@/lib/active-workout";
 import { unlockAudio } from "@/lib/alerts";
 import { getRestPrefs } from "@/lib/preferences";
 import type { StorageMode } from "@/lib/workout-data";
@@ -63,6 +64,8 @@ interface WorkoutContextValue {
   rest: RestTimer | null;
   records: RecordHit[];
   summary: DaySummaryInfo | null;
+  // Entreno en curso en este dispositivo (null si no hay ninguno).
+  active: ActiveWorkout | null;
   actions: ReturnType<typeof createActions>;
 }
 
@@ -111,6 +114,7 @@ export function WorkoutProvider({ mode, initialSnapshot, email, children }: Prov
   const [summary, setSummary] = useState<DaySummaryInfo | null>(null);
   const version = useSyncExternalStore(model.subscribe, model.getVersion, model.getVersion);
   const today = useSyncExternalStore(subscribeToDayChange, todayISO, () => null);
+  const active = useSyncExternalStore(subscribeActiveWorkout, getActiveWorkout, () => null);
   const syncStatus = useSyncExternalStore(sync?.subscribe ?? noSubscribe, sync?.getStatus ?? idle, idle);
   const calendar = useMemo(() => new WorkoutCalendar(model), [model]);
   const diary = useMemo(() => new WorkoutDiary(model, calendar), [model, calendar]);
@@ -176,7 +180,7 @@ export function WorkoutProvider({ mode, initialSnapshot, email, children }: Prov
   const focus = today ? calendar.focusFor(today) : null;
   const week = Math.min(selectedWeek ?? focus?.week ?? 1, model.weeksCount);
   const day = selectedDay ?? focus?.day ?? 1;
-  const value: WorkoutContextValue = { model, stats, calendar, diary, mode, email, sync: syncStatus, today, ready, loadFailed, version, week, day, toast, rest, records, summary, actions };
+  const value: WorkoutContextValue = { model, stats, calendar, diary, mode, email, sync: syncStatus, today, ready, loadFailed, version, week, day, toast, rest, records, summary, active, actions };
   return <WorkoutContext value={value}>{children}</WorkoutContext>;
 }
 
@@ -203,12 +207,26 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
     setRest({ endsAt: Date.now() + seconds * 1000, total: seconds });
   };
 
-  // Al completar el día se muestra el resumen (con la duración si se conoce).
+  const minutesSince = (started: number | null) => (started ? Math.max(1, Math.round((Date.now() - started) / 60000)) : null);
+  const isActive = (w: number, d: number) => {
+    const a = getActiveWorkout();
+    return !!a && a.week === w && a.day === d;
+  };
+
+  // Al completar el día se muestra el resumen (con la duración si se conoce) y
+  // termina el entreno en curso.
   const completeDay = (w: number, d: number) => {
     if (!model.syncDayCompleted(w, d)) return;
-    const started = readSessionStart(w, d);
+    const started = isActive(w, d) ? getActiveWorkout()!.startedAt : readSessionStart(w, d);
     clearSessionStart(w, d);
-    setSummary({ week: w, day: d, minutes: started ? Math.max(1, Math.round((Date.now() - started) / 60000)) : null });
+    if (isActive(w, d)) setActiveWorkout(null);
+    setSummary({ week: w, day: d, minutes: minutesSince(started) });
+  };
+
+  // Al anotar algo sin entreno en curso, empieza solo (desde la primera anotación).
+  const autoStart = (w: number, d: number) => {
+    if (getActiveWorkout() || model.isDayCompleted(w, d)) return;
+    setActiveWorkout({ week: w, day: d, startedAt: readSessionStart(w, d) ?? Date.now() });
   };
 
   // Récord: se comprueba cuando se deja de escribir (1,5 s) para no avisar con
@@ -245,7 +263,7 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       if (Number(value) > max) { showToast(field === "weight" ? "La carga máxima es 9999 kg" : "Máximo 999 repeticiones"); return; }
       const before = model.getEntry(w, d, id, s);
       model.setEntryField(w, d, id, s, field, value, todayISO());
-      if (value.trim()) markSessionStart(w, d);
+      if (value.trim()) { markSessionStart(w, d); autoStart(w, d); }
       // Al anotar las repeticiones de una serie empieza el descanso, salvo entre los
       // ejercicios de una superserie (se hacen seguidos).
       const x = model.findExercise(id);
@@ -261,7 +279,55 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
     toggleExerciseChecked(w: number, d: number, id: number) {
       model.toggleExerciseChecked(w, d, id, todayISO());
       markSessionStart(w, d);
+      autoStart(w, d);
       completeDay(w, d);
+    },
+
+    // ---- Entreno en curso ----
+    startWorkout(w: number, d: number) {
+      const current = getActiveWorkout();
+      if (current && !(current.week === w && current.day === d)
+        && !confirm("Ya tienes un entreno en curso (Día " + current.day + " · " + DAY_NAMES[current.day] + "). ¿Empezar este en su lugar?")) return;
+      unlockAudio();
+      markSessionStart(w, d);
+      setActiveWorkout({ week: w, day: d, startedAt: readSessionStart(w, d) ?? Date.now() });
+      setWeek(w);
+      setDay(d);
+      goTo("/entrenar");
+      showToast("💪 ¡Entreno en marcha! Día " + d + " · " + DAY_NAMES[d]);
+    },
+
+    // Vuelve a la pantalla del entreno en curso desde cualquier pestaña.
+    openWorkout() {
+      const a = getActiveWorkout();
+      if (!a) return;
+      setWeek(a.week);
+      setDay(a.day);
+      goTo("/entrenar");
+    },
+
+    // Termina el entreno: sin nada anotado se descarta; si quedan ejercicios se pide
+    // confirmación. Después se muestra el resumen con la duración.
+    finishWorkout() {
+      const a = getActiveWorkout();
+      if (!a) return;
+      const { week: w, day: d } = a;
+      const list = model.exercisesOfDay(d);
+      const started = list.some((x) => model.isExerciseDone(w, d, x) || model.loggedSets(w, d, x) > 0);
+      if (!started) {
+        if (!confirm("No has anotado nada todavía. ¿Descartar el entreno?")) return;
+        setActiveWorkout(null);
+        clearSessionStart(w, d);
+        setRest(null);
+        showToast("Entreno descartado");
+        return;
+      }
+      const left = list.filter((x) => !model.isExerciseDone(w, d, x)).length;
+      if (left > 0 && !confirm((left === 1 ? "Queda 1 ejercicio" : "Quedan " + left + " ejercicios") + " sin terminar. ¿Terminar el entreno igualmente?")) return;
+      setActiveWorkout(null);
+      clearSessionStart(w, d);
+      setRest(null);
+      setSummary({ week: w, day: d, minutes: minutesSince(a.startedAt) });
     },
 
     // ---- Descanso entre series ----
