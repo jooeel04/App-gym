@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { addDays, formatLongDate, formatShortDate, mondayOf, WEEKDAY_NAMES, WEEKDAY_SHORT, WEEKDAYS, weekdayOf } from "@/domain/calendar";
 import { MUSCLE_NAMES, musclesFor } from "@/domain/exercise-library";
@@ -10,7 +10,8 @@ import type { Exercise, SetField } from "@/domain/types";
 import type { SetResult } from "@/domain/workout-stats";
 import { BodyMap } from "./body-map";
 import { describeSet } from "./exercise-progress";
-import { BulbIcon, ChevronIcon, FlameIcon, PlayIcon, SleepIcon, TrendUpIcon, WarningIcon } from "./icons";
+import { notifyState, requestPermissions, subscribePermission, type NotifyState } from "@/lib/permissions";
+import { BellIcon, BulbIcon, ChevronIcon, FlameIcon, PlayIcon, SleepIcon, TrendUpIcon, WarningIcon } from "./icons";
 
 export const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 
@@ -54,6 +55,7 @@ export function TrainingView() {
       </div>
 
       <WeekStrip today={today} />
+      <PermissionCard />
 
       {resting ? <RestCard /> : (
         <section className="hero" style={{ "--hero": "var(--day" + day + ")", "--p": (list.length ? exDone / list.length : 0) * 100 + "%" } as React.CSSProperties}>
@@ -128,6 +130,19 @@ export function TrainingView() {
         </div>
       )}
     </section>
+  );
+}
+
+// Mientras no se hayan dado los permisos, invita a darlos (avisos del descanso).
+function PermissionCard() {
+  const permission = useSyncExternalStore(subscribePermission, notifyState, () => "granted" as NotifyState);
+  if (permission !== "default") return null;
+  return (
+    <div className="perm-card">
+      <BellIcon />
+      <div><b>Activa los avisos</b><span>Para que el móvil te avise al acabar el descanso, aunque estés en otra app.</span></div>
+      <button type="button" onClick={() => { void requestPermissions(); }}>Activar</button>
+    </div>
   );
 }
 

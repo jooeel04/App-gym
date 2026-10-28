@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { restFinishedAlert } from "@/lib/alerts";
+import { showNotification } from "@/lib/permissions";
 import { getRestPrefs } from "@/lib/preferences";
 
 const clock = (s: number) => Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
@@ -18,12 +19,18 @@ export function RestTimerBar() {
     const tick = setInterval(() => setNow(Date.now()), 250);
     const { alert, before } = getRestPrefs();
     const early = before > 0 && before < rest.total;
+    // Con la app en segundo plano el aviso llega como notificación del sistema.
+    const notify = (title: string, body: string) => {
+      if (alert !== "off" && document.visibilityState === "hidden") void showNotification(title, body);
+    };
     const warn = early ? setTimeout(() => {
       restFinishedAlert(alert);
+      notify("Quedan " + before + " s de descanso", "Prepárate para la siguiente serie");
       actions.showToast("Quedan " + before + " s de descanso", 2500, "clock");
     }, Math.max(0, rest.endsAt - before * 1000 - Date.now())) : undefined;
     const end = setTimeout(() => {
       if (!early) restFinishedAlert(alert);
+      if (!early) notify("¡Descanso terminado!", "A por la siguiente serie");
       actions.showToast("¡Descanso terminado! A por la siguiente serie", 3500, "clock");
       actions.stopRest();
     }, Math.max(0, rest.endsAt - Date.now()));

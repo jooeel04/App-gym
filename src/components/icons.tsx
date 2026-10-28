@@ -186,3 +186,9 @@ export function PlayIcon({ className }: IconProps) {
     <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 4.8v14.4a.8.8 0 0 0 1.2.7l11.3-7.2a.8.8 0 0 0 0-1.4L8.7 4.1a.8.8 0 0 0-1.2.7Z" fill="currentColor" /></svg>
   );
 }
+
+export function AlarmIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="13" r="7.5" stroke="currentColor" strokeWidth="1.8" /><path d="M12 9.5V13l2.5 1.5M4 5.5 7 3m13 2.5L17 3M6.5 19.5 5 21m12.5-1.5L19 21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  );
+}

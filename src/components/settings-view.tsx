@@ -1,45 +1,27 @@
 "use client";
 
 import { useRef, useState, useSyncExternalStore } from "react";
-import type { ReactNode } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
-import { restFinishedAlert, unlockAudio } from "@/lib/alerts";
+import { restFinishedAlert } from "@/lib/alerts";
+import { needsHomeScreen, notifyState, requestPermissions, showNotification, subscribePermission, type NotifyState } from "@/lib/permissions";
 import { ALERT_OPTIONS, BEFORE_OPTIONS, DEFAULT_REST, formatRest, getRestPrefs, REST_OPTIONS, setRestPrefs, subscribePrefs } from "@/lib/preferences";
 import { currentTheme, setTheme, subscribeTheme, type Theme } from "@/lib/theme";
-import { BellIcon, ChevronIcon, ClockIcon, DownloadIcon, LogoutIcon, MoonIcon, TableIcon, TrashIcon, UploadIcon, UsersIcon } from "./icons";
+import { BellIcon, CheckIcon, ClockIcon, DownloadIcon, LogoutIcon, MoonIcon, TableIcon, TrashIcon, UploadIcon, UsersIcon } from "./icons";
 import { LeaderboardCard } from "./leaderboard";
+import { ReminderRow } from "./reminder-settings";
+import { Group, Row } from "./settings-rows";
+
+const PERMISSION_LABEL: Record<NotifyState, string> = {
+  granted: "Activados",
+  default: "Sin dar",
+  denied: "Bloqueados",
+  unsupported: "No disponibles",
+};
 
 const THEMES: { value: Theme; label: string; hint: string }[] = [
   { value: "dark", label: "Oscuro", hint: "Fondo negro" },
   { value: "light", label: "Claro", hint: "Fondo blanco" },
 ];
-
-// Grupo de filas con un título pequeño encima (como los Ajustes del iPhone).
-function Group({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="set-group">
-      <h2>{title}</h2>
-      <div className="set-box">{children}</div>
-    </section>
-  );
-}
-
-// Fila: con `children` se despliega al tocarla; sin ellos ejecuta `onClick`.
-function Row({ icon, label, value, open, onClick, tone, children }: {
-  icon: ReactNode; label: string; value?: string; open?: boolean; onClick: () => void; tone?: "danger"; children?: ReactNode;
-}) {
-  return (
-    <div className={"set-item" + (open ? " open" : "")}>
-      <button type="button" className={"set-row" + (tone ? " " + tone : "")} onClick={onClick} aria-expanded={children ? !!open : undefined}>
-        <span className="set-icon">{icon}</span>
-        <span className="set-label">{label}</span>
-        {value && <span className="set-value">{value}</span>}
-        <span className="set-chev"><ChevronIcon /></span>
-      </button>
-      {open && children && <div className="set-panel">{children}</div>}
-    </div>
-  );
-}
 
 // Vista "Ajustes": lista agrupada (entreno, app, datos y cuenta). Las filas con
 // opciones se despliegan en el sitio.
@@ -47,6 +29,8 @@ export function SettingsView() {
   const { mode, email, sync, actions } = useWorkout();
   const theme = useSyncExternalStore(subscribeTheme, currentTheme, () => "dark" as Theme);
   const rest = useSyncExternalStore(subscribePrefs, getRestPrefs, () => DEFAULT_REST);
+  const permission = useSyncExternalStore(subscribePermission, notifyState, () => "default" as NotifyState);
+  const homeScreen = useSyncExternalStore(subscribePermission, needsHomeScreen, () => false);
   const [open, setOpen] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const cloud = mode === "cloud";
@@ -78,6 +62,31 @@ export function SettingsView() {
         )}
 
         <Group title="Entreno">
+          {cloud && <ReminderRow open={open === "reminder"} onToggle={toggle("reminder")} />}
+          <Row icon={<CheckIcon />} label="Permisos" value={PERMISSION_LABEL[permission]} open={open === "perms"} onClick={toggle("perms")}>
+            <p className="set-hint">Para avisarte cuando acaba el descanso, la app necesita poder mandarte notificaciones, sonar y vibrar. La pantalla se mantiene encendida mientras entrenas.</p>
+            {permission === "granted" && <p className="perm-ok"><CheckIcon /> Todo listo: te avisará aunque estés en otra app.</p>}
+            {permission === "default" && (
+              <button type="button" className="set-done" onClick={() => { void requestPermissions(); }}><BellIcon />Dar permisos</button>
+            )}
+            {permission === "denied" && (
+              <p className="perm-warn">Las notificaciones están bloqueadas. Para activarlas: abre los <b>Ajustes del móvil</b> → busca el navegador o la app <b>RUTINA</b> → <b>Notificaciones</b> → activa «Permitir». Después vuelve aquí.</p>
+            )}
+            {permission === "unsupported" && homeScreen && (
+              <p className="perm-warn">En iPhone las notificaciones solo funcionan si la app está en la pantalla de inicio:<br />1. Abre la app en <b>Safari</b>.<br />2. Toca el botón <b>Compartir</b> (el cuadrado con la flecha).<br />3. Elige <b>«Añadir a pantalla de inicio»</b>.<br />4. Abre la app desde ese icono y vuelve aquí.</p>
+            )}
+            {permission === "unsupported" && !homeScreen && (
+              <p className="perm-warn">Este navegador no permite notificaciones. El aviso sonará y vibrará mientras tengas la app abierta.</p>
+            )}
+            {permission === "granted" && (
+              <button type="button" className="settings-btn" onClick={() => {
+                void requestPermissions();
+                setTimeout(() => { void showNotification("Así te avisará", "Cuando acabe el descanso verás este mensaje"); }, 3000);
+              }}>
+                <BellIcon />Probar notificación (en 3 s)
+              </button>
+            )}
+          </Row>
           <Row icon={<ClockIcon />} label="Descanso entre series" value={rest.enabled ? formatRest(rest.seconds) : "Desactivado"}
             open={open === "rest"} onClick={toggle("rest")}>
             <p className="set-hint">Al anotar las repeticiones empieza una cuenta atrás.</p>
@@ -118,7 +127,7 @@ export function SettingsView() {
                     </button>
                   ))}
                 </div>
-                <button type="button" className="settings-btn" onClick={() => { unlockAudio(); restFinishedAlert(rest.alert); }}>
+                <button type="button" className="settings-btn" onClick={() => { void requestPermissions(); restFinishedAlert(rest.alert); }}>
                   <BellIcon />Probar el aviso
                 </button>
               </>

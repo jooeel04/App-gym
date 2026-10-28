@@ -15,6 +15,7 @@ import { WorkoutModel } from "@/domain/workout-model";
 import { WorkoutStats } from "@/domain/workout-stats";
 import { getActiveWorkout, setActiveWorkout, subscribeActiveWorkout, type ActiveWorkout } from "@/lib/active-workout";
 import { unlockAudio } from "@/lib/alerts";
+import { requestPermissions } from "@/lib/permissions";
 import { getRestPrefs } from "@/lib/preferences";
 import type { StorageMode } from "@/lib/workout-data";
 import { LocalWorkoutRepository } from "@/repositories/local-workout-repository";
@@ -332,7 +333,8 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       const current = getActiveWorkout();
       if (current && !(current.week === w && current.day === d)
         && !confirm("Ya tienes un entreno en curso (" + DAY_NAMES[current.day] + "). ¿Empezar este en su lugar?")) return;
-      unlockAudio();
+      // Al empezar se piden los permisos para avisar del descanso (notificaciones y sonido).
+      void requestPermissions();
       markSessionStart(w, d);
       setActiveWorkout({ week: w, day: d, startedAt: readSessionStart(w, d) ?? Date.now() });
       setWeek(w);
