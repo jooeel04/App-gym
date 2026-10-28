@@ -629,7 +629,6 @@ body:has(.livebar):has(.restbar) .toast{bottom:calc(236px + env(safe-area-inset-
 body:has(.focus-mode){overflow:hidden}
 body:has(.focus-mode) :is(.livebar,.nav){visibility:hidden}
 body:has(.focus-mode) .restbar{bottom:calc(84px + env(safe-area-inset-bottom))}
-body:has(.focus-mode) .toast{bottom:calc(154px + env(safe-area-inset-bottom))}
 .focus-mode{position:fixed;z-index:22;left:0;right:0;top:var(--vv-top,0);height:var(--vv-h,100%);overflow-y:auto;overscroll-behavior:contain;
   display:flex;flex-direction:column;background:var(--bg);animation:focus-in .38s cubic-bezier(.32,.72,0,1)}
 .focus-mode::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
@@ -684,3 +683,16 @@ body:has(.focus-mode) .toast{bottom:calc(154px + env(safe-area-inset-bottom))}
 .exprog-record{margin:8px 0 0;color:var(--muted);font-size:calc(11px * var(--fs));line-height:1.5}
 .exprog-record b{color:var(--text)}
 .exprog-record.fresh{color:var(--soft)}
+
+/* Series: peso y repeticiones propuestos (en gris) y copiar la última vez */
+.field input.suggested::placeholder{color:var(--muted);font-size:inherit;font-weight:600;opacity:.45}
+.focus-body .field input.suggested::placeholder{font-size:inherit}
+.repeat-last{width:100%;margin:0 0 10px;border:1px dashed var(--accent-line);background:var(--accent-bg);color:var(--accent);border-radius:14px;padding:10px;font-size:calc(11px * var(--fs));font-weight:850}
+.repeat-last small{font-weight:700;opacity:.75}
+/* Pantalla completa: discos, lo que viene después y avisos arriba (abajo tapaban las series) */
+.focus-sub{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 16px}
+.focus-sub .focus-pres{margin:0}
+.focus-after{margin:18px 0 0;padding:12px 14px;border-radius:14px;background:var(--s0);border:1px solid var(--line);color:var(--muted);font-size:calc(12px * var(--fs))}
+.focus-after b{color:var(--text)}
+body:has(.focus-mode) .toast{top:calc(84px + env(safe-area-inset-top));bottom:auto!important;transform:translate(-50%,-12px)}
+body:has(.focus-mode) .toast.show{transform:translate(-50%,0)}

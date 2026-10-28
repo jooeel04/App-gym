@@ -296,6 +296,27 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       completeWhenDone(w, d);
     },
 
+    // Copia en las series vacías lo que se hizo la última vez (carga y repeticiones).
+    repeatLast(w: number, d: number, id: number) {
+      const x = model.findExercise(id);
+      const last = x && stats.lastBefore(x, w);
+      if (!x || !last) return;
+      const date = todayISO();
+      let copied = 0;
+      last.sets.forEach((r) => {
+        const e = model.getEntry(w, d, id, r.set);
+        if (e.weight || e.reps || r.set > x.sets) return;
+        if (r.weight !== null) model.setEntryField(w, d, id, r.set, "weight", String(r.weight), date);
+        if (r.reps !== null) model.setEntryField(w, d, id, r.set, "reps", String(r.reps), date);
+        copied++;
+      });
+      if (!copied) return;
+      markSessionStart(w, d);
+      autoStart(w, d);
+      showToast("↺ Copiado de la semana " + last.week);
+      completeWhenDone(w, d);
+    },
+
     // Tick manual: cuenta el ejercicio como hecho aunque no tenga series anotadas.
     toggleExerciseChecked(w: number, d: number, id: number) {
       model.toggleExerciseChecked(w, d, id, todayISO());

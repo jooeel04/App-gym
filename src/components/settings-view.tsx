@@ -52,7 +52,6 @@ export function SettingsView() {
         <div>
           <div className="eyebrow">Tu app</div>
           <h1>Ajustes</h1>
-          <p className="lede">Elige cómo se ve la app, gestiona tu cuenta, compite con amigos y guarda tus datos.</p>
         </div>
       </div>
 

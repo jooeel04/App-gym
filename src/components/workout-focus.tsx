@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { DAY_NAMES } from "@/domain/snapshot";
 import { clock } from "./active-workout-bar";
+import { PlateCalculator } from "./plate-calculator";
 import { ExerciseDetail, supersetRole, useNextExercise } from "./training-view";
 
 // Pantalla completa del entreno en curso (modo foco): un ejercicio cada vez, en
@@ -20,6 +21,7 @@ export function WorkoutFocus() {
     setPick(null);
   }
   const [now, setNow] = useState(() => Date.now());
+  const [plates, setPlates] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const list = model.exercisesOfDay(day);
   const index = Math.min(pick ?? (next >= 0 ? next : list.length - 1), list.length - 1);
@@ -40,6 +42,9 @@ export function WorkoutFocus() {
   const doneCount = list.filter((e) => model.isExerciseDone(week, day, e)).length;
   const superset = supersetRole(list, index);
   const go = (i: number) => setPick(i === next ? null : i);
+  // Lo que viene después: el siguiente ejercicio sin hacer tras este (o el primero que quede).
+  const after = list.find((e, i) => i > index && !model.isExerciseDone(week, day, e))
+    ?? list.find((e, i) => i !== index && !model.isExerciseDone(week, day, e));
 
   return (
     <div className="focus-mode" ref={ref} role="dialog" aria-modal="true" aria-label={"Entreno en curso: " + x.name}>
@@ -69,13 +74,19 @@ export function WorkoutFocus() {
           {done && <span className="focus-done">✓ Hecho</span>}
         </div>
         <h2 className="focus-name">{x.name}</h2>
-        <p className="focus-pres">{x.prescription}</p>
+        <div className="focus-sub">
+          <p className="focus-pres">{x.prescription}</p>
+          <button type="button" className="tool-btn" onClick={() => setPlates(true)}>🏋️ Discos</button>
+        </div>
         <ExerciseDetail exercise={x} superset={superset} />
         {!filled && (
           <button type="button" className={"focus-check" + (done ? " done" : "")} onClick={() => actions.toggleExerciseChecked(week, day, x.id)}>
             {done ? "Quitar marca de hecho" : "✓ Marcar como hecho sin anotar series"}
           </button>
         )}
+        <p className="focus-after">
+          {after ? <>Después: <b>{after.name}</b></> : done ? "¡Era el último! Pulsa Terminar para ver el resumen." : "Es el último ejercicio que te queda."}
+        </p>
       </div>
 
       <footer className="focus-nav">
@@ -83,6 +94,7 @@ export function WorkoutFocus() {
         <span>{doneCount}/{list.length}</span>
         <button type="button" className="primary" onClick={() => go(index + 1)} disabled={index === list.length - 1}>Siguiente ›</button>
       </footer>
+      {plates && <PlateCalculator onClose={() => setPlates(false)} />}
     </div>
   );
 }

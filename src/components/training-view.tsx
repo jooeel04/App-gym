@@ -43,7 +43,6 @@ export function TrainingView() {
         <div>
           <div className="eyebrow">Tu plan de entrenamiento</div>
           <h1>Entrenar</h1>
-          <p className="lede">Anota tus series: cada día se marca como completado al terminar todos sus ejercicios.</p>
         </div>
         <button type="button" className="tool-btn" onClick={() => setPlates(true)}>🏋️ Discos</button>
       </div>
@@ -122,18 +121,34 @@ export function useNextExercise(live: boolean) {
   return { next, editingHandlers };
 }
 
-// Fila de una serie: carga, repeticiones, nota y lo que se hizo la última vez.
+// Peso que se propone para una serie de trabajo vacía: el de la serie anterior de hoy
+// o, si no hay, el de esa serie la última vez.
+function suggestedWeight(prevWeights: (string | undefined)[], old?: SetResult) {
+  const today = [...prevWeights].reverse().find((w) => !!w?.trim());
+  if (today) return today;
+  return old?.weight != null ? String(old.weight) : "";
+}
+
+// Fila de una serie: carga, repeticiones, nota y lo que se hizo la última vez. En gris
+// se ve lo propuesto (peso de la serie anterior o de la última vez); si solo se
+// escriben las repeticiones, ese peso se guarda también.
 function SetRow({ exercise: x, set: s, label, old, oldWeek }: { exercise: Exercise; set: number; label: string; old?: SetResult; oldWeek?: number }) {
   const { model, week, day, actions } = useWorkout();
   const e = model.getEntry(week, day, x.id, s);
   const warmup = s > x.sets;
   const aria = x.name + (warmup ? ", calentamiento " : ", serie ") + label;
-  const set = (field: SetField) => (ev: React.ChangeEvent<HTMLInputElement>) => actions.setEntry(week, day, x.id, s, field, ev.target.value);
+  const prevWeights = warmup ? [] : range(s - 1).map((p) => model.getEntry(week, day, x.id, p).weight);
+  const weightTip = warmup || e.weight ? "" : suggestedWeight(prevWeights, old);
+  const repsTip = warmup || e.reps || old?.reps == null ? "" : String(old.reps);
+  const set = (field: SetField) => (ev: React.ChangeEvent<HTMLInputElement>) => {
+    if (field === "reps" && weightTip && ev.target.value.trim()) actions.setEntry(week, day, x.id, s, "weight", weightTip);
+    actions.setEntry(week, day, x.id, s, field, ev.target.value);
+  };
   return (
     <div className={"setrow" + (warmup ? " warmup" : "")}>
       <div className="setnum">{label}{x.optionalLast && s === x.sets && <span className="optional">Opcional</span>}</div>
-      <label className="field"><input type="number" min="0" step="0.5" inputMode="decimal" placeholder="— kg" aria-label={aria + ", carga"} value={e.weight ?? ""} onChange={set("weight")} /></label>
-      <label className="field"><input type="number" min="0" step="1" inputMode="numeric" placeholder="—" aria-label={aria + ", repeticiones"} value={e.reps ?? ""} onChange={set("reps")} /></label>
+      <label className="field"><input type="number" min="0" step="0.5" inputMode="decimal" placeholder={weightTip ? weightTip.replace(".", ",") + " kg" : "— kg"} className={weightTip ? "suggested" : undefined} aria-label={aria + ", carga" + (weightTip ? " (propuesto " + weightTip + " kg)" : "")} value={e.weight ?? ""} onChange={set("weight")} /></label>
+      <label className="field"><input type="number" min="0" step="1" inputMode="numeric" placeholder={repsTip || "—"} className={repsTip ? "suggested" : undefined} aria-label={aria + ", repeticiones"} value={e.reps ?? ""} onChange={set("reps")} /></label>
       <details className="setnote">
         <summary>{e.note ? "Ver nota" : "＋ Nota"}</summary>
         <input type="text" maxLength={160} placeholder="Anotación de esta serie" aria-label={"Nota " + aria} value={e.note ?? ""} onChange={set("note")} />
@@ -180,7 +195,7 @@ function ExerciseCard({ exercise: x, index, open, next, superset }: { exercise: 
 // Contenido de un ejercicio: músculos, consejo, indicaciones y series. Se usa en la
 // tarjeta de la lista y en la pantalla completa del entreno en curso.
 export function ExerciseDetail({ exercise: x, superset }: { exercise: Exercise; superset: SupersetRole }) {
-  const { model, stats, week, day } = useWorkout();
+  const { model, stats, week, day, actions } = useWorkout();
   const last = stats.lastBefore(x, week);
   const tip = suggestNext(x, last);
   const muscles = musclesFor(x.name);
@@ -201,6 +216,14 @@ export function ExerciseDetail({ exercise: x, superset }: { exercise: Exercise; 
       {tip && <div className={"tip " + tip.kind}><span aria-hidden="true">{tip.kind === "increase" ? "📈" : "💡"}</span>{tip.text}</div>}
       {superset === "first" && <p className="ss-note">Superserie: haz una serie de este y otra del siguiente sin descansar entre ambos.</p>}
       {x.note && <p className="cue">{x.note}</p>}
+      {last && range(x.sets).some((s) => {
+        const e = model.getEntry(week, day, x.id, s);
+        return !e.weight && !e.reps && last.sets.some((r) => r.set === s);
+      }) && (
+        <button type="button" className="repeat-last" onClick={() => actions.repeatLast(week, day, x.id)}>
+          ↺ Igual que la última vez <small>(semana {last.week})</small>
+        </button>
+      )}
       <div className="sethead"><span>Serie</span><span>Carga · kg</span><span>Reps</span></div>
       {WARMUP_SETS.slice(0, warmups).map((s, i) => <SetRow key={s} exercise={x} set={s} label={"C" + (i + 1)} />)}
       {range(x.sets).map((s) => (
