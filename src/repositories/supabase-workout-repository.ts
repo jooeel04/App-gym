@@ -25,8 +25,8 @@ interface LogRow {
 }
 interface ProgramRow { id: string; weeks_count: number; schedule: WeekSchedule | null; start_date: string | null }
 
-// Persistencia en Supabase (Postgres). Se usa solo en el servidor, con la clave
-// secreta, sobre el programa único de la app (user_id null). Solo depende del
+// Persistencia en Supabase (Postgres). Se usa solo en el servidor, con la sesión del
+// usuario: RLS limita cada consulta a su propio programa (user_id). Solo depende del
 // SupabaseClient que se le inyecte.
 // - Las series se agrupan durante ENTRY_DEBOUNCE_MS para no enviar una petición por tecla.
 // - Las escrituras se encadenan en una cola para respetar el orden (p. ej. crear un
@@ -39,16 +39,20 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
 
   private programId: string | null = null;
 
-  constructor(private readonly db: SupabaseClient) {}
+  constructor(private readonly db: SupabaseClient, private readonly userId: string) {}
 
   private programQuery() {
-    return this.db.from("programs").select("id, weeks_count, schedule, start_date").is("user_id", null).maybeSingle();
+    return this.db.from("programs").select("id, weeks_count, schedule, start_date").eq("user_id", this.userId).maybeSingle();
   }
 
   // ---- Lectura ----
 
   async load(): Promise<WorkoutSnapshot | null> {
-    const program = await must<ProgramRow | null>(this.programQuery());
+    let program = await must<ProgramRow | null>(this.programQuery());
+    // Primera vez de esta cuenta: se queda con el programa sin dueño de la versión sin login, si existe.
+    if (!program && await must<boolean>(this.db.rpc("claim_unowned_program"))) {
+      program = await must<ProgramRow | null>(this.programQuery());
+    }
     if (!program) return null;
     this.programId = program.id;
 

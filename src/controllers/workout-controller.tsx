@@ -2,6 +2,7 @@
 
 import { createContext, use, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
+import { signOutAction } from "@/app/login/actions";
 import { BackupService } from "@/domain/backup-service";
 import { BASE_ROUTINE } from "@/domain/base-routine";
 import { formatShortDate, todayISO } from "@/domain/calendar";
@@ -22,6 +23,8 @@ interface WorkoutContextValue {
   calendar: WorkoutCalendar;
   diary: WorkoutDiary;
   mode: StorageMode;
+  // Correo de la cuenta con la sesión iniciada (null en modo local).
+  email: string | null;
   // Fecha de hoy (solo en el navegador; null durante el renderizado en el servidor).
   today: string | null;
   ready: boolean;
@@ -49,12 +52,13 @@ function createModel(mode: StorageMode, snapshot: WorkoutSnapshot | null) {
 interface ProviderProps {
   mode: StorageMode;
   initialSnapshot: WorkoutSnapshot | null;
+  email: string | null;
   children: ReactNode;
 }
 
 // Controlador: guarda el estado de la interfaz (semana, día, avisos), traduce
 // las acciones del usuario en cambios del modelo y expone el modelo a las vistas.
-export function WorkoutProvider({ mode, initialSnapshot, children }: ProviderProps) {
+export function WorkoutProvider({ mode, initialSnapshot, email, children }: ProviderProps) {
   const [model] = useState(() => createModel(mode, initialSnapshot));
   const [ready, setReady] = useState(initialSnapshot !== null);
   // null = seguir el día de hoy; un número = elegido por el usuario.
@@ -78,15 +82,15 @@ export function WorkoutProvider({ mode, initialSnapshot, children }: ProviderPro
     if (current) model.ensureWeeks(current);
   }, [ready, today, version, model, calendar]);
 
-  // Primera carga en el navegador: modo local, o base de datos todavía vacía
-  // (se crea a partir de los datos locales de este dispositivo, si los hay).
+  // Primera carga en el navegador: modo local, o cuenta nueva todavía sin programa
+  // (empieza con la rutina base; no se copian datos de este dispositivo, que pueden
+  // ser de otra persona).
   useEffect(() => {
     if (ready) return;
-    const seed = mode === "cloud" ? new LocalWorkoutRepository().load() : Promise.resolve(null);
-    seed.then((s) => model.load(s))
+    model.load(null)
       .then(() => setReady(true))
       .catch(() => showToast("No se pudieron cargar los datos"));
-  }, [mode, model, ready, showToast]);
+  }, [model, ready, showToast]);
 
   useEffect(() => {
     model.setSaveErrorHandler(() => showToast(mode === "cloud" ? "No se pudo sincronizar con el servidor" : "No se pudo guardar en este navegador"));
@@ -109,7 +113,7 @@ export function WorkoutProvider({ mode, initialSnapshot, children }: ProviderPro
   const focus = today ? calendar.focusFor(today) : null;
   const week = Math.min(selectedWeek ?? focus?.week ?? 1, model.weeksCount);
   const day = selectedDay ?? focus?.day ?? 1;
-  const value: WorkoutContextValue = { model, stats, calendar, diary, mode, today, ready, version, week, day, toast, actions };
+  const value: WorkoutContextValue = { model, stats, calendar, diary, mode, email, today, ready, version, week, day, toast, actions };
   return <WorkoutContext value={value}>{children}</WorkoutContext>;
 }
 
@@ -209,6 +213,14 @@ function createActions({ model, showToast, setWeek, setDay, goTo }: ActionDeps) 
       if (!confirm("¿Borrar todos los registros y marcas de días completados? Esta acción no se puede deshacer.")) return;
       model.clearLogs();
       showToast("Registros borrados");
+    },
+
+    // Cierra la sesión tras guardar lo pendiente y borra la caché offline de este
+    // dispositivo para que la siguiente persona no vea páginas de esta cuenta.
+    async signOut() {
+      await model.flush().catch(() => {});
+      if ("caches" in window) await caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))).catch(() => {});
+      await signOutAction();
     },
 
     showToast,

@@ -3,14 +3,20 @@
 import { isISODate } from "@/domain/calendar";
 import { isValidSnapshot } from "@/domain/snapshot";
 import type { WorkoutChange, WorkoutSnapshot } from "@/domain/types";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { SupabaseWorkoutRepository } from "@/repositories/supabase-workout-repository";
+import { getUserRepository } from "@/lib/workout-data";
 
 // Puerta del navegador a la base de datos. Las Server Actions son endpoints
-// públicos, así que se valida la forma de lo que llega antes de escribir.
+// públicos, así que se exige sesión y se valida la forma de lo que llega antes de
+// escribir. Cada usuario escribe con su propia sesión: RLS impide tocar datos ajenos.
+
+async function requireRepository() {
+  const session = await getUserRepository();
+  if (!session) throw new Error("Sesión caducada: vuelve a iniciar sesión");
+  return session.repository;
+}
 
 export async function loadWorkout(): Promise<WorkoutSnapshot | null> {
-  return new SupabaseWorkoutRepository(createSupabaseAdminClient()).load();
+  return (await requireRepository()).load();
 }
 
 export async function applyWorkoutChanges(changes: unknown, snapshot: unknown): Promise<void> {
@@ -20,7 +26,7 @@ export async function applyWorkoutChanges(changes: unknown, snapshot: unknown): 
   const needsSnapshot = changes.some((c) => c.type === "replaced");
   if (needsSnapshot && !isValidSnapshot(snapshot)) throw new Error("Copia no válida");
 
-  const repository = new SupabaseWorkoutRepository(createSupabaseAdminClient());
+  const repository = await requireRepository();
   const current = (needsSnapshot ? snapshot : null) as WorkoutSnapshot;
   const writes = changes.map((c) => repository.apply(c, current));
   await repository.flush();

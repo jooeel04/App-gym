@@ -12,7 +12,7 @@ const small = { fontSize: 12, fontWeight: 500 };
 // Vista "Progreso": totales, calendario de días entrenados, progreso por día de rutina,
 // registro diario y herramientas de datos.
 export function ProgressView() {
-  const { model, stats, week, mode, actions } = useWorkout();
+  const { model, stats, week, mode, email, actions } = useWorkout();
   const fileInput = useRef<HTMLInputElement>(null);
   const all = stats.all(), cur = stats.week(week);
   const cloud = mode === "cloud";
@@ -39,10 +39,16 @@ export function ProgressView() {
       <DailyLog />
 
       <section className="chart">
-        <div className="charttitle"><h2>Tus datos</h2><span>{cloud ? "Sincronizados en la nube" : "Guardados localmente"}</span></div>
+        <div className="charttitle"><h2>Tus datos</h2><span>{cloud ? "Guardados en tu cuenta" : "Guardados localmente"}</span></div>
+        {cloud && email && (
+          <div className="account">
+            <span>Sesión iniciada como <strong>{email}</strong></span>
+            <button className="quiet" type="button" onClick={actions.signOut}>Cerrar sesión</button>
+          </div>
+        )}
         <div className="note-box">
           {cloud
-            ? "Los registros se guardan en tu base de datos de Supabase y los ves igual desde cualquier dispositivo."
+            ? "Tus registros se guardan solo en tu cuenta: nadie más los ve, y los tienes en cualquier dispositivo donde inicies sesión."
             : "Los registros quedan en el almacenamiento local de este navegador y dispositivo. Para cambiar de móvil, descarga una copia y restáurala en el otro. No se envían a ningún servidor."}
         </div>
         <div className="tools">

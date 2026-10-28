@@ -1,8 +1,8 @@
 # RUTINA · Seguimiento
 
-App web progresiva, adaptada a móvil, creada a partir de las pestañas Resumen, Rutina y Registro del Excel. Empieza con las ocho semanas de la hoja y permite añadir o quitar semanas desde el selector.
+App web progresiva, adaptada a móvil, creada a partir de las pestañas Resumen, Rutina y Registro del Excel. Las semanas se añaden solas según avanza el calendario.
 
-App personal, sin login. **Stack:** Next.js 16 (App Router, TypeScript) · Supabase (Postgres).
+Varias personas, cada una con su cuenta (correo y contraseña) y sus propios datos. **Stack:** Next.js 16 (App Router, TypeScript) · Supabase (Postgres + Auth).
 
 ## Incluye
 - Plan con cinco días y las indicaciones de cada ejercicio; el número de semanas es ajustable.
@@ -11,7 +11,7 @@ App personal, sin login. **Stack:** Next.js 16 (App Router, TypeScript) · Supab
 - Calendario: cada día de la rutina se asigna a un día de la semana (L–D), con presets y fecha de inicio del ciclo.
 - Recuperar días: Entrenar muestra lo que toca hoy y los días de las últimas dos semanas que quedaron sin hacer, para registrarlos hoy.
 - Registro diario en Progreso: lo entrenado agrupado por fecha real, marcando los días recuperados.
-- Datos en Supabase: los mismos en cualquier dispositivo.
+- Cuentas con correo y contraseña: los datos de cada persona se guardan en su cuenta y los ve en cualquier dispositivo donde inicie sesión.
 - Resumen por semana y día, historial de cargas y exportación a CSV.
 - Copia y restauración de datos en JSON.
 - Instalación en pantalla de inicio (PWA).
@@ -23,18 +23,24 @@ En el SQL Editor del proyecto, ejecuta en orden los archivos de `supabase/migrat
 1. `20261028000000_init_workout_schema.sql`
 2. `20261029000000_single_owner_mode.sql`
 3. `20261030000000_schedule_and_daily_log.sql`
+4. `20261031000000_exercise_checks.sql`
+5. `20261101000000_multi_user_accounts.sql`
+
+En Authentication → URL Configuration, añade `https://tu-dominio/auth/confirm` (y `http://localhost:3000/auth/confirm`) a las Redirect URLs: es el enlace del correo de confirmación de cuenta.
 
 ### 2. Variables de entorno
 En Vercel → Settings → Environment Variables (Production y Preview), o en `.env.local` para desarrollo:
 
 | Variable | Dónde está |
 |---|---|
-| `SUPABASE_URL` | Supabase → Project Settings → API → Project URL |
-| `SUPABASE_SECRET_KEY` | Supabase → Project Settings → API Keys → Secret key (`sb_secret_…`) o `service_role` |
+| `SUPABASE_URL` (o `NEXT_PUBLIC_SUPABASE_URL`) | Supabase → Project Settings → API → Project URL |
+| `SUPABASE_PUBLISHABLE_KEY` (o `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) | Supabase → Project Settings → API Keys → Publishable key (`sb_publishable_…`) o `anon` |
 
 Después de añadirlas o cambiarlas en Vercel, vuelve a desplegar.
 
-Sin estas variables la app arranca en **modo local**: datos solo en el navegador, compatible con la versión anterior. La primera vez que se conecta a una base de datos vacía, sube los datos locales de ese navegador como punto de partida.
+Sin estas variables la app arranca en **modo local**: sin cuentas, datos solo en el navegador.
+
+Los datos de la versión sin login (programa sin dueño) pasan a la **primera cuenta que inicia sesión**. Las cuentas siguientes empiezan con la rutina base.
 
 ### 3. Desarrollo
 ```bash
@@ -65,9 +71,10 @@ src/
     workout-controller.tsx  Controller: estado de UI, acciones, avisos; compone modelo + repositorio
   components/             Views: componentes React que leen el modelo
   app/actions/workout.ts  Server Actions: validan los cambios y los escriben en Supabase
-  lib/supabase/admin.ts   Cliente de Supabase del servidor (clave secreta)
-  lib/workout-data.ts     Carga inicial en el servidor
-  app/                    Rutas: (app)/entrenar, rutina, progreso
+  lib/supabase/          Clientes de Supabase con la sesión del usuario (servidor y proxy)
+  lib/workout-data.ts     Sesión + carga inicial en el servidor
+  proxy.ts                Refresca la sesión y redirige a /login sin ella
+  app/                    Rutas: (app)/entrenar, rutina, progreso · login · auth/confirm
 supabase/migrations/      Esquema Postgres, RLS y funciones
 ```
 
@@ -80,14 +87,15 @@ supabase/migrations/      Esquema Postgres, RLS y funciones
 
 | Tabla | Contenido |
 |---|---|
-| `programs` | El programa de la app (uno, sin usuario): semanas, calendario semanal y fecha de inicio |
+| `programs` | Uno por usuario (`user_id`): semanas, calendario semanal y fecha de inicio |
 | `exercises` | Ejercicios del plan por día (`local_id` = id que usa la app) |
-| `set_logs` | Carga, repeticiones, nota y fecha real por semana/día/ejercicio/serie |
+| `set_logs` | Carga, repeticiones, nota y fecha real por semana/día/ejercicio/serie (la serie 0 es el tick manual del ejercicio) |
 | `completed_days` | Días marcados como completados |
 
-`replace_program` (alta y restauración) y `remove_week` (borrar y renumerar) son transaccionales.
+Todas las tablas tienen RLS: cada usuario solo accede a su propio programa. `replace_program` (alta y restauración) y `remove_week` (borrar y renumerar) son transaccionales y se ejecutan con los permisos del usuario.
 
 ## Seguridad
 - `.env*` está en `.gitignore`; solo se sube `.env.example`.
-- La clave secreta solo la usa el servidor (sin `NEXT_PUBLIC_`), nunca llega al navegador. Las tablas tienen RLS: con la clave pública nadie puede leer ni escribir.
-- La app no tiene login: **cualquiera que conozca la URL puede usarla**. No compartas la dirección. Si hace falta, se puede añadir un PIN o la protección por contraseña de Vercel.
+- El servidor accede a Supabase con la sesión de cada usuario y la clave pública; las políticas RLS impiden leer o escribir datos de otra cuenta aunque se manipulen las peticiones.
+- No se usa la clave secreta (`sb_secret_…` / `service_role`): no la pongas en las variables de entorno.
+- Al cerrar sesión se borra la caché offline del dispositivo, para que la siguiente persona no vea páginas de la cuenta anterior.
