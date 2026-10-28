@@ -14,7 +14,8 @@ import { ShareRoutineCard } from "./share-routine";
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-// Vista "Rutina": un día por fila, plegado; al tocarlo se ven sus ejercicios y el botón
+// Vista "Rutina": un día por fila, plegado, ordenados de lunes a domingo (de título el
+// día de la semana y debajo lo que se entrena); al tocarlo se ven sus ejercicios y el botón
 // para hacerlo hoy. Con "Editar" aparecen las acciones para añadir, editar, reordenar
 // y eliminar ejercicios.
 export function RoutineView() {
@@ -23,6 +24,8 @@ export function RoutineView() {
   const [edit, setEdit] = useState(false);
   // Abierto al entrar: el día que toca hoy (si hay alguno).
   const [open, setOpen] = useState<number | null>(() => (today ? calendar.sessionsOn(today)[0]?.day ?? null : null));
+  // Los días sin día fijo van al final.
+  const order = [...DAYS].sort((a, b) => (model.weekdayFor(a) || 8) - (model.weekdayFor(b) || 8));
 
   return (
     <section className="view active">
@@ -37,7 +40,7 @@ export function RoutineView() {
       </div>
 
       <div className="routine-list">
-        {DAYS.map((d) => {
+        {order.map((d) => {
           const list = model.exercisesOfDay(d);
           const isOpen = open === d;
           const weekday = model.weekdayFor(d);
@@ -46,8 +49,8 @@ export function RoutineView() {
               <button type="button" className="routine-toggle" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : d)}>
                 <i className="routine-bar" aria-hidden="true" />
                 <span className="routine-title">
-                  <b>{DAY_NAMES[d]}</b>
-                  <small>{weekday ? capitalize(WEEKDAY_NAMES[weekday]) : "Sin día fijo"} · {list.length} {list.length === 1 ? "ejercicio" : "ejercicios"}</small>
+                  <b>{weekday ? capitalize(WEEKDAY_NAMES[weekday]) : "Sin día fijo"}</b>
+                  <small>{DAY_NAMES[d]} · {list.length} {list.length === 1 ? "ejercicio" : "ejercicios"}</small>
                 </span>
                 <ChevronIcon />
               </button>

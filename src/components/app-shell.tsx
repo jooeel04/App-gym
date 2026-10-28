@@ -4,8 +4,8 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import { registerTabAnimator, switchTab, useWorkout } from "@/controllers/workout-controller";
+import { useScreenAwake } from "@/lib/screen-awake";
 import { syncThemeBar } from "@/lib/theme";
-import { ActiveWorkoutBar } from "./active-workout-bar";
 import { DaySummary } from "./day-summary";
 import { LoadProblem } from "./load-problem";
 import { BrandIcon, ClockIcon, ProgressIcon, RoutineIcon, SettingsIcon, StrongIcon, TrainingIcon, TrophyIcon } from "./icons";
@@ -15,7 +15,6 @@ import { RoutineView } from "./routine-view";
 import { SettingsView } from "./settings-view";
 import { TrainingView } from "./training-view";
 import { SetupWizard } from "./setup-wizard";
-import { WorkoutFocus } from "./workout-focus";
 import { PEEK_GAP, useTabSwipe } from "./use-tab-swipe";
 
 const NAV = [
@@ -38,7 +37,7 @@ const EASE = "cubic-bezier(.32,.72,0,1)"; // curva tipo muelle de iOS
 // las páginas de cada ruta solo aportan el título y permiten abrir la URL directamente.
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { ready, loadFailed, toast, sync } = useWorkout();
+  const { ready, loadFailed, toast, sync, active } = useWorkout();
   const index = tabIndex(pathname);
   const current = NAV[index];
   // Al deslizar con el dedo asoma la pestaña vecina (`peek`); si se suelta en ella,
@@ -57,6 +56,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => { document.title = current.label + " · RUTINA"; }, [current]);
   useEffect(syncThemeBar, []);
+  // Mientras hay un entreno a medias la pantalla no se apaga.
+  useScreenAwake(!!active);
 
   // Parte visible de la pantalla (sin el teclado del móvil), para colocar las ventanas.
   useEffect(() => {
@@ -205,8 +206,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           </a>
         ))}
       </nav>
-      {ready && <ActiveWorkoutBar />}
-      {ready && <WorkoutFocus />}
       {ready && <RestTimerBar />}
       {ready && <DaySummary />}
       {ready && <SetupWizard />}

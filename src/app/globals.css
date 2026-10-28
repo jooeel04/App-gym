@@ -448,7 +448,7 @@ button:disabled,input:disabled{opacity:.6}
    ======================================================================== */
 :root{
   --glass:rgba(255,255,255,.045);--glass-strong:rgba(255,255,255,.085);--glass-line:rgba(255,255,255,.11);
-  --glass-hi:rgba(255,255,255,.2);--glass-float:rgba(18,20,26,.58);--glass-modal:rgba(20,22,28,.74);
+  --glass-hi:rgba(255,255,255,.2);--glass-float:rgba(18,20,26,.58);--glass-modal:#121419;
   --glass-shadow:0 12px 40px rgba(0,0,0,.42);--glass-blur:saturate(180%) blur(24px);
   --glow-1:rgba(46,139,255,.30);--glow-2:rgba(124,92,255,.14);--glow-3:rgba(25,158,112,.13);
   --accent-grad:linear-gradient(180deg,#56a6ff,#1f74ef);--r:24px;
@@ -456,7 +456,7 @@ button:disabled,input:disabled{opacity:.6}
 }
 :root[data-theme="light"]{
   --bg:#eef2f8;--glass:rgba(255,255,255,.55);--glass-strong:rgba(255,255,255,.72);--glass-line:rgba(255,255,255,.9);
-  --glass-hi:rgba(255,255,255,1);--glass-float:rgba(255,255,255,.6);--glass-modal:rgba(255,255,255,.8);
+  --glass-hi:rgba(255,255,255,1);--glass-float:rgba(255,255,255,.6);--glass-modal:#ffffff;
   --glass-shadow:0 10px 30px rgba(30,45,80,.10);
   --glow-1:rgba(31,111,229,.20);--glow-2:rgba(232,123,164,.18);--glow-3:rgba(27,175,122,.14);
   --accent-grad:linear-gradient(180deg,#3d8bff,#1a63d8);
@@ -544,7 +544,7 @@ h1{font-weight:760;letter-spacing:-.035em}
   box-shadow:inset 0 1px 0 var(--glass-hi),0 14px 40px rgba(0,0,0,.4)}
 .toast{bottom:calc(96px + env(safe-area-inset-bottom));border-radius:999px;padding:11px 16px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 body:has(.restbar) .toast{bottom:calc(166px + env(safe-area-inset-bottom))}
-.backdrop{background:rgba(0,0,0,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 :root[data-theme="light"] .backdrop{background:rgba(30,40,60,.22)}
 .modal,.bm-zoom-card{background:var(--glass-modal);border:1px solid var(--glass-line);border-radius:28px;
   backdrop-filter:saturate(180%) blur(30px);-webkit-backdrop-filter:saturate(180%) blur(30px);
@@ -587,40 +587,17 @@ body:has(.restbar) .toast{bottom:calc(166px + env(safe-area-inset-bottom))}
 }
 
 /* ===== Entreno en curso ===== */
-.start-workout{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 8px;width:100%;margin:0 0 14px;padding:14px 16px;border:0;border-radius:22px;
-  background:var(--accent);color:var(--on-accent);font-size:calc(15px * var(--fs));font-weight:900;letter-spacing:-.01em;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 10px 26px rgba(46,139,255,.3);transition:transform .2s}
-.start-workout:active{transform:scale(.98)}
-.start-workout small{flex-basis:100%;text-align:center;font-size:calc(10px * var(--fs));font-weight:700;opacity:.8}
-.live-tag{background:color-mix(in srgb,var(--day3) 16%,transparent);border-color:color-mix(in srgb,var(--day3) 45%,transparent);color:var(--day3)}
 .next-tag{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:999px;background:var(--day3);color:#fff;font-size:calc(9px * var(--fs));font-weight:850;vertical-align:middle}
 .exercise.next{scroll-margin-top:calc(16px + env(safe-area-inset-top));box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--day3) 60%,transparent)}
 
-.livebar{position:fixed;z-index:24;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));width:min(420px,calc(100% - 24px));
-  display:flex;align-items:center;gap:8px;padding:6px;border-radius:26px;background:var(--glass-float);border:1px solid var(--glass-line);
-  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:inset 0 1px 0 var(--glass-hi),0 14px 40px rgba(0,0,0,.4);animation:rest-in .25s ease-out}
-.live-info{flex:1;min-width:0;display:flex;align-items:center;gap:10px;border:0;background:transparent;color:var(--text);padding:4px 6px;text-align:left;border-radius:20px}
-.live-dot{flex:none;width:10px;height:10px;border-radius:50%;background:var(--day3);box-shadow:0 0 0 0 var(--day3);animation:live-pulse 1.8s ease-out infinite}
-.live-text{flex:1;min-width:0}
-.live-text small{display:block;color:var(--muted);font-size:calc(10px * var(--fs));font-weight:800;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.live-text strong{display:block;font-size:calc(20px * var(--fs));font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.live-count{flex:none;text-align:right;font-size:calc(15px * var(--fs));font-weight:900;font-variant-numeric:tabular-nums}
-.live-count small{display:block;color:var(--muted);font-size:calc(9px * var(--fs));font-weight:700}
-.live-finish{flex:none;border:1px solid var(--danger-line);background:var(--danger-bg);color:var(--danger-text);border-radius:20px;padding:12px 14px;font-size:calc(11px * var(--fs));font-weight:850}
-@keyframes live-pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--day3) 60%,transparent)}70%,100%{box-shadow:0 0 0 9px transparent}}
 /* El descanso y los avisos suben para no tapar la barra del entreno */
-body:has(.livebar) .restbar{bottom:calc(166px + env(safe-area-inset-bottom))}
-body:has(.livebar) .toast{bottom:calc(166px + env(safe-area-inset-bottom))}
-body:has(.livebar) .app{padding-bottom:calc(182px + env(safe-area-inset-bottom))}
-body:has(.livebar):has(.restbar) .toast{bottom:calc(236px + env(safe-area-inset-bottom))}
-@media(prefers-reduced-motion:reduce){.livebar,.live-dot{animation:none}.start-workout{transition:none}}
 
 /* Con el teclado abierto (escribiendo carga, repeticiones o notas) Safari en iPhone
    desplaza las barras fijas hacia arriba al moverse por la página: se esconden hasta
    cerrar el teclado, como en las apps nativas. */
 @media(pointer:coarse){
-  :is(.nav,.livebar,.restbar){transition:opacity .15s,visibility .15s}
-  body:has(:is(input:not([type=checkbox],[type=radio],[type=range],[type=file],[type=button]),textarea,select):focus) :is(.nav,.livebar,.restbar){opacity:0;visibility:hidden;pointer-events:none}
+  :is(.nav,.restbar){transition:opacity .15s,visibility .15s}
+  body:has(:is(input:not([type=checkbox],[type=radio],[type=range],[type=file],[type=button]),textarea,select):focus) :is(.nav,.restbar){opacity:0;visibility:hidden;pointer-events:none}
 }
 
 /* Calendario semanal: el nombre de la rutina cabe entero en una línea (la letra se
@@ -636,51 +613,8 @@ body:has(.livebar):has(.restbar) .toast{bottom:calc(236px + env(safe-area-inset-
 .modal{max-height:min(90vh,calc(var(--vv-h,100vh) - 30px))}
 
 /* ===== Entreno en curso: pantalla completa (modo foco) ===== */
-.start-workout.resume{background:var(--s1);color:var(--accent);border:1px solid var(--accent-line);box-shadow:none;font-size:calc(13px * var(--fs))}
-body:has(.focus-mode){overflow:hidden}
-body:has(.focus-mode) :is(.livebar,.nav){visibility:hidden}
-body:has(.focus-mode) .restbar{bottom:calc(84px + env(safe-area-inset-bottom))}
-.focus-mode{position:fixed;z-index:22;left:0;right:0;top:var(--vv-top,0);height:var(--vv-h,100%);overflow-y:auto;overscroll-behavior:contain;
-  display:flex;flex-direction:column;background:var(--bg);animation:focus-in .38s cubic-bezier(.32,.72,0,1)}
-.focus-mode::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
-  background:radial-gradient(120% 60% at 50% -10%,color-mix(in srgb,var(--day3) 14%,transparent),transparent 70%)}
-.focus-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 10px max(14px,env(safe-area-inset-left));
-  background:var(--glass-float);border-bottom:1px solid var(--glass-line);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
-.focus-min{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--line2);background:var(--s1);color:var(--text);display:grid;place-items:center}
-.focus-min svg{width:20px}
-.focus-time{flex:1;min-width:0;text-align:center}
-.focus-time small{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--muted);font-size:calc(10px * var(--fs));font-weight:800;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
-.focus-time small .live-dot{width:8px;height:8px}
-.focus-time strong{display:block;font-size:calc(22px * var(--fs));font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.focus-steps{display:flex;gap:5px;padding:12px 16px 0;max-width:640px;width:100%;margin:0 auto}
-.focus-step{flex:1;height:7px;padding:0;border:0;border-radius:999px;background:var(--s2);transition:background-color .25s,transform .2s}
-.focus-step.done{background:var(--day3)}
-.focus-step.current{background:var(--accent);transform:scaleY(1.45)}
-.focus-step.done.current{background:color-mix(in srgb,var(--day3) 70%,var(--accent))}
-.focus-body{flex:1;width:100%;max-width:640px;margin:0 auto;padding:18px 16px 24px;animation:fade-up .32s cubic-bezier(.32,.72,0,1)}
-.focus-count{display:flex;align-items:center;flex-wrap:wrap;gap:6px;color:var(--accent);font-size:calc(11px * var(--fs));font-weight:850;text-transform:uppercase;letter-spacing:.08em}
-.focus-count .ss-tag{margin:0}
-.focus-done{padding:2px 8px;border-radius:999px;background:var(--day3);color:#fff;font-size:calc(9px * var(--fs));letter-spacing:.04em}
-.focus-name{margin:8px 0 4px;font-size:calc(28px * var(--fs));line-height:1.1;letter-spacing:-.035em}
-.focus-pres{margin:0 0 16px;color:var(--muted);font-size:calc(14px * var(--fs));font-weight:700}
-.focus-body .sethead,.focus-body .setrow{grid-template-columns:44px minmax(70px,1fr) minmax(70px,1fr);gap:10px}
-.focus-body .sethead{font-size:calc(10px * var(--fs))}
-.focus-body .setrow{padding:9px 0}
-.focus-body .setnum{font-size:calc(16px * var(--fs))}
-.focus-body .field input{min-height:54px;border-radius:14px;font-size:calc(20px * var(--fs));text-align:center}
-.focus-body .field input::placeholder{font-size:calc(13px * var(--fs))}
-.focus-body .prev,.focus-body .setnote summary{font-size:calc(11px * var(--fs))}
-.focus-body .tip,.focus-body .cue{font-size:calc(12px * var(--fs))}
 .focus-check{width:100%;margin-top:14px;border:1px solid var(--line2);background:transparent;color:var(--muted);border-radius:14px;padding:12px;font-size:calc(11px * var(--fs));font-weight:800}
 .focus-check.done{color:var(--day3);border-color:color-mix(in srgb,var(--day3) 45%,transparent)}
-.focus-nav{position:sticky;bottom:0;z-index:2;display:flex;align-items:center;gap:10px;padding:10px max(14px,env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));
-  background:var(--bg);border-top:1px solid var(--line)}
-.focus-nav button{flex:1;min-height:50px;border:1px solid var(--line2);background:var(--s1);color:var(--text);border-radius:16px;font-size:calc(13px * var(--fs));font-weight:850}
-.focus-nav button.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
-.focus-nav button:disabled{background:var(--s0);border-color:var(--line);color:var(--muted2)}
-.focus-nav span{flex:none;color:var(--muted);font-size:calc(12px * var(--fs));font-weight:850;font-variant-numeric:tabular-nums}
-@keyframes focus-in{from{opacity:0;transform:translateY(40px) scale(.98)}}
-@media(prefers-reduced-motion:reduce){.focus-mode,.focus-body{animation:none}.focus-step{transition:none}}
 
 /* ===== Progreso simplificado ===== */
 /* Calendario: al tocar un día se ven sus ejercicios y series */
@@ -697,16 +631,9 @@ body:has(.focus-mode) .restbar{bottom:calc(84px + env(safe-area-inset-bottom))}
 
 /* Series: peso y repeticiones propuestos (en gris) y copiar la última vez */
 .field input.suggested::placeholder{color:var(--muted);font-size:inherit;font-weight:600;opacity:.45}
-.focus-body .field input.suggested::placeholder{font-size:inherit}
 .repeat-last{width:100%;margin:0 0 10px;border:1px dashed var(--accent-line);background:var(--accent-bg);color:var(--accent);border-radius:14px;padding:10px;font-size:calc(11px * var(--fs));font-weight:850}
 .repeat-last small{font-weight:700;opacity:.75}
 /* Pantalla completa: discos, lo que viene después y avisos arriba (abajo tapaban las series) */
-.focus-sub{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 16px}
-.focus-sub .focus-pres{margin:0}
-.focus-after{margin:18px 0 0;padding:12px 14px;border-radius:14px;background:var(--s0);border:1px solid var(--line);color:var(--muted);font-size:calc(12px * var(--fs))}
-.focus-after b{color:var(--text)}
-body:has(.focus-mode) .toast{top:calc(84px + env(safe-area-inset-top));bottom:auto!important;transform:translate(-50%,-12px)}
-body:has(.focus-mode) .toast.show{transform:translate(-50%,0)}
 
 /* Resumen: cada ejercicio frente a la última vez */
 .summary-grid .delta{margin-top:4px;text-transform:none;letter-spacing:0;font-size:calc(11px * var(--fs))}
@@ -739,7 +666,6 @@ body:has(.focus-mode) .toast.show{transform:translate(-50%,0)}
 .hero h2{display:flex;align-items:center;gap:10px;margin:6px 0 4px;font-size:calc(36px * var(--fs));line-height:1.05;letter-spacing:-.04em}
 .hero h2 i{flex:none;width:14px;height:14px;border-radius:50%;background:var(--hero)}
 .hero p{margin:4px 0 0;color:var(--soft);font-size:calc(14px * var(--fs))}
-.hero .start-workout{margin:18px 0 0;padding:20px;font-size:calc(19px * var(--fs));border-radius:20px}
 .hero .hero-note{color:var(--muted)}
 .pending-card{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;padding:12px 14px;border-radius:18px;background:var(--warn-bg);border:1px solid var(--warn-line)}
 .pending-card b{display:block;font-size:calc(13px * var(--fs))}
@@ -809,7 +735,6 @@ body:has(.focus-mode) .toast.show{transform:translate(-50%,0)}
 body:has(.wizard){overflow:hidden}
 @media(prefers-reduced-motion:reduce){.wizard{animation:none}}
 /* Con la barra del entreno y el descanso a la vez, el final de la página no queda tapado */
-body:has(.livebar):has(.restbar) .app{padding-bottom:calc(252px + env(safe-area-inset-bottom))}
 
 /* ===========================================================================
    Vistas nuevas con Liquid Glass: Hoy, entreno a pantalla completa, Rutina plegada,
@@ -820,13 +745,13 @@ body:has(.livebar):has(.restbar) .app{padding-bottom:calc(252px + env(safe-area-
 .tool-btn.active{background:rgba(46,139,255,.18);border-color:rgba(46,139,255,.55);color:var(--accent)}
 
 /* Cristal fino reutilizable para piezas que antes eran opacas */
-.pending-card,.rest-next,.focus-after,.summary-vs,.body-entry,.wizard-opt,.wizard-plan div,.wizard-days button,.wizard-actions button,.focus-check,.focus-min,
-.stat-tile,.set-box,.set-account,.focus-muscles,.stepper-card,.set-chip,.week-dot{
+.pending-card,.rest-next,.summary-vs,.body-entry,.wizard-opt,.wizard-plan div,.wizard-days button,.wizard-actions button,.focus-check,
+.stat-tile,.set-box,.set-account,.focus-muscles,.stepper-card,.set-chip{
   background:linear-gradient(180deg,var(--glass-strong),var(--glass));border:1px solid var(--glass-line);box-shadow:inset 0 1px 0 var(--glass-hi)}
 .pending-card{background:linear-gradient(180deg,rgba(240,196,107,.16),var(--glass));border-color:rgba(240,196,107,.35)}
 .wizard-opt.on,.wizard-days button.on{background:rgba(46,139,255,.18);border-color:rgba(46,139,255,.6)}
 .wizard-days button.on{color:var(--text)}
-.wizard-actions .primary,.start-workout,.set-done{background:var(--accent-grad);border-color:transparent;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 26px rgba(46,139,255,.32)}
+.wizard-actions .primary,.set-done{background:var(--accent-grad);border-color:transparent;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 26px rgba(46,139,255,.32)}
 .wizard-actions button{border-radius:999px}
 
 /* ----- Hoy ----- */
@@ -834,15 +759,6 @@ body:has(.livebar):has(.restbar) .app{padding-bottom:calc(252px + env(safe-area-
 .streak-pill{display:inline-flex;align-items:center;gap:6px;flex:none;padding:8px 12px;border-radius:999px;font-size:calc(13px * var(--fs));font-weight:800;color:#ff8a3d;
   background:linear-gradient(180deg,rgba(255,138,61,.2),rgba(255,138,61,.08));border:1px solid rgba(255,138,61,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.15)}
 .streak-pill .ico{width:16px;height:16px}
-.week-dots{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:0 0 14px}
-.week-dot{display:flex;flex-direction:column;align-items:center;gap:7px;padding:9px 0;border-radius:16px;color:var(--muted)}
-.week-dot small{font-size:calc(11px * var(--fs));font-weight:800}
-.week-dot i{width:9px;height:9px;border-radius:50%;border:2px solid var(--dc);background:transparent}
-.week-dot i.none{border-color:transparent;background:var(--glass-line)}
-.week-dot.done i{background:var(--dc)}
-.week-dot.today{background:var(--accent-grad);border-color:transparent;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 6px 16px rgba(46,139,255,.3)}
-.week-dot.today i{border-color:#fff}.week-dot.today.done i{background:#fff}
-.week-dot.today i.none{background:rgba(255,255,255,.45)}
 
 .hero{background:linear-gradient(160deg,color-mix(in srgb,var(--hero) 30%,transparent),var(--glass) 75%);border:1px solid color-mix(in srgb,var(--hero) 40%,var(--glass-line));
   box-shadow:inset 0 1px 0 var(--glass-hi),var(--glass-shadow)}
@@ -854,7 +770,6 @@ body:has(.livebar):has(.restbar) .app{padding-bottom:calc(252px + env(safe-area-
 .hero-text h2{margin:4px 0 2px;font-size:calc(28px * var(--fs))}
 .hero-text p{margin:0}
 .hero .hero-last{margin-top:14px;color:var(--muted);font-size:calc(13px * var(--fs))}
-.start-workout .ico{width:18px;height:18px}
 .peek-row em{text-align:right}
 .peek-row em small{display:block;color:var(--muted2);font-size:calc(10px * var(--fs));font-weight:600}
 .peek-row .n{border-radius:10px;background:rgba(46,139,255,.14)}
@@ -894,10 +809,6 @@ body:has(.livebar):has(.restbar) .app{padding-bottom:calc(252px + env(safe-area-
 .set-alldone{display:flex;align-items:center;gap:8px;margin:0;padding:14px;border-radius:18px;background:color-mix(in srgb,var(--day3) 14%,transparent);color:var(--day3);font-size:calc(13px * var(--fs));font-weight:750}
 .focus-more{display:block;width:100%;margin-top:10px;border:0;background:transparent;color:var(--accent);font-size:calc(13px * var(--fs));font-weight:800;padding:12px 4px}
 .focus-check{border-radius:999px}
-.focus-nav{background:var(--glass-float);border-top:1px solid var(--glass-line);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
-.focus-nav button{background:var(--glass-strong);border-color:var(--glass-line);border-radius:999px;box-shadow:inset 0 1px 0 var(--glass-hi)}
-.focus-nav button.primary{background:var(--accent-grad);border-color:transparent;color:#fff}
-.focus-nav button:disabled{background:var(--glass);color:var(--muted2);box-shadow:none}
 @media(prefers-reduced-motion:reduce){.stepper-ctl button,.set-done{transition:none}}
 
 /* ----- Rutina: días plegados ----- */
@@ -981,3 +892,20 @@ body:has(.livebar):has(.restbar) .app{padding-bottom:calc(252px + env(safe-area-
 .day-toggles{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .day-toggles button{min-height:44px;border-radius:50%;aspect-ratio:1;border:1px solid var(--glass-line);background:var(--glass);color:var(--muted);font-size:calc(13px * var(--fs));font-weight:850;box-shadow:inset 0 1px 0 var(--glass-hi)}
 .day-toggles button.on{background:var(--accent-grad);border-color:transparent;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 4px 12px rgba(46,139,255,.3)}
+
+/* Hoy: cada ejercicio de la lista se despliega para anotar sus series */
+.peek-hint{margin:-2px 0 8px;color:var(--muted);font-size:calc(12px * var(--fs))}
+button.peek-row{width:100%;border:0;border-top:1px solid var(--hair);background:transparent;color:var(--text);text-align:left;font:inherit;cursor:pointer;min-height:58px}
+button.peek-row .chev{flex:none;width:18px;color:var(--muted2);transition:transform .25s}
+.peek-item.open button.peek-row .chev{transform:rotate(180deg)}
+.peek-item{scroll-margin-top:calc(14px + env(safe-area-inset-top))}
+.peek-item.open{margin:0 -10px 10px;padding:0 10px 14px;border-radius:22px;background:var(--glass);box-shadow:inset 0 0 0 1px var(--glass-line)}
+.peek-item.open button.peek-row{border-top-color:transparent}
+.peek-detail{animation:fade-up .25s ease-out}
+.peek-detail .focus-muscles{margin-top:2px}
+.finish-workout{width:100%;min-height:50px;margin-top:16px;border:1px solid var(--glass-line);border-radius:999px;background:var(--glass-strong);
+  color:var(--text);font-size:calc(15px * var(--fs));font-weight:850;box-shadow:inset 0 1px 0 var(--glass-hi)}
+@media(prefers-reduced-motion:reduce){.peek-detail{animation:none}button.peek-row .chev{transition:none}}
+
+/* Ventanas opacas: en el tema claro los recuadros de dentro llevan un gris suave para distinguirse */
+:root[data-theme="light"] .modal :is(.libitem,.daychip:not(.active),.segmented,.modal-actions button:not(.primary),.exsearch,.switch-row,.import-preview){background:#f2f4f8;border-color:#e1e6ee}

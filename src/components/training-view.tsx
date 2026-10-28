@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
-import { addDays, formatLongDate, formatShortDate, mondayOf, WEEKDAY_NAMES, WEEKDAY_SHORT, WEEKDAYS, weekdayOf } from "@/domain/calendar";
+import { addDays, formatLongDate, formatShortDate, WEEKDAY_NAMES, weekdayOf } from "@/domain/calendar";
 import { MUSCLE_NAMES, musclesFor } from "@/domain/exercise-library";
 import { suggestNext } from "@/domain/progression";
 import { DAY_NAMES, DAYS, WARMUP_SETS } from "@/domain/snapshot";
@@ -11,13 +11,14 @@ import type { SetResult } from "@/domain/workout-stats";
 import { BodyMap } from "./body-map";
 import { describeSet } from "./exercise-progress";
 import { notifyState, requestPermissions, subscribePermission, type NotifyState } from "@/lib/permissions";
-import { BellIcon, BulbIcon, ChevronIcon, FlameIcon, PlayIcon, SleepIcon, TrendUpIcon, WarningIcon } from "./icons";
+import { ExerciseLogger } from "./exercise-logger";
+import { BellIcon, BulbIcon, ChevronIcon, FlameIcon, SleepIcon, TrendUpIcon, WarningIcon } from "./icons";
 
 export const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 
-// Vista "Hoy": la semana de un vistazo, qué toca hoy en grande (con lo que llevas hecho
-// y el botón para empezar), lo que quedó pendiente y lo que vas a hacer (solo para mirar). Las series se apuntan en la pantalla completa
-// del entreno; "Corregir series" abre la lista editable para cambiar algo después.
+// Vista "Hoy": qué toca hoy en grande (con lo que llevas hecho), lo que quedó pendiente
+// y la lista de ejercicios: al tocar uno se despliega para anotar sus series con
+// botones + / −. "Corregir series" abre la lista editable para cambiar algo después.
 export function TrainingView() {
   const { model, stats, calendar, diary, today, week, day, picked, active, actions } = useWorkout();
   const [otherDay, setOtherDay] = useState(false);
@@ -54,7 +55,6 @@ export function TrainingView() {
         {model.startDate && <StreakPill today={today} />}
       </div>
 
-      <WeekStrip today={today} />
       <PermissionCard />
 
       {resting ? <RestCard /> : (
@@ -68,13 +68,8 @@ export function TrainingView() {
             </div>
           </div>
           <p className="hero-last">{lastDate ? "La última vez: " + formatLongDate(lastDate).toLowerCase() : "Primera vez que lo haces"}</p>
-          {live ? (
-            <button type="button" className="start-workout" onClick={actions.openWorkout}><PlayIcon /> Continuar entreno</button>
-          ) : !done && list.length > 0 ? (
-            <button type="button" className="start-workout" onClick={() => actions.startWorkout(week, day)}><PlayIcon /> Empezar entreno</button>
-          ) : list.length === 0 ? (
-            <p className="hero-note">No tiene ejercicios: añádelos en Rutina.</p>
-          ) : null}
+          {list.length === 0 && <p className="hero-note">No tiene ejercicios: añádelos en Rutina.</p>}
+          {live && !done && <button type="button" className="finish-workout" onClick={actions.finishWorkout}>Terminar entreno</button>}
         </section>
       )}
       {picked && <button type="button" className="other-day" onClick={actions.goToToday}>‹ Volver a hoy</button>}
@@ -86,24 +81,7 @@ export function TrainingView() {
         </div>
       ))}
 
-      {!resting && list.length > 0 && !editList && (
-        <section className="chart peek">
-          <h3>{done ? "Lo que hiciste" : "Lo que vas a hacer"}</h3>
-          {list.map((x, i) => {
-            const now = stats.session(x, week), before = stats.lastBefore(x, week);
-            const ref = now ?? before;
-            const best = ref?.sets.reduce((a, b) => ((b.weight ?? 0) > (a.weight ?? 0) ? b : a));
-            const hecho = model.isExerciseDone(week, day, x);
-            return (
-              <div className={"peek-row" + (hecho ? " done" : "")} key={x.id}>
-                <span className="n">{hecho ? "✓" : i + 1}</span>
-                <div><b>{x.name}</b><small>{x.prescription}</small></div>
-                <em>{best ? describeSet(best) : "—"}{best && <small>{now ? "hoy" : "última vez"}</small>}</em>
-              </div>
-            );
-          })}
-        </section>
-      )}
+      {!resting && list.length > 0 && !editList && <TodayList key={week + "-" + day} done={done} />}
 
       <div className="hoy-links">
         <button type="button" className="other-day" onClick={() => setOtherDay(!otherDay)}>Hacer otro día {otherDay ? "⌃" : "›"}</button>
@@ -133,6 +111,60 @@ export function TrainingView() {
   );
 }
 
+// Ejercicios del día en pantalla. Al tocar uno se despliega para anotarlo (uno abierto
+// cada vez); al terminarlo se abre solo el siguiente que falte.
+function TodayList({ done }: { done: boolean }) {
+  const { model, stats, week, day } = useWorkout();
+  const list = model.exercisesOfDay(day);
+  const isDone = (id: number | null) => list.some((x) => x.id === id && model.isExerciseDone(week, day, x));
+  const [openId, setOpenId] = useState<number | null>(null);
+  const [openWasDone, setOpenWasDone] = useState(false);
+  const ref = useRef<HTMLElement>(null);
+  // El abierto acaba de quedar hecho: se pasa al siguiente que falte.
+  if (openId !== null && isDone(openId) !== openWasDone) {
+    if (!openWasDone) setOpenId(list.find((x) => !model.isExerciseDone(week, day, x))?.id ?? null);
+    setOpenWasDone(false);
+  }
+  // Al abrir uno, su cabecera se coloca arriba para ver las series.
+  useEffect(() => {
+    if (openId === null) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    ref.current?.querySelector(".peek-item.open")?.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
+  }, [openId]);
+
+  const toggle = (id: number) => {
+    // El primer toque sirve para pedir los permisos de los avisos y activar el sonido.
+    void requestPermissions();
+    setOpenId(openId === id ? null : id);
+    setOpenWasDone(isDone(id));
+  };
+
+  return (
+    <section className="chart peek" ref={ref}>
+      <h3>{done ? "Lo que hiciste" : "Lo que vas a hacer"}</h3>
+      <p className="peek-hint">Toca un ejercicio para anotar tus series.</p>
+      {list.map((x, i) => {
+        const now = stats.session(x, week), before = stats.lastBefore(x, week);
+        const last = now ?? before;
+        const best = last?.sets.reduce((a, b) => ((b.weight ?? 0) > (a.weight ?? 0) ? b : a));
+        const hecho = model.isExerciseDone(week, day, x);
+        const open = openId === x.id;
+        return (
+          <div className={"peek-item" + (open ? " open" : "")} key={x.id}>
+            <button type="button" className={"peek-row" + (hecho ? " done" : "")} aria-expanded={open} onClick={() => toggle(x.id)}>
+              <span className="n">{hecho ? "✓" : i + 1}</span>
+              <div><b>{x.name}</b><small>{x.prescription}</small></div>
+              <em>{best ? describeSet(best) : "—"}{best && <small>{now ? "hoy" : "última vez"}</small>}</em>
+              <ChevronIcon />
+            </button>
+            {open && <div className="peek-detail"><ExerciseLogger exercise={x} superset={supersetRole(list, i)} /></div>}
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
 // Mientras no se hayan dado los permisos, invita a darlos (avisos del descanso).
 function PermissionCard() {
   const permission = useSyncExternalStore(subscribePermission, notifyState, () => "granted" as NotifyState);
@@ -154,29 +186,6 @@ function StreakPill({ today }: { today: string }) {
     <span className="streak-pill" title={"Tu mejor racha: " + best + " semanas"}>
       <FlameIcon />{current} {current === 1 ? "semana" : "semanas"}
     </span>
-  );
-}
-
-// La semana actual (lunes a domingo): un punto del color de la rutina que toca cada día,
-// relleno si ya está hecha. Hoy va resaltado.
-function WeekStrip({ today }: { today: string }) {
-  const { calendar } = useWorkout();
-  const monday = mondayOf(today);
-  return (
-    <div className="week-dots" aria-label="Tu semana">
-      {WEEKDAYS.map((wd, i) => {
-        const date = addDays(monday, i);
-        const s = calendar.sessionsOn(date)[0];
-        const done = !!s && calendar.isDone(s.week, s.day);
-        return (
-          <div key={wd} className={"week-dot" + (date === today ? " today" : "") + (done ? " done" : "")}
-            aria-label={WEEKDAY_NAMES[wd] + ": " + (s ? DAY_NAMES[s.day] + (done ? ", hecho" : "") : "descanso")}>
-            <small>{WEEKDAY_SHORT[wd]}</small>
-            <i style={s ? { "--dc": "var(--day" + s.day + ")" } as React.CSSProperties : undefined} className={s ? "" : "none"} />
-          </div>
-        );
-      })}
-    </div>
   );
 }
 
