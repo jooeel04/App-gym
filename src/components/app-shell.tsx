@@ -76,15 +76,24 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Cada pestaña recuerda hasta dónde se bajó: al volver a ella se queda en ese punto.
+  const scrolls = useRef<Record<string, number>>({});
+  const shownPath = useRef(pathname);
+  useEffect(() => {
+    const save = () => { scrolls.current[shownPath.current] = window.scrollY; };
+    window.addEventListener("scroll", save, { passive: true });
+    return () => window.removeEventListener("scroll", save);
+  }, []);
+  // La pestaña vecina asoma ya colocada en su posición guardada, así al soltarla no salta.
+  const peekAt = useCallback((i: number) => ({ index: i, top: window.scrollY - (scrolls.current[NAV[i].href] ?? 0) }), []);
+
   // En el móvil se cambia de pestaña deslizando el dedo a izquierda o derecha.
   const mainRef = useRef<HTMLElement>(null);
   const pagerRef = useRef<HTMLDivElement>(null);
-  const swipeCommitted = useRef(false);
-  const onPeek = useCallback((i: number | null) => setPeek(i === null ? null : { index: i, top: window.scrollY }), []);
+  const onPeek = useCallback((i: number | null) => setPeek(i === null ? null : peekAt(i)), [peekAt]);
   const onCommit = useCallback((i: number) => {
-    swipeCommitted.current = true;
     setSwipedTo(NAV[i].href);
-    switchTab(NAV[i].href, false);
+    switchTab(NAV[i].href);
   }, []);
   // Resaltado de la barra inferior (lente): viaja entre botones y sigue al dedo.
   const lensRef = useRef<HTMLSpanElement>(null);
@@ -111,7 +120,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (reduce || !pagerRef.current || !mainRef.current) { switchTab(NAV[i].href); return; }
     animating.current = true;
     const dir = i > indexRef.current ? -1 : 1, width = mainRef.current.clientWidth + PEEK_GAP;
-    setPeek({ index: i, top: window.scrollY });
+    setPeek(peekAt(i));
     setLens(i - indexRef.current, SLIDE_MS);
     requestAnimationFrame(() => requestAnimationFrame(() => {
       const pager = pagerRef.current;
@@ -121,7 +130,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
       setTimeout(() => { animating.current = false; onCommit(i); }, SLIDE_MS);
     }));
-  }, [onCommit, setLens]);
+  }, [onCommit, setLens, peekAt]);
   useEffect(() => {
     registerTabAnimator((path) => goToTab(tabIndex(path)));
     return () => registerTabAnimator(null);
@@ -129,20 +138,23 @@ export function AppShell({ children }: { children: ReactNode }) {
   const onNavClick = (i: number) => (e: MouseEvent<HTMLAnchorElement>) => {
     if (!isPlainClick(e)) return;
     e.preventDefault();
-    goToTab(i);
+    // Tocar la pestaña en la que ya estás sube al principio (como en iOS).
+    if (i === index) window.scrollTo({ top: 0, behavior: "smooth" });
+    else goToTab(i);
   };
 
-  // Tras un cambio por deslizamiento, antes de pintar: la pista vuelve a su sitio
-  // (la pestaña nueva ya ocupa el lugar de la actual) y se sube al principio.
+  // Tras cambiar de pestaña, antes de pintar: la pista vuelve a su sitio (la pestaña
+  // nueva ya ocupa el lugar de la actual) y se recupera su posición guardada de golpe,
+  // sin animación, para que el cambio se vea como un único movimiento.
   useLayoutEffect(() => {
-    if (!swipeCommitted.current) return;
-    swipeCommitted.current = false;
+    if (shownPath.current === pathname) return;
+    shownPath.current = pathname;
     const pager = pagerRef.current;
     if (pager) {
       pager.style.transition = "";
       pager.style.transform = "";
     }
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: scrolls.current[pathname] ?? 0, behavior: "instant" });
   }, [pathname]);
 
   const pages = peek ? [index, peek.index] : [index];
@@ -172,7 +184,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   return (
                     <div key={href} aria-hidden={isPeek || undefined} inert={isPeek || undefined}
                       className={"page" + (isPeek ? " peek" : slide.from ? " from-" + slide.from : "")}
-                      style={isPeek && peek ? { top: peek.top, left: i > index ? `calc(100% + ${PEEK_GAP}px)` : `calc(-100% - ${PEEK_GAP}px)` } : undefined}>
+                      style={isPeek && peek ? { top: peek.top, clipPath: peek.top < 0 ? `inset(${-peek.top}px 0 0 0)` : undefined, left: i > index ? `calc(100% + ${PEEK_GAP}px)` : `calc(-100% - ${PEEK_GAP}px)` } : undefined}>
                       <View />
                     </div>
                   );

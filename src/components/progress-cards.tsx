@@ -7,29 +7,37 @@ import { formatShortDate } from "@/domain/calendar";
 import { BODY_FIELDS, type BodyField, type BodyMetrics } from "@/domain/types";
 import { TapLineChart } from "./tap-line-chart";
 import { closeOnBackdrop } from "./backdrop";
-import { FlameIcon } from "./icons";
+import { CheckIcon, FlameIcon, TrophyIcon } from "./icons";
 
 const fmt = (n: number, digits = 1) => n.toLocaleString("es-ES", { maximumFractionDigits: digits });
 
-// Racha de semanas completas y progreso de la semana actual.
-export function StreakCard() {
-  const { calendar, today, model } = useWorkout();
-  if (!today || !model.startDate) return null;
-  const s = calendar.streak(today);
+// Resumen en tres números: racha de semanas completas, días entrenados este mes y
+// récords (mejor 1RM estimado de un ejercicio) conseguidos este mes.
+export function ProgressStats() {
+  const { calendar, diary, stats, today, model } = useWorkout();
+  if (!today) return null;
+  const month = today.slice(0, 7);
+  const streak = model.startDate ? calendar.streak(today) : null;
+  const days = diary.days().filter((d) => d.date.startsWith(month)).length;
+  const records = stats.records().filter((r) => r.best1RM.date?.startsWith(month)).length;
   return (
-    <section className="chart streak-card">
-      <div className="streak-main">
-        <span className="streak-flame" aria-hidden="true"><FlameIcon /></span>
-        <div>
-          <strong>{s.current} {s.current === 1 ? "semana" : "semanas"} seguidas</strong>
-          <span>sin fallar ningún día · tu mejor racha: {s.best}</span>
-        </div>
+    <div className="stat-tiles">
+      <div className="stat-tile" title={streak ? "Tu mejor racha: " + streak.best + " semanas" : undefined}>
+        <FlameIcon className="flame" />
+        <strong>{streak?.current ?? 0}</strong>
+        <span>{streak?.current === 1 ? "semana seguida" : "semanas seguidas"}</span>
       </div>
-      <div className="streak-week" aria-label={"Esta semana: " + s.weekDone + " de " + s.weekTotal + " días"}>
-        {Array.from({ length: s.weekTotal }, (_, i) => <i key={i} className={i < s.weekDone ? "on" : ""} />)}
-        <small>{s.weekDone}/{s.weekTotal} esta semana</small>
+      <div className="stat-tile">
+        <CheckIcon className="accent" />
+        <strong>{days}</strong>
+        <span>{days === 1 ? "día este mes" : "días este mes"}</span>
       </div>
-    </section>
+      <div className="stat-tile">
+        <TrophyIcon className="gold" />
+        <strong>{records}</strong>
+        <span>{records === 1 ? "récord este mes" : "récords este mes"}</span>
+      </div>
+    </div>
   );
 }
 

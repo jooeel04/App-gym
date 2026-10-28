@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { restFinishedAlert } from "@/lib/alerts";
+import { getRestPrefs } from "@/lib/preferences";
 
 const clock = (s: number) => Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
 
-// Barra flotante con la cuenta atrás del descanso entre series. Al terminar
-// vibra y pita, y avisa de que toca la siguiente serie.
+// Barra flotante con la cuenta atrás del descanso entre series. Vibra y pita (según
+// Ajustes: al terminar o unos segundos antes) y avisa de que toca la siguiente serie.
 export function RestTimerBar() {
   const { rest, actions } = useWorkout();
   const [now, setNow] = useState(() => Date.now());
@@ -15,12 +16,18 @@ export function RestTimerBar() {
   useEffect(() => {
     if (!rest) return;
     const tick = setInterval(() => setNow(Date.now()), 250);
+    const { alert, before } = getRestPrefs();
+    const early = before > 0 && before < rest.total;
+    const warn = early ? setTimeout(() => {
+      restFinishedAlert(alert);
+      actions.showToast("Quedan " + before + " s de descanso", 2500, "clock");
+    }, Math.max(0, rest.endsAt - before * 1000 - Date.now())) : undefined;
     const end = setTimeout(() => {
-      restFinishedAlert();
+      if (!early) restFinishedAlert(alert);
       actions.showToast("¡Descanso terminado! A por la siguiente serie", 3500, "clock");
       actions.stopRest();
     }, Math.max(0, rest.endsAt - Date.now()));
-    return () => { clearInterval(tick); clearTimeout(end); };
+    return () => { clearInterval(tick); clearTimeout(warn); clearTimeout(end); };
   }, [rest, actions]);
 
   if (!rest) return null;

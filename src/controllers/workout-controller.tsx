@@ -583,10 +583,10 @@ export function navigateTab(path: string) {
   else switchTab(path);
 }
 
-export function switchTab(path: string, resetScroll = true) {
+// La posición del scroll de cada pestaña la guarda y recupera AppShell.
+export function switchTab(path: string) {
   if (window.location.pathname === path) return;
   window.history.pushState(null, "", path);
-  if (resetScroll) window.scrollTo(0, 0);
 }
 
 // Vuelve a leer la fecha cuando la app vuelve a primer plano (p. ej. al día siguiente).

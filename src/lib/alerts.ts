@@ -1,6 +1,8 @@
-// Aviso de fin de descanso: pitidos y vibración.
+// Aviso de fin de descanso: pitidos y vibración (según lo elegido en Ajustes).
 // iOS solo deja sonar audio creado tras un toque del usuario, así que el contexto
 // de audio se prepara (unlockAudio) al anotar la serie que inicia el descanso.
+
+import type { RestAlert } from "./preferences";
 
 let audio: AudioContext | null = null;
 
@@ -13,9 +15,10 @@ export function unlockAudio() {
   }
 }
 
-export function restFinishedAlert() {
-  if ("vibrate" in navigator) navigator.vibrate([250, 120, 250, 120, 400]);
-  if (!audio) return;
+export function restFinishedAlert(mode: RestAlert = "both") {
+  if (mode === "off") return;
+  if (mode !== "sound" && "vibrate" in navigator) navigator.vibrate([250, 120, 250, 120, 400]);
+  if (mode === "vibrate" || !audio) return;
   [0, 0.25, 0.5].forEach((delay, i) => {
     const osc = audio!.createOscillator(), gain = audio!.createGain();
     const t = audio!.currentTime + delay;

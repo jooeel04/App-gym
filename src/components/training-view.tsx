@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
-import { addDays, formatLongDate, formatShortDate, WEEKDAY_NAMES, weekdayOf } from "@/domain/calendar";
+import { addDays, formatLongDate, formatShortDate, mondayOf, WEEKDAY_NAMES, WEEKDAY_SHORT, WEEKDAYS, weekdayOf } from "@/domain/calendar";
 import { MUSCLE_NAMES, musclesFor } from "@/domain/exercise-library";
 import { suggestNext } from "@/domain/progression";
 import { DAY_NAMES, DAYS, WARMUP_SETS } from "@/domain/snapshot";
@@ -10,17 +10,15 @@ import type { Exercise, SetField } from "@/domain/types";
 import type { SetResult } from "@/domain/workout-stats";
 import { BodyMap } from "./body-map";
 import { describeSet } from "./exercise-progress";
-import { BulbIcon, ChevronIcon, DumbbellIcon, FlameIcon, SleepIcon, TrendUpIcon, WarningIcon } from "./icons";
-import { PlateCalculator } from "./plate-calculator";
+import { BulbIcon, ChevronIcon, FlameIcon, PlayIcon, SleepIcon, TrendUpIcon, WarningIcon } from "./icons";
 
-const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
+export const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 
-// Vista "Hoy": qué toca hoy en grande con el botón para empezar, lo que quedó pendiente
-// y lo que vas a hacer (solo para mirar). Las series se apuntan en la pantalla completa
+// Vista "Hoy": la semana de un vistazo, qué toca hoy en grande (con lo que llevas hecho
+// y el botón para empezar), lo que quedó pendiente y lo que vas a hacer (solo para mirar). Las series se apuntan en la pantalla completa
 // del entreno; "Corregir series" abre la lista editable para cambiar algo después.
 export function TrainingView() {
   const { model, stats, calendar, diary, today, week, day, picked, active, actions } = useWorkout();
-  const [plates, setPlates] = useState(false);
   const [otherDay, setOtherDay] = useState(false);
   const [editList, setEditList] = useState(false);
   const done = model.isDayCompleted(week, day);
@@ -41,6 +39,7 @@ export function TrainingView() {
   const missed = calendar.missedSessions(today).filter((s) => !(s.week === week && s.day === day));
   const lastDate = diary.days().find((d) => d.date < today && d.sessions.some((s) => s.day === day))?.date;
   const totalSets = list.reduce((n, x) => n + x.sets, 0);
+  const exDone = list.filter((x) => model.isExerciseDone(week, day, x)).length;
   const label = live ? "Entreno en curso" : done ? "¡Hecho!" : planned && planned < today ? "Para hacer hoy · era el " + formatShortDate(planned)
     : picked && planned !== today ? "Vas a hacer" : "Hoy toca";
 
@@ -51,19 +50,26 @@ export function TrainingView() {
           <div className="eyebrow">{formatLongDate(today)}</div>
           <h1>Hoy</h1>
         </div>
-        <button type="button" className="tool-btn" onClick={() => setPlates(true)}><DumbbellIcon /> Discos</button>
+        {model.startDate && <StreakPill today={today} />}
       </div>
 
+      <WeekStrip today={today} />
+
       {resting ? <RestCard /> : (
-        <section className="hero" style={{ "--hero": "var(--day" + day + ")" } as React.CSSProperties}>
-          <small>{label}</small>
-          <h2><i aria-hidden="true" />{DAY_NAMES[day]}</h2>
-          <p>{list.length} {list.length === 1 ? "ejercicio" : "ejercicios"} · {totalSets} series</p>
-          <p>{lastDate ? "La última vez: " + formatLongDate(lastDate).toLowerCase() : "Primera vez que lo haces"}</p>
+        <section className="hero" style={{ "--hero": "var(--day" + day + ")", "--p": (list.length ? exDone / list.length : 0) * 100 + "%" } as React.CSSProperties}>
+          <div className="hero-top">
+            <div className="hero-ring" role="img" aria-label={exDone + " de " + list.length + " ejercicios hechos"}><span>{exDone}/{list.length}</span></div>
+            <div className="hero-text">
+              <small>{label}</small>
+              <h2>{DAY_NAMES[day]}</h2>
+              <p>{list.length} {list.length === 1 ? "ejercicio" : "ejercicios"} · {totalSets} series</p>
+            </div>
+          </div>
+          <p className="hero-last">{lastDate ? "La última vez: " + formatLongDate(lastDate).toLowerCase() : "Primera vez que lo haces"}</p>
           {live ? (
-            <button type="button" className="start-workout" onClick={actions.openWorkout}><span aria-hidden="true">▶</span> Continuar entreno</button>
+            <button type="button" className="start-workout" onClick={actions.openWorkout}><PlayIcon /> Continuar entreno</button>
           ) : !done && list.length > 0 ? (
-            <button type="button" className="start-workout" onClick={() => actions.startWorkout(week, day)}><span aria-hidden="true">▶</span> Empezar entreno</button>
+            <button type="button" className="start-workout" onClick={() => actions.startWorkout(week, day)}><PlayIcon /> Empezar entreno</button>
           ) : list.length === 0 ? (
             <p className="hero-note">No tiene ejercicios: añádelos en Rutina.</p>
           ) : null}
@@ -90,7 +96,7 @@ export function TrainingView() {
               <div className={"peek-row" + (hecho ? " done" : "")} key={x.id}>
                 <span className="n">{hecho ? "✓" : i + 1}</span>
                 <div><b>{x.name}</b><small>{x.prescription}</small></div>
-                <em>{best ? describeSet(best) : "—"}</em>
+                <em>{best ? describeSet(best) : "—"}{best && <small>{now ? "hoy" : "última vez"}</small>}</em>
               </div>
             );
           })}
@@ -121,8 +127,41 @@ export function TrainingView() {
           ))}
         </div>
       )}
-      {plates && <PlateCalculator onClose={() => setPlates(false)} />}
     </section>
+  );
+}
+
+// Racha de semanas completas, en pequeño junto al título.
+function StreakPill({ today }: { today: string }) {
+  const { calendar } = useWorkout();
+  const { current, best } = calendar.streak(today);
+  return (
+    <span className="streak-pill" title={"Tu mejor racha: " + best + " semanas"}>
+      <FlameIcon />{current} {current === 1 ? "semana" : "semanas"}
+    </span>
+  );
+}
+
+// La semana actual (lunes a domingo): un punto del color de la rutina que toca cada día,
+// relleno si ya está hecha. Hoy va resaltado.
+function WeekStrip({ today }: { today: string }) {
+  const { calendar } = useWorkout();
+  const monday = mondayOf(today);
+  return (
+    <div className="week-dots" aria-label="Tu semana">
+      {WEEKDAYS.map((wd, i) => {
+        const date = addDays(monday, i);
+        const s = calendar.sessionsOn(date)[0];
+        const done = !!s && calendar.isDone(s.week, s.day);
+        return (
+          <div key={wd} className={"week-dot" + (date === today ? " today" : "") + (done ? " done" : "")}
+            aria-label={WEEKDAY_NAMES[wd] + ": " + (s ? DAY_NAMES[s.day] + (done ? ", hecho" : "") : "descanso")}>
+            <small>{WEEKDAY_SHORT[wd]}</small>
+            <i style={s ? { "--dc": "var(--day" + s.day + ")" } as React.CSSProperties : undefined} className={s ? "" : "none"} />
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -176,7 +215,7 @@ export function useNextExercise(live: boolean) {
 
 // Peso que se propone para una serie de trabajo vacía: el de la serie anterior de hoy
 // o, si no hay, el de esa serie la última vez.
-function suggestedWeight(prevWeights: (string | undefined)[], old?: SetResult) {
+export function suggestedWeight(prevWeights: (string | undefined)[], old?: SetResult) {
   const today = [...prevWeights].reverse().find((w) => !!w?.trim());
   if (today) return today;
   return old?.weight != null ? String(old.weight) : "";
@@ -246,8 +285,9 @@ function ExerciseCard({ exercise: x, index, open, next, superset }: { exercise: 
 }
 
 // Contenido de un ejercicio: músculos, consejo, indicaciones y series. Se usa en la
-// tarjeta de la lista y en la pantalla completa del entreno en curso.
-export function ExerciseDetail({ exercise: x, superset }: { exercise: Exercise; superset: SupersetRole }) {
+// tarjeta de la lista y en la pantalla completa del entreno en curso (`bare`: sin
+// músculos, consejo ni aviso de superserie, que allí ya se ven arriba).
+export function ExerciseDetail({ exercise: x, superset, bare = false }: { exercise: Exercise; superset: SupersetRole; bare?: boolean }) {
   const { model, stats, week, day, actions } = useWorkout();
   const last = stats.lastBefore(x, week);
   const lastWhen = last ? (last.date ? formatShortDate(last.date) : "semana " + last.week) : "";
@@ -261,14 +301,14 @@ export function ExerciseDetail({ exercise: x, superset }: { exercise: Exercise; 
 
   return (
     <>
-      {muscles && (
+      {muscles && !bare && (
         <div className="exmuscles">
           <BodyMap primary={muscles.primary} secondary={muscles.secondary} size="sm" />
           <span><b>{muscles.primary.map((m) => MUSCLE_NAMES[m]).join(", ")}</b>{muscles.secondary.length > 0 && <small>También: {muscles.secondary.map((m) => MUSCLE_NAMES[m].toLowerCase()).join(", ")}</small>}</span>
         </div>
       )}
-      {tip && <div className={"tip " + tip.kind}>{tip.kind === "increase" ? <TrendUpIcon /> : <BulbIcon />}{tip.text}</div>}
-      {superset === "first" && <p className="ss-note">Superserie: haz una serie de este y otra del siguiente sin descansar entre ambos.</p>}
+      {tip && !bare && <div className={"tip " + tip.kind}>{tip.kind === "increase" ? <TrendUpIcon /> : <BulbIcon />}{tip.text}</div>}
+      {superset === "first" && !bare && <p className="ss-note">Superserie: haz una serie de este y otra del siguiente sin descansar entre ambos.</p>}
       {x.note && <p className="cue">{x.note}</p>}
       {last && range(x.sets).some((s) => {
         const e = model.getEntry(week, day, x.id, s);
