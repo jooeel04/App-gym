@@ -7,6 +7,7 @@ import { formatShortDate } from "@/domain/calendar";
 import { BODY_FIELDS, type BodyField, type BodyMetrics } from "@/domain/types";
 import { TapLineChart } from "./tap-line-chart";
 import { closeOnBackdrop } from "./backdrop";
+import { FlameIcon } from "./icons";
 
 const fmt = (n: number, digits = 1) => n.toLocaleString("es-ES", { maximumFractionDigits: digits });
 
@@ -18,7 +19,7 @@ export function StreakCard() {
   return (
     <section className="chart streak-card">
       <div className="streak-main">
-        <span className="streak-flame" aria-hidden="true">🔥</span>
+        <span className="streak-flame" aria-hidden="true"><FlameIcon /></span>
         <div>
           <strong>{s.current} {s.current === 1 ? "semana" : "semanas"} seguidas</strong>
           <span>sin fallar ningún día · tu mejor racha: {s.best}</span>

@@ -17,7 +17,7 @@ export function RestTimerBar() {
     const tick = setInterval(() => setNow(Date.now()), 250);
     const end = setTimeout(() => {
       restFinishedAlert();
-      actions.showToast("⏱️ ¡Descanso terminado! A por la siguiente serie", 3500);
+      actions.showToast("¡Descanso terminado! A por la siguiente serie", 3500, "clock");
       actions.stopRest();
     }, Math.max(0, rest.endsAt - Date.now()));
     return () => { clearInterval(tick); clearTimeout(end); };

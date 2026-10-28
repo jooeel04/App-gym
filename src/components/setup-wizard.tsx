@@ -6,6 +6,7 @@ import { useWorkout } from "@/controllers/workout-controller";
 import { WEEKDAY_NAMES, WEEKDAY_SHORT, WEEKDAYS } from "@/domain/calendar";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { NewExerciseInput, WeekSchedule } from "@/domain/types";
+import { ClipboardIcon, PartyIcon, PencilIcon, SleepIcon, UsersIcon } from "./icons";
 
 type Shared = NewExerciseInput & { day: number };
 type Choice = "base" | "friend" | "empty";
@@ -112,11 +113,11 @@ export function SetupWizard() {
           <h1 id="wizardTitle">¿Qué rutina quieres?</h1>
           <p className="wizard-sub">Puedes cambiarla cuando quieras en Rutina.</p>
           <button type="button" className={"wizard-opt" + (choice === "base" ? " on" : "")} onClick={() => setChoice("base")}>
-            <span aria-hidden="true">📋</span><span><b>Rutina recomendada</b><small>{DAYS.length} días: {DAYS.map((d) => DAY_NAMES[d].toLowerCase()).join(", ")}</small></span>
+            <span aria-hidden="true"><ClipboardIcon /></span><span><b>Rutina recomendada</b><small>{DAYS.length} días: {DAYS.map((d) => DAY_NAMES[d].toLowerCase()).join(", ")}</small></span>
           </button>
           {cloud && (
             <button type="button" className={"wizard-opt" + (choice === "friend" ? " on" : "")} onClick={() => setChoice("friend")}>
-              <span aria-hidden="true">🤝</span><span><b>La de un amigo</b><small>Escribe su código de 6 letras</small></span>
+              <span aria-hidden="true"><UsersIcon /></span><span><b>La de un amigo</b><small>Escribe su código de 6 letras</small></span>
             </button>
           )}
           {choice === "friend" && (
@@ -124,14 +125,14 @@ export function SetupWizard() {
               onChange={(e) => setCode(e.target.value.toUpperCase())} />
           )}
           <button type="button" className={"wizard-opt" + (choice === "empty" ? " on" : "")} onClick={() => setChoice("empty")}>
-            <span aria-hidden="true">✍️</span><span><b>Empezar vacía</b><small>Añades tú los ejercicios</small></span>
+            <span aria-hidden="true"><PencilIcon /></span><span><b>Empezar vacía</b><small>Añades tú los ejercicios</small></span>
           </button>
         </>
       )}
 
       {step === 3 && (
         <>
-          <h1 id="wizardTitle">¡Listo! 🎉</h1>
+          <h1 id="wizardTitle">¡Listo! <PartyIcon className="wizard-party" /></h1>
           <p className="wizard-sub">Así queda tu semana:</p>
           <div className="wizard-plan">
             {WEEKDAYS.map((wd) => {
@@ -139,7 +140,7 @@ export function SetupWizard() {
               return (
                 <div key={wd}>
                   <span>{capitalize(WEEKDAY_NAMES[wd])}</span>
-                  {d ? <b><i style={{ background: "var(--day" + d + ")" }} />{DAY_NAMES[d]}{emptyDay(d) && <small> (vacía)</small>}</b> : <b>😴 Descanso</b>}
+                  {d ? <b><i style={{ background: "var(--day" + d + ")" }} />{DAY_NAMES[d]}{emptyDay(d) && <small> (vacía)</small>}</b> : <b><SleepIcon /> Descanso</b>}
                 </div>
               );
             })}

@@ -7,6 +7,7 @@ import { addDays, formatShortDate, mondayOf, WEEKDAY_NAMES, WEEKDAY_SHORT, WEEKD
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { WeekSchedule } from "@/domain/types";
 import { closeOnBackdrop } from "./backdrop";
+import { SettingsIcon, SleepIcon } from "./icons";
 
 // Planes rápidos: día de rutina (1-5) → día de la semana (0 = sin día fijo).
 const PRESETS: { label: string; schedule: WeekSchedule }[] = [
@@ -52,7 +53,7 @@ export function ScheduleCard() {
               <small>{WEEKDAY_SHORT[wd]}</small>
               {routines.length
                 ? routines.map((d) => <span key={d} className="wk-pill" style={{ background: "var(--day" + d + ")" }}>{SHORT_NAMES[d]}</span>)
-                : <span className="wk-rest">😴</span>}
+                : <span className="wk-rest"><SleepIcon /></span>}
               {isToday && <i className="wk-today">hoy</i>}
             </button>
           );
@@ -62,7 +63,7 @@ export function ScheduleCard() {
         <p className="schedule-note">Sin día fijo: {unscheduled.map((d) => DAY_NAMES[d]).join(", ")}. Puedes hacerlos cuando quieras desde Hoy.</p>
       )}
 
-      <button type="button" className="settings-btn" onClick={() => setSettings(true)}>⚙️ Cambiar mis días</button>
+      <button type="button" className="settings-btn" onClick={() => setSettings(true)}><SettingsIcon />Cambiar mis días</button>
       {picking !== null && <DaySheet weekday={picking} onClose={() => setPicking(null)} />}
       {settings && <WeekSettings onClose={() => setSettings(false)} />}
     </section>
@@ -161,7 +162,7 @@ function DaySheet({ weekday, onClose }: { weekday: number; onClose: () => void }
           })}
         </div>
         <div className="modal-actions">
-          <button type="button" onClick={rest}>😴 Día de descanso</button>
+          <button type="button" onClick={rest}><SleepIcon /> Día de descanso</button>
           <button className="primary" type="button" onClick={onClose}>Listo</button>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { formatLongDate } from "@/domain/calendar";
 import { DAY_NAMES } from "@/domain/snapshot";
 import { closeOnBackdrop } from "./backdrop";
 import { Delta } from "./exercise-progress";
+import { PartyIcon, StrongIcon, TrendUpIcon, TrophyIcon } from "./icons";
 
 const fmt = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 1 });
 
@@ -38,7 +39,7 @@ export function DaySummary() {
   return (
     <div className="backdrop open summary-backdrop" role="dialog" aria-modal="true" aria-labelledby="summaryTitle" {...closeOnBackdrop(actions.closeSummary)}>
       <div className="modal summary">
-        <div className="summary-emoji" aria-hidden="true">{complete ? "🎉" : "💪"}</div>
+        <div className="summary-emoji" aria-hidden="true">{complete ? <PartyIcon /> : <StrongIcon />}</div>
         <h2 id="summaryTitle">{complete ? "¡Día completado!" : "Entreno terminado"}</h2>
         <p>{DAY_NAMES[day]}{today && " · " + formatLongDate(today).toLowerCase()}</p>
         <div className="summary-grid">
@@ -49,7 +50,7 @@ export function DaySummary() {
         </div>
         {prs.length > 0 && (
           <div className="summary-prs">
-            <b>🏆 {prs.length === 1 ? "1 récord nuevo" : prs.length + " récords nuevos"}</b>
+            <b><TrophyIcon /> {prs.length === 1 ? "1 récord nuevo" : prs.length + " récords nuevos"}</b>
             {prs.map((r, i) => (
               <span key={i}>{model.findExercise(r.exerciseId)?.name}: {fmt(r.weight)} kg × {r.reps}</span>
             ))}
@@ -57,7 +58,7 @@ export function DaySummary() {
         )}
         {compared.length > 0 && (
           <div className="summary-vs">
-            <b>{better > 0 ? "📈 Mejoraste en " + better + " de " + compared.length + (compared.length === 1 ? " ejercicio" : " ejercicios") : "Frente a la última vez"}</b>
+            <b>{better > 0 && <TrendUpIcon />}{better > 0 ? " Mejoraste en " + better + " de " + compared.length + (compared.length === 1 ? " ejercicio" : " ejercicios") : "Frente a la última vez"}</b>
             {compared.map(({ x, kg, reps }) => (
               <div key={x.id}>
                 <span>{x.name}</span>

@@ -87,3 +87,84 @@ export function ClockIcon() {
     <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13" r="8" stroke="currentColor" strokeWidth="1.8" /><path d="M12 9v4l2.5 2M9 2h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
   );
 }
+
+// Iconos que sustituyen a los emojis (heredan el color del texto con currentColor).
+type IconProps = { className?: string };
+
+export function TrophyIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0V4Zm0 2H5a3 3 0 0 0 3 4m8-4h3a3 3 0 0 1-3 4m-4 3v4m-3 4h6m-5 0 .5-4h3l.5 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  );
+}
+
+export function PartyIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m4 20 4.5-12 7.5 7.5L4 20Zm2.6-7 4.4 4.4M14 3v2m5 0-1.5 1.5M21 10h-2m-6.5-3.5c1-1 1.2-2.3.5-3M17.5 11.5c1-1 2.3-1.2 3-.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  );
+}
+
+export function FlameIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21a6.5 6.5 0 0 0 6.5-6.5c0-3.5-2.5-5.5-3.5-8.5-1.5 1.5-2 3-2 4.5C11 9 9.5 6 10 3 6.5 5.5 5.5 10 5.5 14.5A6.5 6.5 0 0 0 12 21Zm0 0a2.5 2.5 0 0 1-2.5-2.5c0-1.6 1.2-2.6 2.5-4 1.3 1.4 2.5 2.4 2.5 4A2.5 2.5 0 0 1 12 21Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>
+  );
+}
+
+export function UsersIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm-6 9a6 6 0 0 1 12 0m1-16a3.5 3.5 0 0 1 0 7m2.5 9a6 6 0 0 0-3-5.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+  );
+}
+
+export function WarningIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10.3 4.3 2.6 17.6A2 2 0 0 0 4.3 20.6h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0ZM12 9.5v4m0 3.2h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  );
+}
+
+export function SleepIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 14.5A7 7 0 0 1 9.5 6a7 7 0 1 0 8.5 8.5ZM14 3h4l-4 4h4m1 2h2.5L19 11.5h2.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  );
+}
+
+export function DumbbellIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 9v6m3-9v12m12-12v12m3-9v6M6 12h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+  );
+}
+
+export function TrendUpIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8m0 0h-5m5 0v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  );
+}
+
+export function BulbIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18h6m-5 3h4M12 3a6 6 0 0 0-3.5 10.9c.4.3.5.7.5 1.1v.5h6V15c0-.4.2-.8.5-1.1A6 6 0 0 0 12 3Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  );
+}
+
+export function MedalIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 3h3l1.5 6M16 3h-3l-1.5 6" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /><circle cx="12" cy="15" r="6" fill="currentColor" /></svg>
+  );
+}
+
+export function StrongIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12L13 2Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>
+  );
+}
+
+export function ClipboardIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2M9 4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V4Zm0 7h6m-6 4h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  );
+}
+
+export function PencilIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Zm9.5-13.5 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  );
+}

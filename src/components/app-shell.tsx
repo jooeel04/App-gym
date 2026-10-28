@@ -8,7 +8,7 @@ import { syncThemeBar } from "@/lib/theme";
 import { ActiveWorkoutBar } from "./active-workout-bar";
 import { DaySummary } from "./day-summary";
 import { LoadProblem } from "./load-problem";
-import { BrandIcon, ProgressIcon, RoutineIcon, SettingsIcon, TrainingIcon } from "./icons";
+import { BrandIcon, ClockIcon, ProgressIcon, RoutineIcon, SettingsIcon, StrongIcon, TrainingIcon, TrophyIcon } from "./icons";
 import { ProgressView } from "./progress-view";
 import { RestTimerBar } from "./rest-timer";
 import { RoutineView } from "./routine-view";
@@ -198,7 +198,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       {ready && <RestTimerBar />}
       {ready && <DaySummary />}
       {ready && <SetupWizard />}
-      <div className={"toast" + (toast.visible ? " show" : "")} role="status" aria-live="polite">{toast.text}</div>
+      <div className={"toast" + (toast.visible ? " show" : "")} role="status" aria-live="polite">
+        {toast.icon === "trophy" && <TrophyIcon />}
+        {toast.icon === "clock" && <ClockIcon />}
+        {toast.icon === "strong" && <StrongIcon />}
+        {toast.text}
+      </div>
     </>
   );
 }

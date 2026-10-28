@@ -7,6 +7,7 @@ import { estimate1RM } from "@/domain/progression";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { Exercise } from "@/domain/types";
 import type { SetResult } from "@/domain/workout-stats";
+import { TrophyIcon } from "./icons";
 import { TapLineChart } from "./tap-line-chart";
 
 export const fmt = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 2 });
@@ -57,7 +58,7 @@ function ExerciseCard({ exercise: x }: { exercise: Exercise }) {
             {info && <p className="exprog-info">Fuerza = lo máximo que podrías levantar una vez (1RM), calculado con tus series. Si sube, te estás haciendo más fuerte.</p>}
             {record && (
               <p className={"exprog-record" + (fresh ? " fresh" : "")}>
-                🏆 Récord: <b>{fmt(record.best1RM.weight)} kg × {record.best1RM.reps}</b> · fuerza {fmt(Math.round(record.best1RM.value * 2) / 2)} kg
+                <TrophyIcon /> Récord: <b>{fmt(record.best1RM.weight)} kg × {record.best1RM.reps}</b> · fuerza {fmt(Math.round(record.best1RM.value * 2) / 2)} kg
                 {record.best1RM.date && " · " + formatShortDate(record.best1RM.date)}
                 {fresh && <span className="new-tag">¡Nuevo!</span>}
               </p>

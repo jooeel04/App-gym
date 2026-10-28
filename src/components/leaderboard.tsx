@@ -6,8 +6,10 @@ import { createGroup, groupLeaderboard, joinGroup, leaveGroup, myGroups, type Gr
 import { useWorkout } from "@/controllers/workout-controller";
 import { addDays, parseISODate, toISODate } from "@/domain/calendar";
 import { closeOnBackdrop } from "./backdrop";
+import { MedalIcon, UsersIcon } from "./icons";
 
-const MEDALS = ["🥇", "🥈", "🥉"];
+// Oro, plata y bronce para los tres primeros puestos.
+const MEDALS = ["gold", "silver", "bronze"];
 
 // Primer y último día del mes de `today`.
 function monthRange(today: string) {
@@ -49,7 +51,7 @@ export function LeaderboardCard() {
 
   return (
     <section className="chart">
-      <div className="charttitle"><h2>👥 Clasificación con amigos</h2><span>Días entrenados en {month}</span></div>
+      <div className="charttitle"><h2><UsersIcon /> Clasificación con amigos</h2><span>Días entrenados en {month}</span></div>
 
       {groups && groups.length > 1 && (
         <div className="daychips">
@@ -64,7 +66,7 @@ export function LeaderboardCard() {
           <ol className="leaders">
             {(rows ?? []).map((r, i) => (
               <li key={i} className={r.is_me ? "me" : ""}>
-                <span className="medal">{MEDALS[i] ?? i + 1}</span>
+                <span className={"medal " + (MEDALS[i] ?? "")} aria-label={"Puesto " + (i + 1)}>{MEDALS[i] ? <MedalIcon /> : i + 1}</span>
                 <b>{r.display_name}{r.is_me && <small> (tú)</small>}</b>
                 <span className="leader-days">{r.days} <small>{r.days === 1 ? "día" : "días"}</small></span>
               </li>

@@ -62,7 +62,7 @@ interface WorkoutContextValue {
   day: number;
   // El día lo ha elegido el usuario (no es el que toca hoy según el calendario).
   picked: boolean;
-  toast: { text: string; visible: boolean };
+  toast: Toast;
   rest: RestTimer | null;
   records: RecordHit[];
   summary: DaySummaryInfo | null;
@@ -111,7 +111,7 @@ export function WorkoutProvider({ mode, initialSnapshot, email, children }: Prov
   // null = seguir el día de hoy; un número = elegido por el usuario.
   const [selectedWeek, setWeek] = useState<number | null>(null);
   const [selectedDay, setDay] = useState<number | null>(null);
-  const [toast, setToast] = useState({ text: "", visible: false });
+  const [toast, setToast] = useState<Toast>({ text: "", visible: false });
   const [showToast] = useState(() => createToaster(setToast));
   const [rest, setRest] = useState<RestTimer | null>(null);
   const [records, setRecords] = useState<RecordHit[]>([]);
@@ -193,7 +193,7 @@ interface ActionDeps {
   model: WorkoutModel;
   stats: WorkoutStats;
   sync: ServerActionWorkoutRepository | null;
-  showToast: (text: string, ms?: number) => void;
+  showToast: (text: string, ms?: number, icon?: ToastIcon) => void;
   setWeek: (w: number | null) => void;
   setDay: (d: number | null) => void;
   goTo: (path: string) => void;
@@ -268,7 +268,7 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       if (!previous || value <= previous.best1RM.value + 0.001 || celebrated.has(tag)) return;
       celebrated.add(tag);
       addRecord({ exerciseId: id, day: d, weight, reps });
-      showToast("🏆 ¡Nuevo récord en " + x.name + "! " + weight.toLocaleString("es-ES") + " kg × " + reps, 3500);
+      showToast("¡Nuevo récord en " + x.name + "! " + weight.toLocaleString("es-ES") + " kg × " + reps, 3500, "trophy");
     }, 1500));
   };
 
@@ -339,7 +339,7 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       setDay(d);
       goTo("/entrenar");
       setFocus(true);
-      showToast("💪 ¡Entreno en marcha! " + DAY_NAMES[d]);
+      showToast("¡Entreno en marcha! " + DAY_NAMES[d], undefined, "strong");
     },
 
     // Vuelve a la pantalla completa del entreno en curso desde cualquier pestaña.
@@ -464,7 +464,7 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       setWeek(null);
       setDay(null);
       goTo(routine === "empty" ? "/rutina" : "/entrenar");
-      showToast(routine === "empty" ? "¡Listo! Añade tus ejercicios a cada día" : "¡Todo listo! 💪");
+      showToast(routine === "empty" ? "¡Listo! Añade tus ejercicios a cada día" : "¡Todo listo!", undefined, "strong");
     },
 
     // Rutina de un amigo: se añade a la propia o la sustituye (borrando la actual).
@@ -557,10 +557,14 @@ function clearSessionStart(w: number, d: number) {
 }
 
 // Aviso flotante: muestra un texto y lo oculta tras 1,8 s.
-function createToaster(setToast: (update: (t: { text: string; visible: boolean }) => { text: string; visible: boolean }) => void) {
+// Icono opcional que se pinta delante del texto del aviso.
+export type ToastIcon = "trophy" | "clock" | "strong";
+type Toast = { text: string; visible: boolean; icon?: ToastIcon };
+
+function createToaster(setToast: (update: (t: Toast) => Toast) => void) {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  return (text: string, ms = 1800) => {
-    setToast(() => ({ text, visible: true }));
+  return (text: string, ms = 1800, icon?: ToastIcon) => {
+    setToast(() => ({ text, visible: true, icon }));
     clearTimeout(timer);
     timer = setTimeout(() => setToast((t) => ({ ...t, visible: false })), ms);
   };

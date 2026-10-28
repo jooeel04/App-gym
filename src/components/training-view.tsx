@@ -10,7 +10,7 @@ import type { Exercise, SetField } from "@/domain/types";
 import type { SetResult } from "@/domain/workout-stats";
 import { BodyMap } from "./body-map";
 import { describeSet } from "./exercise-progress";
-import { ChevronIcon } from "./icons";
+import { BulbIcon, ChevronIcon, DumbbellIcon, FlameIcon, SleepIcon, TrendUpIcon, WarningIcon } from "./icons";
 import { PlateCalculator } from "./plate-calculator";
 
 const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
@@ -41,7 +41,7 @@ export function TrainingView() {
   const missed = calendar.missedSessions(today).filter((s) => !(s.week === week && s.day === day));
   const lastDate = diary.days().find((d) => d.date < today && d.sessions.some((s) => s.day === day))?.date;
   const totalSets = list.reduce((n, x) => n + x.sets, 0);
-  const label = live ? "Entreno en curso" : done ? "¡Hecho! 💪" : planned && planned < today ? "Para hacer hoy · era el " + formatShortDate(planned)
+  const label = live ? "Entreno en curso" : done ? "¡Hecho!" : planned && planned < today ? "Para hacer hoy · era el " + formatShortDate(planned)
     : picked && planned !== today ? "Vas a hacer" : "Hoy toca";
 
   return (
@@ -51,7 +51,7 @@ export function TrainingView() {
           <div className="eyebrow">{formatLongDate(today)}</div>
           <h1>Hoy</h1>
         </div>
-        <button type="button" className="tool-btn" onClick={() => setPlates(true)}>🏋️ Discos</button>
+        <button type="button" className="tool-btn" onClick={() => setPlates(true)}><DumbbellIcon /> Discos</button>
       </div>
 
       {resting ? <RestCard /> : (
@@ -73,7 +73,7 @@ export function TrainingView() {
 
       {missed.map((s) => (
         <div className="pending-card" key={s.week + "|" + s.day}>
-          <div><b>⚠️ Te quedó pendiente: {DAY_NAMES[s.day]}</b><span>Era el {formatLongDate(s.date).toLowerCase()}</span></div>
+          <div><b><WarningIcon /> Te quedó pendiente: {DAY_NAMES[s.day]}</b><span>Era el {formatLongDate(s.date).toLowerCase()}</span></div>
           <button type="button" onClick={() => actions.recoverSession(s)}>Hacer hoy</button>
         </div>
       ))}
@@ -139,9 +139,9 @@ function RestCard() {
   const when = nextUp && (nextUp.date === addDays(today, 1) ? "Mañana" : "El " + WEEKDAY_NAMES[weekdayOf(nextUp.date)]);
   return (
     <section className="chart rest-card">
-      <div className="rest-emoji" aria-hidden="true">😴</div>
+      <div className="rest-emoji" aria-hidden="true"><SleepIcon /></div>
       <h2>Hoy descansas</h2>
-      {weekTotal > 0 && <p>Llevas {weekDone} de {weekTotal} días esta semana{weekDone > 0 ? " 🔥" : ""}</p>}
+      {weekTotal > 0 && <p>Llevas {weekDone} de {weekTotal} días esta semana{weekDone > 0 && <> <FlameIcon className="flame" /></>}</p>}
       {nextUp && (
         <div className="rest-next"><i style={{ background: "var(--day" + nextUp.day + ")" }} /><div><b>{when}: {DAY_NAMES[nextUp.day]}</b><span>{formatShortDate(nextUp.date)}</span></div></div>
       )}
@@ -267,7 +267,7 @@ export function ExerciseDetail({ exercise: x, superset }: { exercise: Exercise; 
           <span><b>{muscles.primary.map((m) => MUSCLE_NAMES[m]).join(", ")}</b>{muscles.secondary.length > 0 && <small>También: {muscles.secondary.map((m) => MUSCLE_NAMES[m].toLowerCase()).join(", ")}</small>}</span>
         </div>
       )}
-      {tip && <div className={"tip " + tip.kind}><span aria-hidden="true">{tip.kind === "increase" ? "📈" : "💡"}</span>{tip.text}</div>}
+      {tip && <div className={"tip " + tip.kind}>{tip.kind === "increase" ? <TrendUpIcon /> : <BulbIcon />}{tip.text}</div>}
       {superset === "first" && <p className="ss-note">Superserie: haz una serie de este y otra del siguiente sin descansar entre ambos.</p>}
       {x.note && <p className="cue">{x.note}</p>}
       {last && range(x.sets).some((s) => {

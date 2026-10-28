@@ -38,7 +38,7 @@ main{padding-top:26px}.weekaction{min-height:30px;border:1px solid var(--line2);
 .auth-msg.error{border-color:var(--danger-line);color:var(--danger-text);background:var(--danger-bg)}
 .auth-link{display:block;margin:14px auto 0;border:0;background:none;color:var(--accent);font-size:calc(12px * var(--fs));font-weight:800;text-decoration:underline;text-underline-offset:3px}
 .load-problem{text-align:center}
-.load-problem-icon{font-size:34px;margin-bottom:6px}
+.load-problem-icon{display:flex;justify-content:center;margin-bottom:6px;color:var(--hot)}.load-problem-icon svg{width:38px;height:38px}
 
 
 
@@ -220,6 +220,17 @@ button.calday.selected small{color:var(--text);font-weight:900}
 .tool-btn{flex:none;align-self:center;border:1px solid var(--line2);background:var(--s);color:var(--text);border-radius:12px;padding:10px 12px;font-size:calc(11px * var(--fs));font-weight:850}
 .tip{display:flex;gap:8px;align-items:flex-start;margin:0 0 12px;padding:10px 11px;border-radius:12px;background:var(--accent-bg);color:var(--text);font-size:calc(11px * var(--fs));font-weight:750;line-height:1.4}
 .tip.increase{background:var(--hot);color:#fff}
+/* Iconos SVG que sustituyen a los emojis: toman el tamaño y el color del texto */
+.ico{width:1.2em;height:1.2em;flex:none;vertical-align:-.22em}
+.tip .ico{width:16px;height:16px;margin-top:1px}
+.tool-btn .ico,.modal-actions .ico{margin-right:4px}
+.summary-emoji .ico{width:34px;height:34px}
+.summary-prs b .ico{color:#f5b301}
+.charttitle h2 .ico{margin-right:3px;color:var(--accent)}
+.streak-badge .ico{align-self:center;color:#ff8a3d}
+.ico.flame,.pending-card .ico{color:#ff8a3d}
+.summary-emoji .ico,.summary-vs .ico{color:var(--accent)}
+.toast svg{width:16px;height:16px;vertical-align:-3px;margin-right:6px}
 .ss-note{margin:0 0 12px;color:var(--accent);font-size:calc(10px * var(--fs));font-weight:750}
 .exercise.superset{border-left:3px solid var(--accent)}
 .exercise.superset.first{border-bottom-left-radius:6px;border-bottom-right-radius:6px;margin-bottom:-5px}
@@ -254,7 +265,7 @@ body:has(.restbar) .toast{bottom:calc(152px + env(safe-area-inset-bottom))}
 /* Resumen del día */
 .summary-backdrop{align-items:center}
 .modal.summary{text-align:center}
-.summary-emoji{font-size:44px;animation:pop-in .5s cubic-bezier(.22,1.6,.36,1)}
+.summary-emoji{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 6px;border-radius:50%;background:var(--accent-bg);color:var(--accent);animation:pop-in .5s cubic-bezier(.22,1.6,.36,1)}
 .summary h2{margin-top:4px}
 .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
 .summary-grid div{background:var(--s0);border:1px solid var(--line);border-radius:14px;padding:12px}
@@ -280,7 +291,7 @@ body:has(.restbar) .toast{bottom:calc(152px + env(safe-area-inset-bottom))}
 /* Progreso: racha, récords y cuerpo */
 .streak-card{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:linear-gradient(135deg,var(--s),var(--accent-bg))}
 .streak-main{display:flex;align-items:center;gap:12px}
-.streak-flame{font-size:34px}
+.streak-flame{display:grid;color:#ff8a3d}.streak-flame svg{width:36px;height:36px}
 .streak-main strong{display:block;font-size:calc(16px * var(--fs));letter-spacing:-.02em}
 .streak-main span{display:block;color:var(--muted);font-size:calc(11px * var(--fs));margin-top:2px}
 .streak-week{display:flex;align-items:center;gap:5px}
@@ -312,7 +323,7 @@ body:has(.restbar) .toast{bottom:calc(152px + env(safe-area-inset-bottom))}
 .leaders{list-style:none;margin:0;padding:0;display:grid;gap:6px}
 .leaders li{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:13px;background:var(--s0);border:1px solid var(--line)}
 .leaders li.me{border-color:var(--accent);background:var(--accent-bg)}
-.leaders .medal{width:26px;text-align:center;font-size:18px;font-weight:900;color:var(--muted)}
+.leaders .medal{width:26px;display:grid;place-items:center;font-size:18px;font-weight:900;color:var(--muted)}.leaders .medal svg{width:22px;height:22px}.leaders .medal.gold{color:#f5b301}.leaders .medal.silver{color:#a8b2bd}.leaders .medal.bronze{color:#c9773b}
 .leaders b{flex:1;min-width:0;font-size:calc(13px * var(--fs));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .leaders b small{color:var(--muted);font-weight:700}
 .leader-days{font-size:calc(17px * var(--fs));font-weight:900}
@@ -332,7 +343,7 @@ body:has(.restbar) .toast{bottom:calc(152px + env(safe-area-inset-bottom))}
 .wk-day.today{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg)}
 .wk-day.today small{color:var(--accent)}
 .wk-pill{display:block;border-radius:7px;padding:5px 1px;color:#fff;font-size:calc(8.5px * var(--fs));line-height:1.15;font-weight:850;overflow-wrap:anywhere;letter-spacing:-.02em}
-.wk-rest{margin-top:auto;margin-bottom:auto;font-size:18px;opacity:.6}
+.wk-rest{margin-top:auto;margin-bottom:auto;display:grid;opacity:.6}.wk-rest svg{width:18px;height:18px}
 .wk-today{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);padding:1px 6px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:8px;font-weight:900;font-style:normal;text-transform:uppercase}
 .planner-section{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
 .planner-section>b{display:block;margin-bottom:9px;font-size:calc(12px * var(--fs))}
@@ -748,7 +759,7 @@ body:has(.focus-mode) .toast.show{transform:translate(-50%,0)}
 .other-day{border:0;background:transparent;color:var(--accent);font-size:calc(13px * var(--fs));font-weight:850;padding:8px 2px}
 .days .day .swatch{display:inline-block;width:8px;height:8px;border-radius:50%;margin-bottom:6px}
 .rest-card{text-align:center;padding:26px 18px}
-.rest-emoji{font-size:54px}
+.rest-emoji{display:flex;justify-content:center;color:var(--muted)}.rest-emoji .ico{width:52px;height:52px}
 .rest-card h2{margin:6px 0;font-size:calc(28px * var(--fs));letter-spacing:-.03em}
 .rest-card p{margin:0;color:var(--muted);font-size:calc(13px * var(--fs))}
 .rest-next{display:flex;align-items:center;gap:12px;margin-top:16px;padding:14px;border-radius:18px;background:var(--s0);border:1px solid var(--line);text-align:left}
@@ -782,7 +793,8 @@ body:has(.focus-mode) .toast.show{transform:translate(-50%,0)}
 .wizard-days button:active{transform:scale(.95)}
 .wizard-opt{display:flex;gap:14px;align-items:center;width:100%;margin-bottom:10px;padding:16px;border-radius:20px;border:1px solid var(--line2);background:var(--s1);color:var(--text);text-align:left}
 .wizard-opt.on{border-color:var(--accent);background:var(--accent-bg)}
-.wizard-opt>span:first-child{font-size:28px}
+.wizard-opt>span:first-child{display:grid;color:var(--accent)}.wizard-opt>span:first-child .ico{width:28px;height:28px}
+.wizard h1 .wizard-party{color:var(--accent)}
 .wizard-opt b{display:block;font-size:calc(15px * var(--fs))}
 .wizard-opt small{display:block;margin-top:2px;color:var(--muted);font-size:calc(12px * var(--fs))}
 .wizard-code{margin:-2px 0 12px;text-align:center;letter-spacing:.3em;font-weight:850}

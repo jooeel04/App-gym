@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { DAY_NAMES } from "@/domain/snapshot";
 import { clock } from "./active-workout-bar";
+import { DumbbellIcon } from "./icons";
 import { PlateCalculator } from "./plate-calculator";
 import { ExerciseDetail, supersetRole, useNextExercise } from "./training-view";
 
@@ -76,7 +77,7 @@ export function WorkoutFocus() {
         <h2 className="focus-name">{x.name}</h2>
         <div className="focus-sub">
           <p className="focus-pres">{x.prescription}</p>
-          <button type="button" className="tool-btn" onClick={() => setPlates(true)}>🏋️ Discos</button>
+          <button type="button" className="tool-btn" onClick={() => setPlates(true)}><DumbbellIcon /> Discos</button>
         </div>
         <ExerciseDetail exercise={x} superset={superset} />
         {!filled && (
