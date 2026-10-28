@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { BrandIcon, ProgressIcon, RoutineIcon, TrainingIcon } from "./icons";
-import { InstallButton } from "./install-button";
 
 const NAV = [
   { href: "/entrenar", label: "Entrenar", Icon: TrainingIcon },
@@ -26,7 +25,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="brand-icon"><BrandIcon /></span>
             <span><span className="brand-word">RUTINA</span><span className="brand-sub">SEGUIMIENTO</span></span>
           </Link>
-          <InstallButton />
         </header>
         <main>{ready ? children : <div className="empty">Cargando tus datos…</div>}</main>
       </div>
