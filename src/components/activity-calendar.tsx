@@ -13,10 +13,12 @@ function dotBackground(days: number[]) {
 }
 
 // Calendario mensual: cada fecha es un punto que se colorea con el día de rutina
-// que se hizo (series anotadas o ejercicios marcados con el tick).
+// que se hizo (series anotadas o ejercicios marcados con el tick). Al tocar un día
+// se ve debajo qué se entrenó.
 export function ActivityCalendar() {
   const { diary, today } = useWorkout();
   const [offset, setOffset] = useState(0);
+  const [selected, setSelected] = useState<string | null>(null);
   if (!today) return null;
 
   const base = parseISODate(today);
@@ -26,6 +28,9 @@ export function ActivityCalendar() {
   const month = firstDate.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
   const activity = diary.activity();
   const blanks = weekdayOf(first) - 1;
+  const sel = selected ?? today;
+  const selDays = Array.from(activity.get(sel) ?? []).sort();
+  const selSessions = diary.days().find((d) => d.date === sel)?.sessions ?? [];
 
   return (
     <section className="chart">
@@ -45,10 +50,28 @@ export function ActivityCalendar() {
           const done = Array.from(activity.get(date) ?? []).sort();
           const label = formatLongDate(date) + ": " + (done.length ? done.map((d) => "Día " + d + " · " + DAY_NAMES[d]).join(", ") : "sin entrenar");
           return (
-            <span className={"calday" + (date === today ? " today" : "")} key={date} title={label} aria-label={label}>
+            <button type="button" className={"calday" + (date === today ? " today" : "") + (date === sel ? " selected" : "")} key={date} title={label} aria-label={label} aria-pressed={date === sel} onClick={() => setSelected(date)}>
               <i className={"caldot" + (done.length ? " done" : "")} style={done.length ? { background: dotBackground(done) } : undefined} />
               <small>{i + 1}</small>
-            </span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="calinfo" aria-live="polite">
+        <strong>{formatLongDate(sel)}</strong>
+        {selDays.length === 0 && <span className="calinfo-empty">Sin entrenar</span>}
+        {selDays.map((d) => {
+          const sessions = selSessions.filter((s) => s.day === d);
+          const exercises = sessions.reduce((n, s) => n + s.exercises.length, 0);
+          const sets = sessions.reduce((n, s) => n + s.exercises.reduce((m, x) => m + x.sets.length, 0), 0);
+          return (
+            <div className="calinfo-row" key={d}>
+              <i className="caldot done" style={{ background: "var(--day" + d + ")" }} />
+              <span>
+                <b>Día {d} · {DAY_NAMES[d]}</b>
+                <small>{exercises ? exercises + (exercises === 1 ? " ejercicio" : " ejercicios") + " · " + sets + (sets === 1 ? " serie" : " series") : "Marcado con el tick"}</small>
+              </span>
+            </div>
           );
         })}
       </div>

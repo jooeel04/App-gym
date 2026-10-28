@@ -4,15 +4,18 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import { switchTab, useWorkout } from "@/controllers/workout-controller";
-import { BrandIcon, ProgressIcon, RoutineIcon, TrainingIcon } from "./icons";
+import { syncThemeBar } from "@/lib/theme";
+import { BrandIcon, ProgressIcon, RoutineIcon, SettingsIcon, TrainingIcon } from "./icons";
 import { ProgressView } from "./progress-view";
 import { RoutineView } from "./routine-view";
+import { SettingsView } from "./settings-view";
 import { TrainingView } from "./training-view";
 
 const NAV = [
   { href: "/entrenar", label: "Entrenar", Icon: TrainingIcon, View: TrainingView },
   { href: "/rutina", label: "Rutina", Icon: RoutineIcon, View: RoutineView },
   { href: "/progreso", label: "Progreso", Icon: ProgressIcon, View: ProgressView },
+  { href: "/ajustes", label: "Ajustes", Icon: SettingsIcon, View: SettingsView },
 ];
 
 const tabIndex = (path: string) => Math.max(0, NAV.findIndex((n) => n.href === path));
@@ -42,6 +45,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => { document.title = current.label + " · RUTINA"; }, [current]);
+  useEffect(syncThemeBar, []);
 
   return (
     <>

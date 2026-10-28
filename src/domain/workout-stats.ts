@@ -1,6 +1,5 @@
-import { parseISODate } from "./calendar";
-import { DAYS, isLogged, parseKey } from "./snapshot";
-import type { Exercise, SetEntry, Tally } from "./types";
+import { DAYS, isLogged } from "./snapshot";
+import type { Exercise, Tally } from "./types";
 import type { WorkoutModel } from "./workout-model";
 
 export function percent(n: number, p: number) {
@@ -24,26 +23,10 @@ export interface ExerciseSession {
   volume: number; // kg × repeticiones
 }
 
-// Totales de una semana del ciclo o de un mes.
-export interface PeriodTotals {
-  key: string;
-  label: string;
-  volume: number;
-  reps: number;
-  sets: number;
-}
-
 function toNumber(v: string | undefined) {
   if (v == null || String(v).trim() === "") return null;
   const n = Number(v);
   return Number.isFinite(n) && n >= 0 ? n : null;
-}
-
-function addSet(t: { volume: number; reps: number; sets: number }, e: SetEntry) {
-  const kg = toNumber(e.weight), reps = toNumber(e.reps);
-  t.sets++;
-  if (reps) t.reps += reps;
-  if (kg && reps) t.volume += kg * reps;
 }
 
 // Cálculos de solo lectura sobre el modelo: series anotadas, cargas y repeticiones.
@@ -112,41 +95,4 @@ export class WorkoutStats {
     }
     return null;
   }
-
-  // ---- Totales por semana y por mes ----
-
-  weeklyTotals(): PeriodTotals[] {
-    return Array.from({ length: this.model.weeksCount }, (_, i) => {
-      const w = i + 1, t = { key: String(w), label: "S" + w, volume: 0, reps: 0, sets: 0 };
-      this.model.routine.forEach((x) => {
-        for (let s = 1; s <= x.sets; s++) {
-          const e = this.model.getEntry(w, x.day, x.id, s);
-          if (isLogged(e)) addSet(t, e);
-        }
-      });
-      t.volume = Math.round(t.volume);
-      return t;
-    });
-  }
-
-  // Por mes real de entrenamiento (series con fecha), del más antiguo al más reciente.
-  monthlyTotals(): PeriodTotals[] {
-    const months = new Map<string, PeriodTotals>();
-    Object.entries(this.model.snapshot.entries).forEach(([k, e]) => {
-      if (!e.date || !isLogged(e) || !this.model.findExercise(parseKey(k)[2])) return;
-      const key = e.date.slice(0, 7);
-      const t = months.get(key) ?? { key, label: monthLabel(key), volume: 0, reps: 0, sets: 0 };
-      addSet(t, e);
-      months.set(key, t);
-    });
-    return Array.from(months.values())
-      .sort((a, b) => (a.key < b.key ? -1 : 1))
-      .map((t) => ({ ...t, volume: Math.round(t.volume) }));
-  }
-}
-
-// "2026-10" → "oct 26"
-function monthLabel(key: string) {
-  const d = parseISODate(key + "-01");
-  return d.toLocaleDateString("es-ES", { month: "short" }).replace(".", "") + " " + String(d.getFullYear()).slice(2);
 }

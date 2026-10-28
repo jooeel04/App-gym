@@ -1,11 +1,11 @@
 // Service worker: la app funciona sin conexión.
 // - Estáticos de Next (/_next/static, con hash): primero caché.
 // - Páginas y demás GET del propio origen: primero red, caché como respaldo.
-//   Sin conexión, cualquier pestaña (Entrenar, Rutina, Progreso) se abre con la última
+//   Sin conexión, cualquier pestaña (Entrenar, Rutina, Progreso, Ajustes) se abre con la última
 //   página de la app guardada: la vista se elige en el navegador según la URL.
 // - Peticiones a Supabase y a otros orígenes: no se tocan (los datos siempre van a la red).
-const CACHE = "rutina-seguimiento-v7";
-const APP_PAGES = ["/entrenar", "/rutina", "/progreso"];
+const CACHE = "rutina-seguimiento-v8";
+const APP_PAGES = ["/entrenar", "/rutina", "/progreso", "/ajustes"];
 const PRECACHE = ["/icon.svg", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
