@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { createGroup, groupLeaderboard, joinGroup, leaveGroup, myGroups, type GroupInfo, type LeaderRow } from "@/app/actions/social";
 import { useWorkout } from "@/controllers/workout-controller";
 import { addDays, parseISODate, toISODate } from "@/domain/calendar";
@@ -109,7 +110,8 @@ function GroupForm({ kind, defaultName, onClose, onDone }: { kind: "create" | "j
     if (!res.ok) { setError(res.error ?? "No se pudo completar."); return; }
     onDone(kind === "create" ? (res.data as string) : String(value).trim().toUpperCase());
   };
-  return (
+  // Fuera de las pestañas (su contenedor se desplaza), si no la ventana no queda fija en pantalla.
+  return createPortal(
     <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="groupTitle" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <form className="modal" onSubmit={submit}>
         <h2 id="groupTitle">{kind === "create" ? "Crear grupo" : "Unirme a un grupo"}</h2>
@@ -126,6 +128,7 @@ function GroupForm({ kind, defaultName, onClose, onDone }: { kind: "create" | "j
           <button className="primary" type="submit" disabled={busy}>{busy ? "Un momento…" : kind === "create" ? "Crear" : "Unirme"}</button>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body,
   );
 }

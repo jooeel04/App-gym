@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 
 const PLATES = [25, 20, 15, 10, 5, 2.5, 1.25];
 const BARS = [20, 15, 10, 0];
@@ -33,7 +34,8 @@ export function PlateCalculator({ onClose }: { onClose: () => void }) {
   const kg = Number(total.replace(",", "."));
   const { plates, rest } = platesFor(kg, bar);
 
-  return (
+  // Fuera de las pestañas (su contenedor se desplaza), si no la ventana no queda fija en pantalla.
+  return createPortal(
     <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="platesTitle" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal plates-modal">
         <h2 id="platesTitle">Calculadora de discos</h2>
@@ -64,6 +66,7 @@ export function PlateCalculator({ onClose }: { onClose: () => void }) {
         </p>
         <div className="modal-actions"><button className="primary" type="button" onClick={onClose}>Cerrar</button></div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

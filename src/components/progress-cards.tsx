@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useWorkout } from "@/controllers/workout-controller";
 import { formatShortDate } from "@/domain/calendar";
 import { BODY_FIELDS, type BodyField, type BodyMetrics } from "@/domain/types";
@@ -112,7 +113,8 @@ function BodyForm({ date, initial, onSave, onClose }: { date: string; initial: B
     });
     onSave(metrics);
   };
-  return (
+  // Fuera de las pestañas (su contenedor se desplaza), si no la ventana no queda fija en pantalla.
+  return createPortal(
     <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="bodyTitle" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <form className="modal" onSubmit={submit}>
         <h2 id="bodyTitle">Medidas de hoy</h2>
@@ -130,6 +132,7 @@ function BodyForm({ date, initial, onSave, onClose }: { date: string; initial: B
           <button className="primary" type="submit">Guardar</button>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body,
   );
 }

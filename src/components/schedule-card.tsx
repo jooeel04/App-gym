@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useWorkout } from "@/controllers/workout-controller";
 import { addDays, formatShortDate, mondayOf, WEEKDAY_NAMES, WEEKDAY_SHORT, WEEKDAYS, weekdayOf } from "@/domain/calendar";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
@@ -120,7 +121,8 @@ function DaySheet({ weekday, onClose }: { weekday: number; onClose: () => void }
   const toggle = (d: number) => actions.setWeekday(d, schedule[d] === weekday ? 0 : weekday);
   const rest = () => DAYS.filter((d) => schedule[d] === weekday).forEach((d) => actions.setWeekday(d, 0));
 
-  return (
+  // Fuera de las pestañas (su contenedor se desplaza), si no la ventana no queda fija en pantalla.
+  return createPortal(
     <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="daySheetTitle" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal day-sheet">
         <h2 id="daySheetTitle">{capitalize(WEEKDAY_NAMES[weekday])}</h2>
@@ -143,6 +145,7 @@ function DaySheet({ weekday, onClose }: { weekday: number; onClose: () => void }
           <button className="primary" type="button" onClick={onClose}>Listo</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

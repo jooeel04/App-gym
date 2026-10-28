@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useWorkout } from "@/controllers/workout-controller";
 import { MUSCLE_NAMES, musclesFor, searchLibrary, type LibraryExercise } from "@/domain/exercise-library";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
@@ -44,7 +45,8 @@ export function ExerciseModal({ day, exercise, onClose }: { day: number; exercis
     if (exercise ? actions.updateExercise(exercise.id, data) : actions.addExercise(day, data)) onClose();
   };
 
-  return (
+  // Fuera de las pestañas (su contenedor se desplaza), si no la ventana no queda fija en pantalla.
+  return createPortal(
     <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="exerciseModalTitle" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal exmodal">
         <div className="exmodal-head">
@@ -124,6 +126,7 @@ export function ExerciseModal({ day, exercise, onClose }: { day: number; exercis
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

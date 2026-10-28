@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { getSharedRoutine, shareRoutine } from "@/app/actions/social";
 import { useWorkout } from "@/controllers/workout-controller";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
@@ -91,7 +92,8 @@ function ImportModal({ initialCode, onClose }: { initialCode: string; onClose: (
     if (routine && actions.importRoutine(routine, replace)) onClose();
   };
 
-  return (
+  // Fuera de las pestañas (su contenedor se desplaza), si no la ventana no queda fija en pantalla.
+  return createPortal(
     <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="importTitle" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal">
         <h2 id="importTitle">Importar rutina</h2>
@@ -124,6 +126,7 @@ function ImportModal({ initialCode, onClose }: { initialCode: string; onClose: (
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
