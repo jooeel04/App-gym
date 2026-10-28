@@ -14,7 +14,7 @@ Varias personas, cada una con su cuenta (correo y contraseña) y sus propios dat
 - Cuentas con correo y contraseña: los datos de cada persona se guardan en su cuenta y los ve en cualquier dispositivo donde inicie sesión.
 - Resumen por semana y día, historial de cargas y exportación a CSV.
 - Copia y restauración de datos en JSON.
-- Instalación en pantalla de inicio (PWA).
+- Instalación en pantalla de inicio (PWA) y uso sin conexión: los cambios se guardan en el dispositivo y se envían a la cuenta al volver internet.
 
 ## Puesta en marcha
 

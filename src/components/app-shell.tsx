@@ -32,7 +32,7 @@ function onTabClick(href: string) {
 // las páginas de cada ruta solo aportan el título y permiten abrir la URL directamente.
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { ready, toast } = useWorkout();
+  const { ready, toast, sync } = useWorkout();
   const current = NAV[tabIndex(pathname)];
   // Dirección del cambio de pestaña: la nueva entra por la derecha si está a la derecha
   // en la barra inferior, y por la izquierda si está a la izquierda.
@@ -51,6 +51,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="brand-icon"><BrandIcon /></span>
             <span><span className="brand-word">RUTINA</span><span className="brand-sub">SEGUIMIENTO</span></span>
           </a>
+          {(sync.offline || sync.pending > 0) && (
+            <span className={"syncpill" + (sync.offline ? " offline" : "")} role="status">
+              {sync.offline ? "Sin conexión" : "Guardando…"}
+              {sync.offline && sync.pending > 0 && " · " + sync.pending + (sync.pending === 1 ? " cambio por enviar" : " cambios por enviar")}
+            </span>
+          )}
         </header>
         <main>
           {ready

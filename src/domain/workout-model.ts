@@ -49,6 +49,13 @@ export class WorkoutModel {
     this.emit();
   }
 
+  // Sustituye el estado por uno ya guardado (p. ej. la copia local con cambios que
+  // aún no llegaron al servidor) sin volver a persistirlo.
+  adopt(snapshot: WorkoutSnapshot) {
+    this.applyData(snapshot);
+    this.emit();
+  }
+
   private copyBaseRoutine(): Exercise[] {
     return this.baseRoutine.map((x) => ({ ...x }));
   }

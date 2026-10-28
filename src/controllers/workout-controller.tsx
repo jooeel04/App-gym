@@ -14,7 +14,7 @@ import { WorkoutModel } from "@/domain/workout-model";
 import { WorkoutStats } from "@/domain/workout-stats";
 import type { StorageMode } from "@/lib/workout-data";
 import { LocalWorkoutRepository } from "@/repositories/local-workout-repository";
-import { ServerActionWorkoutRepository } from "@/repositories/server-action-workout-repository";
+import { ServerActionWorkoutRepository, type SyncStatus } from "@/repositories/server-action-workout-repository";
 import type { WorkoutRepository } from "@/repositories/workout-repository";
 
 interface WorkoutContextValue {
@@ -25,6 +25,8 @@ interface WorkoutContextValue {
   mode: StorageMode;
   // Correo de la cuenta con la sesión iniciada (null en modo local).
   email: string | null;
+  // Sincronización con la cuenta: sin conexión y cambios pendientes de enviar.
+  sync: SyncStatus;
   // Fecha de hoy (solo en el navegador; null durante el renderizado en el servidor).
   today: string | null;
   ready: boolean;
@@ -47,10 +49,15 @@ export function useWorkout() {
 }
 
 // Raíz de composición: elige el repositorio según el modo y crea el modelo.
-function createModel(mode: StorageMode, snapshot: WorkoutSnapshot | null) {
-  const repository: WorkoutRepository = mode === "cloud" ? new ServerActionWorkoutRepository() : new LocalWorkoutRepository();
-  return new WorkoutModel(repository, BASE_ROUTINE, snapshot);
+function createModel(mode: StorageMode, snapshot: WorkoutSnapshot | null, email: string | null) {
+  const sync = mode === "cloud" ? new ServerActionWorkoutRepository(email || "cuenta") : null;
+  const repository: WorkoutRepository = sync ?? new LocalWorkoutRepository();
+  return { model: new WorkoutModel(repository, BASE_ROUTINE, snapshot), sync };
 }
+
+const IDLE: SyncStatus = { offline: false, pending: 0 };
+const noSubscribe = () => () => {};
+const idle = () => IDLE;
 
 interface ProviderProps {
   mode: StorageMode;
@@ -62,7 +69,7 @@ interface ProviderProps {
 // Controlador: guarda el estado de la interfaz (semana, día, avisos), traduce
 // las acciones del usuario en cambios del modelo y expone el modelo a las vistas.
 export function WorkoutProvider({ mode, initialSnapshot, email, children }: ProviderProps) {
-  const [model] = useState(() => createModel(mode, initialSnapshot));
+  const [{ model, sync }] = useState(() => createModel(mode, initialSnapshot, email));
   const [ready, setReady] = useState(initialSnapshot !== null);
   // null = seguir el día de hoy; un número = elegido por el usuario.
   const [selectedWeek, setWeek] = useState<number | null>(null);
@@ -71,8 +78,20 @@ export function WorkoutProvider({ mode, initialSnapshot, email, children }: Prov
   const [showToast] = useState(() => createToaster(setToast));
   const version = useSyncExternalStore(model.subscribe, model.getVersion, model.getVersion);
   const today = useSyncExternalStore(subscribeToDayChange, todayISO, () => null);
+  const syncStatus = useSyncExternalStore(sync?.subscribe ?? noSubscribe, sync?.getStatus ?? idle, idle);
   const calendar = useMemo(() => new WorkoutCalendar(model), [model]);
   const diary = useMemo(() => new WorkoutDiary(model, calendar), [model, calendar]);
+
+  // Sin internet: si este dispositivo tiene cambios sin enviar (o no hay conexión) se
+  // usa su copia local, más reciente que la página; si no, se guarda la del servidor
+  // para poder abrir la app sin conexión. Después se envía lo pendiente.
+  useEffect(() => {
+    if (!sync) return;
+    const local = sync.localSnapshot();
+    if (local && (sync.hasPending() || !navigator.onLine)) model.adopt(local);
+    else if (initialSnapshot) sync.saveSnapshot(model.snapshot);
+    sync.flush().catch(() => {});
+  }, [model, sync, initialSnapshot]);
 
   // Sin fecha de inicio guardada, se fija una que respeta el progreso actual.
   useEffect(() => {
@@ -97,6 +116,7 @@ export function WorkoutProvider({ mode, initialSnapshot, email, children }: Prov
 
   useEffect(() => {
     model.setSaveErrorHandler(() => showToast(mode === "cloud" ? "No se pudo sincronizar con el servidor" : "No se pudo guardar en este navegador"));
+    sync?.setErrorHandler(() => showToast("Un cambio no se pudo guardar en tu cuenta"));
     const flush = () => { model.flush().catch(() => {}); };
     const onVisibility = () => { if (document.visibilityState === "hidden") flush(); };
     window.addEventListener("pagehide", flush);
@@ -105,30 +125,31 @@ export function WorkoutProvider({ mode, initialSnapshot, email, children }: Prov
       window.removeEventListener("pagehide", flush);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [mode, model, showToast]);
+  }, [mode, model, sync, showToast]);
 
   const stats = useMemo(() => new WorkoutStats(model), [model]);
   const actions = useMemo(
-    () => createActions({ model, showToast, setWeek, setDay, goTo: switchTab }),
-    [model, showToast],
+    () => createActions({ model, sync, showToast, setWeek, setDay, goTo: switchTab }),
+    [model, sync, showToast],
   );
 
   const focus = today ? calendar.focusFor(today) : null;
   const week = Math.min(selectedWeek ?? focus?.week ?? 1, model.weeksCount);
   const day = selectedDay ?? focus?.day ?? 1;
-  const value: WorkoutContextValue = { model, stats, calendar, diary, mode, email, today, ready, version, week, day, toast, actions };
+  const value: WorkoutContextValue = { model, stats, calendar, diary, mode, email, sync: syncStatus, today, ready, version, week, day, toast, actions };
   return <WorkoutContext value={value}>{children}</WorkoutContext>;
 }
 
 interface ActionDeps {
   model: WorkoutModel;
+  sync: ServerActionWorkoutRepository | null;
   showToast: (text: string) => void;
   setWeek: (w: number | null) => void;
   setDay: (d: number | null) => void;
   goTo: (path: string) => void;
 }
 
-function createActions({ model, showToast, setWeek, setDay, goTo }: ActionDeps) {
+function createActions({ model, sync, showToast, setWeek, setDay, goTo }: ActionDeps) {
   const backup = new BackupService(model);
 
   return {
@@ -225,7 +246,9 @@ function createActions({ model, showToast, setWeek, setDay, goTo }: ActionDeps) 
     // dispositivo para que la siguiente persona no vea páginas de esta cuenta.
     async signOut() {
       await model.flush().catch(() => {});
+      if (sync?.hasPending()) { showToast("Hay cambios sin enviar: conéctate a internet para cerrar sesión"); return; }
       if ("caches" in window) await caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))).catch(() => {});
+      sync?.clearLocal();
       await signOutAction();
     },
 

@@ -47,6 +47,10 @@ main{padding-top:26px}.weekaction{min-height:30px;border:1px solid #333a47;borde
 .account{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:11px;font-size:calc(11px * var(--fs));color:var(--muted)}
 .account strong{color:var(--text);word-break:break-all}
 
+/* Estado de sincronización (sin conexión / guardando) */
+.syncpill{border:1px solid var(--line);background:var(--s);color:var(--soft);border-radius:999px;padding:6px 10px;font-size:calc(10px * var(--fs));font-weight:800;text-align:right}
+.syncpill.offline{border-color:#6b5420;color:#f0c46b;background:#1f1808}
+
 /* Transición entre pestañas */
 main{overflow-x:clip}
 .page.from-right{animation:slide-from-right .32s cubic-bezier(.22,.61,.36,1)}
