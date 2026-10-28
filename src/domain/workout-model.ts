@@ -337,11 +337,12 @@ export class WorkoutModel {
     this.commit({ type: "replaced" });
   }
 
-  // Borra registros, ticks y días completados; conserva la rutina y el número de semanas.
+  // Borra registros, ticks, días completados y medidas; conserva la rutina y el número de semanas.
   clearLogs() {
     this.state.entries = {};
     this.state.checked = {};
     this.state.completed = {};
+    this.state.body = {};
     this.commit({ type: "logsCleared" });
   }
 }

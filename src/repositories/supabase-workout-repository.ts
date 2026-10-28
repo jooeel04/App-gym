@@ -181,6 +181,7 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
       case "logsCleared":
         await must(db.from("set_logs").delete().eq("program_id", programId));
         await must(db.from("completed_days").delete().eq("program_id", programId));
+        await must(db.from("body_metrics").delete().eq("program_id", programId));
         return;
     }
   }

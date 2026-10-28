@@ -390,9 +390,10 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       setRest(null);
     },
 
-    setBodyMetrics(date: string, metrics: BodyMetrics) {
+    // Guarda las medidas de un día; sin ninguna (o null) las borra.
+    setBodyMetrics(date: string, metrics: BodyMetrics | null) {
       model.setBodyMetrics(date, metrics);
-      showToast("Medidas guardadas");
+      showToast(metrics && Object.keys(metrics).length ? "Medidas guardadas" : "Medidas borradas");
     },
 
     closeSummary() {
@@ -486,7 +487,7 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
     },
 
     clearData() {
-      if (!confirm("¿Borrar todos los registros y marcas de días completados? Esta acción no se puede deshacer.")) return;
+      if (!confirm("¿Borrar todos los registros, marcas de días completados, peso y medidas? Esta acción no se puede deshacer.")) return;
       model.clearLogs();
       showToast("Registros borrados");
     },

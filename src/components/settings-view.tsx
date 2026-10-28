@@ -124,7 +124,7 @@ export function SettingsView() {
 
         <SettingsCard icon={<TrashIcon />} title="Zona peligrosa" text="Estas acciones no se pueden deshacer." tone="danger">
           <div className="settings-list">
-            <SettingsRow icon={<TrashIcon />} title="Borrar registros" text="Elimina series, ticks y días completados" onClick={actions.clearData} tone="danger" />
+            <SettingsRow icon={<TrashIcon />} title="Borrar registros" text="Elimina series, ticks, días completados y medidas" onClick={actions.clearData} tone="danger" />
           </div>
         </SettingsCard>
 

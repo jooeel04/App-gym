@@ -711,3 +711,13 @@ body:has(.focus-mode) .toast.show{transform:translate(-50%,0)}
 .exmodal.library .liblist{flex:1 1 auto;min-height:0;max-height:none;overscroll-behavior:contain}
 .exmodal.library :is(.exmodal-head,.exmodal-tabs,.exsearch,.daychips,.modal-actions){flex:none}
 @media(pointer:coarse){.exmodal.library:has(.exsearch:focus) .modal-actions{display:none}}
+
+/* Tu cuerpo: historial de medidas (tocar un día para cambiarlo o borrarlo) */
+.body-history{display:grid;gap:6px;margin-top:14px}
+.body-history-title{color:var(--muted);font-size:calc(10px * var(--fs));font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+.body-entry{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--s0);color:var(--text);text-align:left}
+.body-entry b{display:block;font-size:calc(12px * var(--fs))}
+.body-entry small{display:block;margin-top:2px;color:var(--muted);font-size:calc(11px * var(--fs))}
+.body-entry em{flex:none;font-style:normal;color:var(--muted)}
+.body-more{width:100%;margin-top:2px}
+.modal-actions .danger-btn{background:var(--danger-bg);border-color:var(--danger-line);color:var(--danger-text)}
