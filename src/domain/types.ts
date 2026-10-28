@@ -11,24 +11,33 @@ export interface Exercise {
   custom?: boolean;
 }
 
-// Valores tal como se escriben en los campos del formulario.
+// Valores tal como se escriben en los campos del formulario, más la fecha real
+// (YYYY-MM-DD) en que se anotó la serie por primera vez.
 export interface SetEntry {
   weight?: string;
   reps?: string;
   note?: string;
+  date?: string;
 }
 
-export type SetField = keyof SetEntry;
+export type SetField = "weight" | "reps" | "note";
+
+// Día de la rutina (1-5) → día de la semana en que se entrena (1 = lunes … 7 = domingo).
+export type WeekSchedule = Record<string, number>;
 
 // Estado completo de la app. Es también el formato de las copias JSON.
 // entries:   "semana|día|ejercicio|serie" → SetEntry
 // completed: "semana|día" → true
+// schedule:  día de la rutina → día de la semana
+// startDate: lunes en que empieza la semana 1 del ciclo
 export interface WorkoutSnapshot {
   version: 1;
   weeksCount: number;
   entries: Record<string, SetEntry>;
   completed: Record<string, boolean>;
   routine: Exercise[];
+  schedule?: WeekSchedule;
+  startDate?: string;
 }
 
 export interface NewExerciseInput {
@@ -46,6 +55,7 @@ export type WorkoutChange =
   | { type: "exerciseRemoved"; exerciseId: number }
   | { type: "weeksCount"; weeksCount: number }
   | { type: "weekRemoved"; week: number }
+  | { type: "schedule"; schedule: WeekSchedule; startDate: string | null }
   | { type: "logsCleared" }
   | { type: "replaced" };
 

@@ -5,7 +5,11 @@ import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { BackupService } from "@/domain/backup-service";
 import { BASE_ROUTINE } from "@/domain/base-routine";
-import type { NewExerciseInput, SetField, WorkoutSnapshot } from "@/domain/types";
+import { formatShortDate, todayISO } from "@/domain/calendar";
+import { DAY_NAMES } from "@/domain/snapshot";
+import type { NewExerciseInput, SetField, WeekSchedule, WorkoutSnapshot } from "@/domain/types";
+import { WorkoutCalendar, type PlannedSession } from "@/domain/workout-calendar";
+import { WorkoutDiary } from "@/domain/workout-diary";
 import { WorkoutModel } from "@/domain/workout-model";
 import { WorkoutStats } from "@/domain/workout-stats";
 import type { StorageMode } from "@/lib/workout-data";
@@ -16,7 +20,11 @@ import type { WorkoutRepository } from "@/repositories/workout-repository";
 interface WorkoutContextValue {
   model: WorkoutModel;
   stats: WorkoutStats;
+  calendar: WorkoutCalendar;
+  diary: WorkoutDiary;
   mode: StorageMode;
+  // Fecha de hoy (solo en el navegador; null durante el renderizado en el servidor).
+  today: string | null;
   ready: boolean;
   version: number;
   week: number;
@@ -51,11 +59,20 @@ export function WorkoutProvider({ mode, initialSnapshot, children }: ProviderPro
   const router = useRouter();
   const [model] = useState(() => createModel(mode, initialSnapshot));
   const [ready, setReady] = useState(initialSnapshot !== null);
-  const [week, setWeek] = useState(1);
-  const [day, setDay] = useState(1);
+  // null = seguir el día de hoy; un número = elegido por el usuario.
+  const [selectedWeek, setWeek] = useState<number | null>(null);
+  const [selectedDay, setDay] = useState<number | null>(null);
   const [toast, setToast] = useState({ text: "", visible: false });
   const [showToast] = useState(() => createToaster(setToast));
   const version = useSyncExternalStore(model.subscribe, model.getVersion, model.getVersion);
+  const today = useSyncExternalStore(subscribeToDayChange, todayISO, () => null);
+  const calendar = useMemo(() => new WorkoutCalendar(model), [model]);
+  const diary = useMemo(() => new WorkoutDiary(model, calendar), [model, calendar]);
+
+  // Sin fecha de inicio guardada, se fija una que respeta el progreso actual.
+  useEffect(() => {
+    if (ready && today && !model.startDate) model.setStartDate(calendar.suggestStartDate(today));
+  }, [ready, today, model, calendar]);
 
   // Primera carga en el navegador: modo local, o base de datos todavía vacía
   // (se crea a partir de los datos locales de este dispositivo, si los hay).
@@ -85,16 +102,18 @@ export function WorkoutProvider({ mode, initialSnapshot, children }: ProviderPro
     [model, showToast, router],
   );
 
-  const safeWeek = Math.min(week, model.weeksCount);
-  const value: WorkoutContextValue = { model, stats, mode, ready, version, week: safeWeek, day, toast, actions };
+  const focus = today ? calendar.focusFor(today) : null;
+  const week = Math.min(selectedWeek ?? focus?.week ?? 1, model.weeksCount);
+  const day = selectedDay ?? focus?.day ?? 1;
+  const value: WorkoutContextValue = { model, stats, calendar, diary, mode, today, ready, version, week, day, toast, actions };
   return <WorkoutContext value={value}>{children}</WorkoutContext>;
 }
 
 interface ActionDeps {
   model: WorkoutModel;
   showToast: (text: string) => void;
-  setWeek: (w: number) => void;
-  setDay: (d: number) => void;
+  setWeek: (w: number | null) => void;
+  setDay: (d: number | null) => void;
   goTo: (path: string) => void;
 }
 
@@ -111,7 +130,37 @@ function createActions({ model, showToast, setWeek, setDay, goTo }: ActionDeps) 
     },
 
     setEntry(w: number, d: number, id: number, s: number, field: SetField, value: string) {
-      model.setEntryField(w, d, id, s, field, value);
+      model.setEntryField(w, d, id, s, field, value, todayISO());
+    },
+
+    // Vuelve a seguir el día de hoy.
+    goToToday() {
+      setWeek(null);
+      setDay(null);
+    },
+
+    // Abre un día planificado que no se hizo para registrarlo hoy.
+    recoverSession(session: PlannedSession) {
+      setWeek(session.week);
+      setDay(session.day);
+      goTo("/entrenar");
+      showToast("Recuperando Día " + session.day + " · " + DAY_NAMES[session.day] + " (" + formatShortDate(session.date) + ")");
+    },
+
+    setWeekday(d: number, weekday: number) {
+      model.setWeekday(d, weekday);
+    },
+
+    applySchedulePreset(schedule: WeekSchedule, label: string) {
+      model.setSchedule(schedule);
+      showToast("Calendario: " + label);
+    },
+
+    setStartDate(iso: string) {
+      model.setStartDate(iso);
+      setWeek(null);
+      setDay(null);
+      showToast("Fecha de inicio actualizada");
     },
 
     toggleDayCompleted(w: number, d: number) {
@@ -182,6 +231,16 @@ function createToaster(setToast: (update: (t: { text: string; visible: boolean }
     setToast(() => ({ text, visible: true }));
     clearTimeout(timer);
     timer = setTimeout(() => setToast((t) => ({ ...t, visible: false })), 1800);
+  };
+}
+
+// Vuelve a leer la fecha cuando la app vuelve a primer plano (p. ej. al día siguiente).
+function subscribeToDayChange(onChange: () => void) {
+  document.addEventListener("visibilitychange", onChange);
+  const timer = setInterval(onChange, 60_000);
+  return () => {
+    document.removeEventListener("visibilitychange", onChange);
+    clearInterval(timer);
   };
 }
 

@@ -8,6 +8,9 @@ App personal, sin login. **Stack:** Next.js 16 (App Router, TypeScript) · Supab
 - Plan con cinco días y las indicaciones de cada ejercicio; el número de semanas es ajustable.
 - Añadir ejercicios por día con series, objetivo de repeticiones y detalle técnico; eliminar ejercicios cuando ya no se necesiten.
 - Registro por serie de carga, repeticiones y nota; conserva las series opcionales.
+- Calendario: cada día de la rutina se asigna a un día de la semana (L–D), con presets y fecha de inicio del ciclo.
+- Recuperar días: Entrenar muestra lo que toca hoy y los días de las últimas dos semanas que quedaron sin hacer, para registrarlos hoy.
+- Registro diario en Progreso: lo entrenado agrupado por fecha real, marcando los días recuperados.
 - Datos en Supabase: los mismos en cualquier dispositivo.
 - Resumen por semana y día, historial de cargas y exportación a CSV.
 - Copia y restauración de datos en JSON.
@@ -19,6 +22,7 @@ App personal, sin login. **Stack:** Next.js 16 (App Router, TypeScript) · Supab
 En el SQL Editor del proyecto, ejecuta en orden los archivos de `supabase/migrations/`:
 1. `20261028000000_init_workout_schema.sql`
 2. `20261029000000_single_owner_mode.sql`
+3. `20261030000000_schedule_and_daily_log.sql`
 
 ### 2. Variables de entorno
 En Vercel → Settings → Environment Variables (Production y Preview), o en `.env.local` para desarrollo:
@@ -47,6 +51,9 @@ src/
     snapshot.ts           Formato del estado, claves y validación
     workout-model.ts      Modelo observable: rutina, series, semanas, días completados
     workout-stats.ts      Estadísticas e historial de cargas (solo lectura)
+    workout-calendar.ts   Fechas planificadas, qué toca hoy y días pendientes
+    workout-diary.ts      Registro diario agrupado por fecha
+    calendar.ts           Utilidades de fechas (YYYY-MM-DD, días de la semana)
     backup-service.ts     Copia JSON y exportación CSV
     base-routine.ts       Rutina base del Excel
   repositories/           Persistencia detrás de una interfaz
@@ -73,9 +80,9 @@ supabase/migrations/      Esquema Postgres, RLS y funciones
 
 | Tabla | Contenido |
 |---|---|
-| `programs` | El programa de la app (uno, sin usuario): número de semanas |
+| `programs` | El programa de la app (uno, sin usuario): semanas, calendario semanal y fecha de inicio |
 | `exercises` | Ejercicios del plan por día (`local_id` = id que usa la app) |
-| `set_logs` | Carga, repeticiones y nota por semana/día/ejercicio/serie |
+| `set_logs` | Carga, repeticiones, nota y fecha real por semana/día/ejercicio/serie |
 | `completed_days` | Días marcados como completados |
 
 `replace_program` (alta y restauración) y `remove_week` (borrar y renumerar) son transaccionales.

@@ -1,6 +1,7 @@
 import type { WorkoutRepository } from "@/repositories/workout-repository";
-import { blankSnapshot, DAY_NAMES, dayKey, DEFAULT_WEEKS, entryKey, isLogged, parseKey } from "./snapshot";
-import type { Exercise, NewExerciseInput, SetEntry, SetField, WorkoutChange, WorkoutSnapshot } from "./types";
+import { isISODate, mondayOf } from "./calendar";
+import { blankSnapshot, DAY_NAMES, dayKey, DEFAULT_SCHEDULE, DEFAULT_WEEKS, entryKey, isLogged, parseKey } from "./snapshot";
+import type { Exercise, NewExerciseInput, SetEntry, SetField, WeekSchedule, WorkoutChange, WorkoutSnapshot } from "./types";
 
 type Listener = () => void;
 
@@ -119,15 +120,23 @@ export class WorkoutModel {
     return this.state.entries[entryKey(w, d, id, s)] ?? {};
   }
 
-  setEntryField(w: number, d: number, id: number, s: number, field: SetField, value: string) {
+  // `today` es la fecha real en que se anota; se conserva la de la primera anotación.
+  setEntryField(w: number, d: number, id: number, s: number, field: SetField, value: string, today: string) {
     const k = entryKey(w, d, id, s);
     const v: SetEntry = { ...this.state.entries[k], [field]: value };
     const empty = !v.weight && !v.reps && !v.note;
+    if (!v.date) v.date = today;
     const entries = { ...this.state.entries };
     if (empty) delete entries[k];
     else entries[k] = v;
     this.state.entries = entries;
     this.commit({ type: "entry", week: w, day: d, exerciseId: id, set: s, entry: empty ? null : v });
+  }
+
+  // Si el día (semana y día de rutina) tiene alguna serie anotada.
+  hasLoggedSets(w: number, d: number) {
+    const prefix = w + "|" + d + "|";
+    return Object.entries(this.state.entries).some(([k, e]) => k.startsWith(prefix) && isLogged(e));
   }
 
   loggedSets(w: number, d: number, exercise: Exercise) {
@@ -181,6 +190,37 @@ export class WorkoutModel {
     this.state.completed = shift(this.state.completed);
     this.state.weeksCount--;
     this.commit({ type: "weekRemoved", week: removed });
+  }
+
+  // ---- Calendario ----
+
+  get schedule(): WeekSchedule {
+    return { ...DEFAULT_SCHEDULE, ...this.state.schedule };
+  }
+
+  // Día de la semana (1 = lunes … 7 = domingo) en que se entrena el día de rutina `d`.
+  weekdayFor(d: number) {
+    return this.schedule[d];
+  }
+
+  get startDate(): string | null {
+    return this.state.startDate ?? null;
+  }
+
+  setWeekday(d: number, weekday: number) {
+    this.setSchedule({ ...this.schedule, [d]: weekday });
+  }
+
+  setSchedule(schedule: WeekSchedule) {
+    this.state.schedule = { ...schedule };
+    this.commit({ type: "schedule", schedule: this.schedule, startDate: this.startDate });
+  }
+
+  // La semana 1 siempre empieza en lunes.
+  setStartDate(iso: string) {
+    if (!isISODate(iso)) return;
+    this.state.startDate = mondayOf(iso);
+    this.commit({ type: "schedule", schedule: this.schedule, startDate: this.state.startDate });
   }
 
   // ---- Copias ----

@@ -1,5 +1,6 @@
 "use server";
 
+import { isISODate } from "@/domain/calendar";
 import { isValidSnapshot } from "@/domain/snapshot";
 import type { WorkoutChange, WorkoutSnapshot } from "@/domain/types";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -35,7 +36,8 @@ function isWorkoutChange(c: unknown): c is WorkoutChange {
   switch (x.type) {
     case "entry": {
       const e = x.entry as Record<string, unknown> | null;
-      const entryOk = e === null || (typeof e === "object" && isText(e.weight, 12) && isText(e.reps, 12) && isText(e.note, 160));
+      const entryOk = e === null || (typeof e === "object" && isText(e.weight, 12) && isText(e.reps, 12) && isText(e.note, 160)
+        && (e.date === undefined || isISODate(e.date)));
       return isInt(x.week, 1, 520) && isInt(x.day, 1, 5) && isInt(x.exerciseId, 0, 1e6) && isInt(x.set, 1, 10) && entryOk;
     }
     case "completed":
@@ -52,6 +54,12 @@ function isWorkoutChange(c: unknown): c is WorkoutChange {
       return isInt(x.weeksCount, 1, 520);
     case "weekRemoved":
       return isInt(x.week, 1, 520);
+    case "schedule": {
+      const schedule = x.schedule as Record<string, unknown>;
+      const scheduleOk = !!schedule && typeof schedule === "object"
+        && Object.entries(schedule).every(([day, weekday]) => /^[1-5]$/.test(day) && isInt(weekday, 1, 7));
+      return scheduleOk && (x.startDate === null || isISODate(x.startDate));
+    }
     case "logsCleared":
     case "replaced":
       return true;

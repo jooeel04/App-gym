@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import { ExerciseModal } from "./exercise-modal";
+import { ScheduleCard, WeekdayPicker } from "./schedule-card";
 
 // Vista "Rutina": ejercicios por día con acciones para añadir, eliminar y empezar a entrenar.
 export function RoutineView() {
@@ -16,9 +17,10 @@ export function RoutineView() {
         <div>
           <div className="eyebrow">Plan de entrenamiento</div>
           <h1>Rutina por día</h1>
-          <p className="lede">Añade ejercicios a cada día o elimina los que ya no uses.</p>
+          <p className="lede">Elige qué día de la semana haces cada rutina y añade o elimina ejercicios.</p>
         </div>
       </div>
+      <ScheduleCard />
       <div className="routine-grid">
         {DAYS.map((d) => (
           <article className="routine-day" key={d}>
@@ -26,6 +28,7 @@ export function RoutineView() {
               <div><span>Día {d}</span><h2>{DAY_NAMES[d]}</h2></div>
               <button className="start" onClick={() => actions.startDay(d)}>Entrenar →</button>
             </div>
+            <WeekdayPicker day={d} />
             {model.exercisesOfDay(d).map((x) => (
               <div className="routine-ex" key={x.id}>
                 <div className="routine-ex-head">

@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import { percent } from "@/domain/workout-stats";
+import { DailyLog } from "./daily-log";
 
 const small = { fontSize: 12, fontWeight: 500 };
 
@@ -50,6 +51,8 @@ export function ProgressView() {
           })}
         </div>
       </section>
+
+      <DailyLog />
 
       <section className="chart">
         <div className="charttitle"><h2>Historial de cargas</h2><span>Primera a última carga</span></div>

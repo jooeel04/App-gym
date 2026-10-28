@@ -4,6 +4,9 @@ export const DAY_NAMES: Record<number, string> = { 1: "Torso", 2: "Pierna", 3: "
 export const DAYS = [1, 2, 3, 4, 5] as const;
 
 export const SNAPSHOT_VERSION = 1;
+
+// Por defecto: Día 1 el lunes … Día 5 el viernes.
+export const DEFAULT_SCHEDULE: Readonly<Record<string, number>> = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 };
 export const DEFAULT_WEEKS = 8;
 
 export function blankSnapshot(routine: Exercise[]): WorkoutSnapshot {

@@ -1,18 +1,22 @@
 "use client";
 
 import { useWorkout } from "@/controllers/workout-controller";
+import { formatShortDate, WEEKDAY_SHORT } from "@/domain/calendar";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { Exercise, SetField } from "@/domain/types";
 import { percent } from "@/domain/workout-stats";
 import { ChevronIcon } from "./icons";
+import { TodayPanel } from "./today-panel";
 
 const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 
 // Vista "Entrenar": selector de semana y día, series por ejercicio y resumen lateral.
 export function TrainingView() {
-  const { model, stats, week, day, actions } = useWorkout();
+  const { model, stats, calendar, today, week, day, actions } = useWorkout();
   const dt = stats.day(week, day), wt = stats.week(week), pct = percent(wt.n, wt.p);
   const done = model.isDayCompleted(week, day);
+  const planned = calendar.plannedDate(week, day);
+  const recovering = !!(today && planned && planned < today && !calendar.isDone(week, day));
 
   return (
     <section className="view active">
@@ -24,6 +28,8 @@ export function TrainingView() {
         </div>
         <div className="headnote">Se guarda automáticamente<br />mientras escribes.</div>
       </div>
+
+      <TodayPanel />
 
       <section className="cycle">
         <div className="cyclecopy">
@@ -46,7 +52,7 @@ export function TrainingView() {
       <div className="days">
         {DAYS.map((d) => (
           <button key={d} className={"day" + (d === day ? " active" : "")} onClick={() => actions.selectDay(d)}>
-            <small>Día {d}</small><b>{DAY_NAMES[d]}</b>{stats.day(week, d).n > 0 && <i className="dot" />}
+            <small>Día {d} · {WEEKDAY_SHORT[model.weekdayFor(d)]}</small><b>{DAY_NAMES[d]}</b>{stats.day(week, d).n > 0 && <i className="dot" />}
           </button>
         ))}
       </div>
@@ -54,7 +60,14 @@ export function TrainingView() {
       <div className="session">
         <div className="sessiontitle">
           <span className="mark">{day}</span>
-          <div><h2>Día {day}</h2><p>{DAY_NAMES[day]} · Semana {week}</p></div>
+          <div>
+            <h2>Día {day}</h2>
+            <p>
+              {DAY_NAMES[day]} · Semana {week}
+              {planned && <> · {formatShortDate(planned)}</>}
+              {recovering && <span className="tag">Recuperando hoy</span>}
+            </p>
+          </div>
         </div>
         <div className="daycount"><strong>{dt.n} / {dt.p} series</strong>anotadas</div>
       </div>
