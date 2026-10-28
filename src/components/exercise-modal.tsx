@@ -7,6 +7,7 @@ import { MUSCLE_NAMES, musclesFor, searchLibrary, type LibraryExercise } from "@
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { Exercise } from "@/domain/types";
 import { BodyMap } from "./body-map";
+import { closeOnBackdrop } from "./backdrop";
 
 interface Draft {
   name: string;
@@ -47,7 +48,7 @@ export function ExerciseModal({ day, exercise, onClose }: { day: number; exercis
 
   // Fuera de las pestañas (su contenedor se desplaza), si no la ventana no queda fija en pantalla.
   return createPortal(
-    <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="exerciseModalTitle" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="exerciseModalTitle" {...closeOnBackdrop(onClose)}>
       <div className="modal exmodal">
         <div className="exmodal-head">
           <h2 id="exerciseModalTitle">{editing ? "Editar ejercicio" : "Añadir ejercicio"}</h2>

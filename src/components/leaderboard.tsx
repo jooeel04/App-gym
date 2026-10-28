@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { createGroup, groupLeaderboard, joinGroup, leaveGroup, myGroups, type GroupInfo, type LeaderRow } from "@/app/actions/social";
 import { useWorkout } from "@/controllers/workout-controller";
 import { addDays, parseISODate, toISODate } from "@/domain/calendar";
+import { closeOnBackdrop } from "./backdrop";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
@@ -112,7 +113,7 @@ function GroupForm({ kind, defaultName, onClose, onDone }: { kind: "create" | "j
   };
   // Fuera de las pestañas (su contenedor se desplaza), si no la ventana no queda fija en pantalla.
   return createPortal(
-    <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="groupTitle" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="groupTitle" {...closeOnBackdrop(onClose)}>
       <form className="modal" onSubmit={submit}>
         <h2 id="groupTitle">{kind === "create" ? "Crear grupo" : "Unirme a un grupo"}</h2>
         <label className="form-label">{kind === "create" ? "Nombre del grupo" : "Código del grupo"}

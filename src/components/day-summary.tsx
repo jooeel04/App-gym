@@ -2,6 +2,7 @@
 
 import { useWorkout } from "@/controllers/workout-controller";
 import { DAY_NAMES } from "@/domain/snapshot";
+import { closeOnBackdrop } from "./backdrop";
 
 const fmt = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 1 });
 
@@ -19,7 +20,7 @@ export function DaySummary() {
   const complete = model.isDayCompleted(week, day);
 
   return (
-    <div className="backdrop open summary-backdrop" role="dialog" aria-modal="true" aria-labelledby="summaryTitle" onClick={(e) => { if (e.target === e.currentTarget) actions.closeSummary(); }}>
+    <div className="backdrop open summary-backdrop" role="dialog" aria-modal="true" aria-labelledby="summaryTitle" {...closeOnBackdrop(actions.closeSummary)}>
       <div className="modal summary">
         <div className="summary-emoji" aria-hidden="true">{complete ? "🎉" : "💪"}</div>
         <h2 id="summaryTitle">{complete ? "¡Día completado!" : "Entreno terminado"}</h2>

@@ -6,6 +6,7 @@ import { useWorkout } from "@/controllers/workout-controller";
 import { addDays, formatShortDate, mondayOf, WEEKDAY_NAMES, WEEKDAY_SHORT, WEEKDAYS, weekdayOf } from "@/domain/calendar";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { WeekSchedule } from "@/domain/types";
+import { closeOnBackdrop } from "./backdrop";
 
 // Planes rápidos: día de rutina (1-5) → día de la semana (0 = sin día fijo).
 const PRESETS: { label: string; schedule: WeekSchedule }[] = [
@@ -123,7 +124,7 @@ function DaySheet({ weekday, onClose }: { weekday: number; onClose: () => void }
 
   // Fuera de las pestañas (su contenedor se desplaza), si no la ventana no queda fija en pantalla.
   return createPortal(
-    <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="daySheetTitle" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="daySheetTitle" {...closeOnBackdrop(onClose)}>
       <div className="modal day-sheet">
         <h2 id="daySheetTitle">{capitalize(WEEKDAY_NAMES[weekday])}</h2>
         <p>¿Qué rutina haces este día? Puedes elegir más de una.</p>

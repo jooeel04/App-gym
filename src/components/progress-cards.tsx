@@ -6,6 +6,7 @@ import { useWorkout } from "@/controllers/workout-controller";
 import { formatShortDate } from "@/domain/calendar";
 import { BODY_FIELDS, type BodyField, type BodyMetrics } from "@/domain/types";
 import { TapLineChart } from "./tap-line-chart";
+import { closeOnBackdrop } from "./backdrop";
 
 const fmt = (n: number, digits = 1) => n.toLocaleString("es-ES", { maximumFractionDigits: digits });
 
@@ -115,7 +116,7 @@ function BodyForm({ date, initial, onSave, onClose }: { date: string; initial: B
   };
   // Fuera de las pestañas (su contenedor se desplaza), si no la ventana no queda fija en pantalla.
   return createPortal(
-    <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="bodyTitle" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="bodyTitle" {...closeOnBackdrop(onClose)}>
       <form className="modal" onSubmit={submit}>
         <h2 id="bodyTitle">Medidas de hoy</h2>
         <p>{formatShortDate(date)} · rellena solo las que quieras.</p>
