@@ -32,18 +32,18 @@ on conflict (key) do nothing;
 -- Tablas
 -- ---------------------------------------------------------------------------
 
-create table public.push_subscriptions (
+create table if not exists public.push_subscriptions (
   endpoint   text primary key check (char_length(endpoint) <= 1000 and endpoint like 'https://%'),
   user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
   p256dh     text not null check (char_length(p256dh) <= 200),
   auth       text not null check (char_length(auth) <= 100),
   created_at timestamptz not null default now()
 );
-create index push_subscriptions_user_idx on public.push_subscriptions (user_id);
+create index if not exists push_subscriptions_user_idx on public.push_subscriptions (user_id);
 
 -- mode: 'daily' todos los días · 'training' días con rutina en el calendario ·
 -- 'custom' los días de `weekdays` (1 = lunes … 7 = domingo).
-create table public.reminders (
+create table if not exists public.reminders (
   user_id         uuid primary key default auth.uid() references auth.users (id) on delete cascade,
   enabled         boolean not null default true,
   time_of_day     time not null default '18:00',
@@ -60,7 +60,7 @@ create or replace function public.check_reminder_timezone()
 returns trigger
 language plpgsql
 set search_path = public, pg_temp
-as $
+as $$
 begin
   perform now() at time zone new.timezone;
   new.updated_at := now();
@@ -68,16 +68,19 @@ begin
 exception when others then
   raise exception 'Zona horaria no válida: %', new.timezone;
 end;
-$;
+$$;
 
+drop trigger if exists reminders_check_timezone on public.reminders;
 create trigger reminders_check_timezone before insert or update on public.reminders
   for each row execute function public.check_reminder_timezone();
 
 alter table public.push_subscriptions enable row level security;
 alter table public.reminders enable row level security;
 
+drop policy if exists "push_subscriptions: propias" on public.push_subscriptions;
 create policy "push_subscriptions: propias" on public.push_subscriptions
   for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+drop policy if exists "reminders: propio" on public.reminders;
 create policy "reminders: propio" on public.reminders
   for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
