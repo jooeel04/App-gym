@@ -40,7 +40,7 @@ export function PlateCalculator({ onClose }: { onClose: () => void }) {
       <div className="modal plates-modal">
         <h2 id="platesTitle">Calculadora de discos</h2>
         <label className="form-label">Peso total que quieres levantar (kg)
-          <input type="number" inputMode="decimal" min={0} step={0.5} value={total} onChange={(e) => setTotal(e.target.value)} autoFocus />
+          <input type="number" inputMode="decimal" min={0} step={0.5} value={total} onChange={(e) => setTotal(e.target.value)} />
         </label>
         <div className="form-label">Barra</div>
         <div className="segmented">

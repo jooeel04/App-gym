@@ -633,4 +633,6 @@ body:has(.livebar):has(.restbar) .toast{bottom:calc(236px + env(safe-area-inset-
 @media(pointer:coarse){
   :is(.nav,.livebar,.restbar){transition:opacity .15s,visibility .15s}
   body:has(:is(input:not([type=checkbox],[type=radio],[type=range],[type=file],[type=button]),textarea,select):focus) :is(.nav,.livebar,.restbar){opacity:0;visibility:hidden;pointer-events:none}
+  /* Las ventanas salen abajo: con el teclado abierto este las tapa, así que suben arriba. */
+  .backdrop:has(:is(input:not([type=checkbox],[type=radio],[type=range],[type=file],[type=button]),textarea,select):focus){align-items:flex-start;padding-top:calc(12px + env(safe-area-inset-top))}
 }
