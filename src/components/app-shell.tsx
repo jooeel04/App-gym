@@ -56,6 +56,24 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => { document.title = current.label + " · RUTINA"; }, [current]);
   useEffect(syncThemeBar, []);
 
+  // Parte visible de la pantalla (sin el teclado del móvil), para colocar las ventanas.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const root = document.documentElement.style;
+    const update = () => {
+      root.setProperty("--vv-top", vv.offsetTop + "px");
+      root.setProperty("--vv-h", vv.height + "px");
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+
   // En el móvil se cambia de pestaña deslizando el dedo a izquierda o derecha.
   const mainRef = useRef<HTMLElement>(null);
   const pagerRef = useRef<HTMLDivElement>(null);
