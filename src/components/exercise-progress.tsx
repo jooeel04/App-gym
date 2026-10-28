@@ -22,10 +22,14 @@ export function describeSet(r: SetResult) {
   return r.reps !== null ? kg + " × " + r.reps : kg;
 }
 
+// Tarjeta de un ejercicio: la última vez, su 1RM estimado (con la diferencia con la
+// vez anterior), el récord y la evolución de la fuerza.
 function ExerciseCard({ exercise: x }: { exercise: Exercise }) {
-  const { stats } = useWorkout();
+  const { stats, records } = useWorkout();
   const history = stats.exerciseHistory(x);
   const last = history[history.length - 1], prev = history[history.length - 2];
+  const record = stats.record(x);
+  const fresh = records.some((r) => r.exerciseId === x.id);
   const color = "var(--day" + x.day + ")";
 
   return (
@@ -44,28 +48,18 @@ function ExerciseCard({ exercise: x }: { exercise: Exercise }) {
                 {last.sets.map((r) => <span key={r.set} className="setchip">{describeSet(r)}</span>)}
               </div>
             </div>
-            <div className="exprog-metrics">
-              <div>
-                <span>Carga máx.</span>
-                <strong>{last.topWeight !== null ? fmt(last.topWeight) + " kg" : "—"}</strong>
-                {prev && last.topWeight !== null && prev.topWeight !== null && <Delta value={last.topWeight - prev.topWeight} unit=" kg" />}
-              </div>
-              <div>
-                <span>Repeticiones</span>
-                <strong>{last.reps}</strong>
-                {prev && <Delta value={last.reps - prev.reps} />}
-              </div>
-              <div>
-                <span>1RM estimado</span>
-                <strong>{last.e1rm ? fmt(Math.round(last.e1rm * 2) / 2) + " kg" : "—"}</strong>
-                {prev && last.e1rm > 0 && prev.e1rm > 0 && <Delta value={Math.round((last.e1rm - prev.e1rm) * 2) / 2} unit=" kg" />}
-              </div>
-              <div>
-                <span>Carga total</span>
-                <strong>{fmt(last.volume)} kg</strong>
-                {prev && <Delta value={last.volume - prev.volume} unit=" kg" />}
-              </div>
+            <div className="exprog-1rm">
+              <span>1RM estimado</span>
+              <strong>{last.e1rm ? fmt(Math.round(last.e1rm * 2) / 2) + " kg" : "—"}</strong>
+              {prev && last.e1rm > 0 && prev.e1rm > 0 && <Delta value={Math.round((last.e1rm - prev.e1rm) * 2) / 2} unit=" kg" />}
             </div>
+            {record && (
+              <p className={"exprog-record" + (fresh ? " fresh" : "")}>
+                🏆 Récord: <b>{fmt(record.best1RM.weight)} kg × {record.best1RM.reps}</b> · 1RM {fmt(Math.round(record.best1RM.value * 2) / 2)} kg
+                {record.best1RM.date && " · " + formatShortDate(record.best1RM.date)}
+                {fresh && <span className="new-tag">¡Nuevo!</span>}
+              </p>
+            )}
             <TapLineChart color={color} caption={"Fuerza estimada (1RM) por semana de " + x.name}
               points={history.filter((s) => s.e1rm > 0).map((s) => {
                 const best = s.sets.reduce((a, b) => (estimate1RM(b.weight ?? 0, b.reps ?? 0) > estimate1RM(a.weight ?? 0, a.reps ?? 0) ? b : a));
@@ -77,18 +71,18 @@ function ExerciseCard({ exercise: x }: { exercise: Exercise }) {
   );
 }
 
-// Progreso por ejercicio de cada día de rutina: lo que hiciste la última vez y cómo evoluciona.
+// Progreso por ejercicio de cada día de rutina: lo que hiciste la última vez, tu récord
+// y cómo evoluciona tu fuerza.
 export function ExerciseProgress() {
   const { model, stats, day: currentDay } = useWorkout();
   const [day, setDay] = useState(currentDay);
-  // Solo los ejercicios con registros ocupan una tarjeta; el resto se agrupa en una línea.
+  // Solo los ejercicios con registros ocupan una tarjeta.
   const list = model.exercisesOfDay(day);
   const withData = list.filter((x) => stats.exerciseHistory(x).length > 0);
-  const pending = list.filter((x) => !withData.includes(x));
 
   return (
     <section className="chart">
-      <div className="charttitle"><h2>Tus ejercicios</h2><span>Última vez y evolución de tu fuerza</span></div>
+      <div className="charttitle"><h2>Tus ejercicios</h2></div>
       <div className="daychips" role="tablist" aria-label="Día de rutina">
         {DAYS.map((d) => (
           <button key={d} type="button" role="tab" aria-selected={d === day} className={"daychip" + (d === day ? " active" : "")} onClick={() => setDay(d)}>
@@ -99,10 +93,8 @@ export function ExerciseProgress() {
       <div className="exprog-list" key={day}>
         {withData.map((x) => <ExerciseCard key={x.id} exercise={x} />)}
         {list.length === 0 && <div className="empty">Este día no tiene ejercicios.</div>}
+        {list.length > 0 && withData.length === 0 && <div className="empty">Todavía no has anotado series de este día.</div>}
       </div>
-      {pending.length > 0 && (
-        <p className="exprog-pending"><b>Sin registros todavía:</b> {pending.map((x) => x.name).join(" · ")}</p>
-      )}
     </section>
   );
 }

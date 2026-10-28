@@ -32,56 +32,47 @@ export function StreakCard() {
   );
 }
 
-// Mejores marcas de cada ejercicio: más peso levantado y mejor 1RM estimado.
-export function RecordsCard() {
-  const { stats, records } = useWorkout();
-  const list = stats.records().sort((a, b) => b.best1RM.value - a.best1RM.value);
-  const fresh = new Set(records.map((r) => r.exerciseId));
-  return (
-    <section className="chart">
-      <div className="charttitle"><h2>🏆 Tus récords</h2><span>Más peso y mejor 1RM estimado</span></div>
-      {list.length === 0 && <div className="empty">Cuando anotes carga y repeticiones aparecerán aquí tus mejores marcas.</div>}
-      <div className="records">
-        {list.map((r) => (
-          <div className={"record" + (fresh.has(r.exercise.id) ? " fresh" : "")} key={r.exercise.id}>
-            <i className="swatch" style={{ background: "var(--day" + r.exercise.day + ")" }} />
-            <div className="record-name">
-              <strong>{r.exercise.name}{fresh.has(r.exercise.id) && <span className="new-tag">¡Nuevo!</span>}</strong>
-              <span>{fmt(r.heaviest.weight, 2)} kg{r.heaviest.reps ? " × " + r.heaviest.reps : ""} · semana {r.heaviest.week}{r.heaviest.date ? " · " + formatShortDate(r.heaviest.date) : ""}</span>
-            </div>
-            <div className="record-value"><b>{fmt(Math.round(r.best1RM.value * 2) / 2)} kg</b><small>1RM est.</small></div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 const BODY_LABELS: Record<BodyField, { label: string; unit: string }> = {
   weight: { label: "Peso", unit: "kg" }, waist: { label: "Cintura", unit: "cm" }, chest: { label: "Pecho", unit: "cm" },
   arm: { label: "Brazo", unit: "cm" }, thigh: { label: "Muslo", unit: "cm" }, hip: { label: "Cadera", unit: "cm" },
 };
 
-// Peso corporal y medidas: anotar las de hoy y ver su evolución.
+// Peso corporal y medidas: anotar las de hoy y ver su evolución. Solo se muestran
+// las medidas que se han anotado alguna vez; sin ninguna, solo el botón.
 export function BodyCard() {
   const { model, today, actions } = useWorkout();
-  const [field, setField] = useState<BodyField>("weight");
+  const [picked, setPicked] = useState<BodyField>("weight");
   const [editing, setEditing] = useState(false);
   if (!today) return null;
   const log = model.bodyLog();
-  const latest = log[log.length - 1];
+  const used = BODY_FIELDS.filter((f) => log.some((e) => e.metrics[f] !== undefined));
+  const field = used.includes(picked) ? picked : used[0];
+  const form = editing && <BodyForm date={today} initial={log.find((e) => e.date === today)?.metrics ?? {}}
+    onSave={(m) => { actions.setBodyMetrics(today, m); setEditing(false); }} onClose={() => setEditing(false)} />;
+
+  if (!field) {
+    return (
+      <section className="chart">
+        <div className="charttitle"><h2>Tu cuerpo</h2></div>
+        <p className="body-hint">Anota tu peso y medidas cada semana para ver cómo cambian.</p>
+        <button type="button" className="settings-btn" onClick={() => setEditing(true)}>＋ Anotar medidas de hoy</button>
+        {form}
+      </section>
+    );
+  }
+  const { unit } = BODY_LABELS[field];
   const series = log.filter((e) => e.metrics[field] !== undefined);
   const first = series[0]?.metrics[field], last = series[series.length - 1]?.metrics[field];
-  const { unit } = BODY_LABELS[field];
 
   return (
     <section className="chart">
-      <div className="charttitle"><h2>Tu cuerpo</h2><span>Peso y medidas</span></div>
+      <div className="charttitle"><h2>Tu cuerpo</h2></div>
       <div className="body-fields">
-        {BODY_FIELDS.map((f) => {
-          const value = latest?.metrics[f];
+        {used.map((f) => {
+          // Último valor anotado de esa medida.
+          const value = [...log].reverse().find((e) => e.metrics[f] !== undefined)?.metrics[f];
           return (
-            <button key={f} type="button" className={"body-field" + (f === field ? " active" : "")} onClick={() => setField(f)}>
+            <button key={f} type="button" className={"body-field" + (f === field ? " active" : "")} onClick={() => setPicked(f)}>
               <small>{BODY_LABELS[f].label}</small>
               <b>{value !== undefined ? fmt(value) : "—"}<em> {BODY_LABELS[f].unit}</em></b>
             </button>
@@ -97,8 +88,7 @@ export function BodyCard() {
         points={series.map((e) => ({ key: e.date, value: e.metrics[field]!, label: fmt(e.metrics[field]!) + " " + unit, sub: formatShortDate(e.date) }))} />
       {series.length < 2 && <p className="body-hint">Anota tus medidas cada semana para ver aquí cómo cambian.</p>}
       <button type="button" className="settings-btn" onClick={() => setEditing(true)}>＋ Anotar medidas de hoy</button>
-      {editing && <BodyForm date={today} initial={model.bodyLog().find((e) => e.date === today)?.metrics ?? {}}
-        onSave={(m) => { actions.setBodyMetrics(today, m); setEditing(false); }} onClose={() => setEditing(false)} />}
+      {form}
     </section>
   );
 }

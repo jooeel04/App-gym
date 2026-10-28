@@ -80,9 +80,4 @@ export class WorkoutDiary {
     this.model.checkedDates().forEach(({ day, date }) => add(date, day));
     return byDate;
   }
-
-  // Series anotadas antes de que la app guardara fechas.
-  undatedCount() {
-    return Object.values(this.model.snapshot.entries).filter((e) => !e.date && hasAny(e)).length;
-  }
 }

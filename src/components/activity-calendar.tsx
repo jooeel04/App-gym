@@ -2,8 +2,15 @@
 
 import { useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
-import { addDays, formatLongDate, parseISODate, toISODate, WEEKDAY_SHORT, WEEKDAYS, weekdayOf } from "@/domain/calendar";
-import { DAY_NAMES, DAYS } from "@/domain/snapshot";
+import { addDays, formatLongDate, formatShortDate, parseISODate, toISODate, WEEKDAY_SHORT, WEEKDAYS, weekdayOf } from "@/domain/calendar";
+import { DAY_NAMES } from "@/domain/snapshot";
+import type { SetEntry } from "@/domain/types";
+
+function describeSet(e: SetEntry) {
+  const load = e.weight ? e.weight.replace(".", ",") + " kg" : "";
+  const reps = e.reps ? e.reps + " reps" : "";
+  return [load, reps].filter(Boolean).join(" × ") || "—";
+}
 
 // Fondo del punto: el color de cada día de rutina hecho esa fecha (repartido si hay varios).
 function dotBackground(days: number[]) {
@@ -14,7 +21,7 @@ function dotBackground(days: number[]) {
 
 // Calendario mensual: cada fecha es un punto que se colorea con el día de rutina
 // que se hizo (series anotadas o ejercicios marcados con el tick). Al tocar un día
-// se ve debajo qué se entrenó.
+// se ve debajo qué se entrenó: cada ejercicio con sus series.
 export function ActivityCalendar() {
   const { diary, today } = useWorkout();
   const [offset, setOffset] = useState(0);
@@ -57,28 +64,33 @@ export function ActivityCalendar() {
           );
         })}
       </div>
-      <div className="calinfo" aria-live="polite">
+      <div className="calinfo" aria-live="polite" key={sel}>
         <strong>{formatLongDate(sel)}</strong>
         {selDays.length === 0 && <span className="calinfo-empty">Sin entrenar</span>}
         {selDays.map((d) => {
           const sessions = selSessions.filter((s) => s.day === d);
-          const exercises = sessions.reduce((n, s) => n + s.exercises.length, 0);
-          const sets = sessions.reduce((n, s) => n + s.exercises.reduce((m, x) => m + x.sets.length, 0), 0);
           return (
-            <div className="calinfo-row" key={d}>
-              <i className="caldot done" style={{ background: "var(--day" + d + ")" }} />
-              <span>
-                <b>Día {d} · {DAY_NAMES[d]}</b>
-                <small>{exercises ? exercises + (exercises === 1 ? " ejercicio" : " ejercicios") + " · " + sets + (sets === 1 ? " serie" : " series") : "Marcado con el tick"}</small>
-              </span>
+            <div className="calinfo-day" key={d}>
+              <div className="calinfo-row">
+                <i className="caldot done" style={{ background: "var(--day" + d + ")" }} />
+                <span>
+                  <b>Día {d} · {DAY_NAMES[d]}</b>
+                  <small>
+                    {sessions.map((s) => "Semana " + s.week
+                      + (s.plannedDate && s.plannedDate !== sel ? (s.plannedDate < sel ? " · recuperado" : " · adelantado") + " (era el " + formatShortDate(s.plannedDate) + ")" : "")).join(" · ")}
+                    {sessions.every((s) => s.exercises.length === 0) && (sessions.length ? " · " : "") + "Marcado con el tick"}
+                  </small>
+                </span>
+              </div>
+              {sessions.flatMap((s) => s.exercises).map(({ exercise, sets }) => (
+                <div className="diary-ex" key={exercise.id}>
+                  <span>{exercise.name}</span>
+                  <span>{sets.map(({ set, entry }) => <i key={set} title={entry.note || undefined}>{describeSet(entry)}{entry.note ? " ✎" : ""}</i>)}</span>
+                </div>
+              ))}
             </div>
           );
         })}
-      </div>
-      <div className="legend">
-        {DAYS.map((d) => (
-          <span key={d}><i className="caldot done" style={{ background: "var(--day" + d + ")" }} />{DAY_NAMES[d]}</span>
-        ))}
       </div>
     </section>
   );

@@ -1,13 +1,11 @@
 "use client";
 
 import { ActivityCalendar } from "./activity-calendar";
-import { DailyLog } from "./daily-log";
 import { ExerciseProgress } from "./exercise-progress";
-import { LeaderboardCard } from "./leaderboard";
-import { BodyCard, RecordsCard, StreakCard } from "./progress-cards";
+import { BodyCard, StreakCard } from "./progress-cards";
 
-// Vista "Progreso": racha, calendario de días entrenados, progreso de cada ejercicio
-// (la última vez y su fuerza), récords, peso y medidas, y registro diario.
+// Vista "Progreso": racha, calendario (al tocar un día se ve lo que se entrenó),
+// progreso de cada ejercicio (la última vez, su fuerza y su récord) y peso y medidas.
 export function ProgressView() {
   return (
     <section className="view active">
@@ -15,7 +13,6 @@ export function ProgressView() {
         <div>
           <div className="eyebrow">Tu avance</div>
           <h1>Progreso</h1>
-          <p className="lede">Tu racha, qué días entrenaste, tu fuerza en cada ejercicio, tus récords y tus medidas.</p>
         </div>
       </div>
 
@@ -25,13 +22,7 @@ export function ProgressView() {
 
       <ExerciseProgress />
 
-      <RecordsCard />
-
       <BodyCard />
-
-      <LeaderboardCard />
-
-      <DailyLog />
     </section>
   );
 }

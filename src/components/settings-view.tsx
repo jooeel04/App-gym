@@ -6,6 +6,7 @@ import { useWorkout } from "@/controllers/workout-controller";
 import { DEFAULT_REST, getRestPrefs, REST_OPTIONS, setRestPrefs, subscribePrefs } from "@/lib/preferences";
 import { currentTheme, setTheme, subscribeTheme, type Theme } from "@/lib/theme";
 import { ChevronIcon, ClockIcon, DatabaseIcon, DownloadIcon, LogoutIcon, MoonIcon, TableIcon, TrashIcon, UploadIcon, UserIcon } from "./icons";
+import { LeaderboardCard } from "./leaderboard";
 
 const THEMES: { value: Theme; label: string; hint: string }[] = [
   { value: "dark", label: "Oscuro", hint: "Fondo negro" },
@@ -51,7 +52,7 @@ export function SettingsView() {
         <div>
           <div className="eyebrow">Tu app</div>
           <h1>Ajustes</h1>
-          <p className="lede">Elige cómo se ve la app, gestiona tu cuenta y guarda tus datos.</p>
+          <p className="lede">Elige cómo se ve la app, gestiona tu cuenta, compite con amigos y guarda tus datos.</p>
         </div>
       </div>
 
@@ -98,6 +99,9 @@ export function SettingsView() {
             <button type="button" className="settings-btn" onClick={actions.signOut}><LogoutIcon />Cerrar sesión</button>
           </SettingsCard>
         )}
+
+        {/* Clasificación con amigos (solo con cuenta). */}
+        <LeaderboardCard />
 
         <SettingsCard icon={<DatabaseIcon />} title="Tus datos"
           text={cloud ? "Guarda una copia en tu dispositivo o recupera una anterior." : "Están solo en este navegador: descarga una copia para no perderlos."}>

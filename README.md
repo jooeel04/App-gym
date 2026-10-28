@@ -10,14 +10,14 @@ Varias personas, cada una con su cuenta (correo y contraseña) y sus propios dat
 - Registro por serie de carga, repeticiones y nota; conserva las series opcionales.
 - Calendario: cada día de la rutina se asigna a un día de la semana (L–D), con presets y fecha de inicio del ciclo.
 - Recuperar días: Entrenar muestra lo que toca hoy y los días de las últimas dos semanas que quedaron sin hacer, para registrarlos hoy.
-- Registro diario en Progreso: lo entrenado agrupado por fecha real, marcando los días recuperados.
+- Calendario en Progreso: al tocar un día se ve lo entrenado esa fecha (ejercicios y series), marcando los días recuperados.
 - Cuentas con correo y contraseña: los datos de cada persona se guardan en su cuenta y los ve en cualquier dispositivo donde inicie sesión.
 - Resumen por semana y día, historial de cargas y exportación a CSV.
 - Copia y restauración de datos en JSON.
 - Entrenar: temporizador de descanso, sugerencia de progresión (doble progresión), récords personales, series de calentamiento, superseries, calculadora de discos y resumen al completar el día.
 - Entreno en curso: botón "Empezar entreno" (o empieza solo al anotar la primera serie) que abre una pantalla completa con un ejercicio cada vez (avanza solo al terminarlo, flechas y barra de pasos para moverse), barra flotante con el tiempo y los ejercicios hechos al minimizarla, la pantalla no se apaga y "Terminar" muestra el resumen.
-- Progreso: racha de semanas, fuerza (1RM estimado) por ejercicio, récords, peso corporal y medidas.
-- Amigos: compartir la rutina con un código y clasificación de días entrenados por grupos.
+- Progreso: racha de semanas, fuerza (1RM estimado) y récord de cada ejercicio, peso corporal y medidas.
+- Amigos: compartir la rutina con un código (en Rutina) y clasificación de días entrenados por grupos (en Ajustes).
 - Recuperación de contraseña por correo.
 - Instalación en pantalla de inicio (PWA) y uso sin conexión: los cambios se guardan en el dispositivo y se envían a la cuenta al volver internet.
 
