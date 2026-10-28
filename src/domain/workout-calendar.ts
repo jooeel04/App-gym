@@ -17,9 +17,15 @@ export const MAKEUP_WINDOW_DAYS = 14;
 export class WorkoutCalendar {
   constructor(private readonly model: WorkoutModel) {}
 
+  // Día de rutina con día de la semana asignado (0 = sin día fijo: se entrena cuando se quiera).
+  isScheduled(day: number) {
+    return this.model.weekdayFor(day) >= 1;
+  }
+
   plannedDate(week: number, day: number): string | null {
     const start = this.model.startDate;
     if (!start) return null;
+    if (!this.isScheduled(day)) return null;
     return addDays(start, (week - 1) * 7 + this.model.weekdayFor(day) - 1);
   }
 
@@ -57,7 +63,7 @@ export class WorkoutCalendar {
     if (raw === null) return null;
     const week = Math.min(Math.max(raw, 1), this.model.weeksCount);
     const weekday = weekdayOf(date);
-    const days = DAYS.filter((d) => this.model.exercisesOfDay(d).length > 0)
+    const days = DAYS.filter((d) => this.isScheduled(d) && this.model.exercisesOfDay(d).length > 0)
       .sort((a, b) => this.model.weekdayFor(a) - this.model.weekdayFor(b));
     const next = days.find((d) => this.model.weekdayFor(d) >= weekday) ?? days[days.length - 1] ?? 1;
     return { week, day: next };
@@ -70,7 +76,7 @@ export class WorkoutCalendar {
   // Rachas: semanas seguidas con todos los días de rutina hechos. La semana en
   // curso suma si ya está completa; si no, no rompe la racha todavía.
   streak(today: string): { current: number; best: number; weekDone: number; weekTotal: number } {
-    const days = DAYS.filter((d) => this.model.exercisesOfDay(d).length > 0);
+    const days = DAYS.filter((d) => this.isScheduled(d) && this.model.exercisesOfDay(d).length > 0);
     const complete = (w: number) => days.length > 0 && days.every((d) => this.isDone(w, d));
     const now = Math.min(Math.max(this.cycleWeekOf(today) ?? 1, 1), this.model.weeksCount);
     let current = 0;

@@ -65,7 +65,7 @@ function isWorkoutChange(c: unknown): c is WorkoutChange {
     case "schedule": {
       const schedule = x.schedule as Record<string, unknown>;
       const scheduleOk = !!schedule && typeof schedule === "object"
-        && Object.entries(schedule).every(([day, weekday]) => /^[1-5]$/.test(day) && isInt(weekday, 1, 7));
+        && Object.entries(schedule).every(([day, weekday]) => /^[1-5]$/.test(day) && isInt(weekday, 0, 7));
       return scheduleOk && (x.startDate === null || isISODate(x.startDate));
     }
     case "body": {

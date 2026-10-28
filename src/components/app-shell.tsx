@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import { switchTab, useWorkout } from "@/controllers/workout-controller";
 import { syncThemeBar } from "@/lib/theme";
@@ -13,6 +13,7 @@ import { RestTimerBar } from "./rest-timer";
 import { RoutineView } from "./routine-view";
 import { SettingsView } from "./settings-view";
 import { TrainingView } from "./training-view";
+import { useTabSwipe } from "./use-tab-swipe";
 
 const NAV = [
   { href: "/entrenar", label: "Entrenar", Icon: TrainingIcon, View: TrainingView },
@@ -50,6 +51,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => { document.title = current.label + " · RUTINA"; }, [current]);
   useEffect(syncThemeBar, []);
 
+  // En el móvil se cambia de pestaña deslizando el dedo a izquierda o derecha.
+  const mainRef = useRef<HTMLElement>(null);
+  const goToTab = useCallback((i: number) => switchTab(NAV[i].href), []);
+  useTabSwipe(mainRef, tabIndex(pathname), NAV.length, goToTab);
+
   return (
     <>
       <div className="app">
@@ -65,7 +71,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </span>
           )}
         </header>
-        <main>
+        <main ref={mainRef}>
           {ready
             ? <div key={pathname} className={"page" + (slide.from ? " from-" + slide.from : "")}><current.View /></div>
             : loadFailed

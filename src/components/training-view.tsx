@@ -43,7 +43,7 @@ export function TrainingView() {
       <div className="days">
         {DAYS.map((d) => (
           <button key={d} className={"day" + (d === day ? " active" : "")} onClick={() => actions.selectDay(d)}>
-            <small>Día {d} · {WEEKDAY_SHORT[model.weekdayFor(d)]}</small><b>{DAY_NAMES[d]}</b>{stats.day(week, d).n > 0 && <i className="dot" />}
+            <small>Día {d}{model.weekdayFor(d) ? " · " + WEEKDAY_SHORT[model.weekdayFor(d)] : ""}</small><b>{DAY_NAMES[d]}</b>{stats.day(week, d).n > 0 && <i className="dot" />}
           </button>
         ))}
       </div>

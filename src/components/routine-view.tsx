@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
+import { WEEKDAY_NAMES } from "@/domain/calendar";
 import { musclesFor } from "@/domain/exercise-library";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { Exercise } from "@/domain/types";
 import { BodyMap } from "./body-map";
 import { ExerciseModal } from "./exercise-modal";
-import { ScheduleCard, WeekdayPicker } from "./schedule-card";
+import { ScheduleCard } from "./schedule-card";
 import { ShareRoutineCard } from "./share-routine";
 
 // Vista "Rutina": ejercicios por día con acciones para añadir, editar, reordenar,
@@ -36,7 +37,7 @@ export function RoutineView() {
                 <div><span>Día {d}</span><h2>{DAY_NAMES[d]}</h2></div>
                 <button className="start" onClick={() => actions.startDay(d)}>Entrenar →</button>
               </div>
-              <WeekdayPicker day={d} />
+              <span className={"wk-tag" + (model.weekdayFor(d) ? "" : " none")}>{model.weekdayFor(d) ? "Se entrena el " + WEEKDAY_NAMES[model.weekdayFor(d)] : "Sin día fijo"}</span>
               {list.map((x, i) => {
                 const muscles = musclesFor(x.name);
                 const inSuperset = x.superset || list[i - 1]?.superset;

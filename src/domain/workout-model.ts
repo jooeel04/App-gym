@@ -283,7 +283,8 @@ export class WorkoutModel {
     return { ...DEFAULT_SCHEDULE, ...this.state.schedule };
   }
 
-  // Día de la semana (1 = lunes … 7 = domingo) en que se entrena el día de rutina `d`.
+  // Día de la semana (1 = lunes … 7 = domingo) en que se entrena el día de rutina `d`;
+  // 0 = sin día fijo.
   weekdayFor(d: number) {
     return this.schedule[d];
   }

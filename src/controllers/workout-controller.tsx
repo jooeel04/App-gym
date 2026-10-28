@@ -309,7 +309,7 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       model.setStartDate(iso);
       setWeek(null);
       setDay(null);
-      showToast("Fecha de inicio actualizada");
+      showToast("Semana del ciclo actualizada");
     },
 
     addExercise(d: number, data: NewExerciseInput) {
