@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // En `npm run dev`, permite abrir la app desde el móvil por la wifi de casa.
+  allowedDevOrigins: ["192.168.*.*"],
   async headers() {
     return [
       {

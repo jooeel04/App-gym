@@ -53,6 +53,12 @@ export function formatShortDate(iso: string) {
   return WEEKDAY_NAMES[weekdayOf(iso)] + " " + d.getDate() + " " + month;
 }
 
+// "3 nov" (para el eje de las gráficas)
+export function formatDayMonth(iso: string) {
+  const d = parseISODate(iso);
+  return d.getDate() + " " + d.toLocaleDateString("es-ES", { month: "short" }).replace(".", "");
+}
+
 // "Martes, 27 de octubre"
 export function formatLongDate(iso: string) {
   const text = parseISODate(iso).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });

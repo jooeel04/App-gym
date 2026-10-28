@@ -90,16 +90,27 @@ button.calday.selected small{color:var(--text);font-weight:900}
 .calinfo-row .caldot{width:16px;height:16px;flex:none}
 
 /* Gráfica de cada ejercicio */
-.spark-wrap{margin-top:12px}
-.spark-label{display:flex;align-items:baseline;gap:8px}
-.spark-label strong{font-size:calc(15px * var(--fs))}
-.spark-label span{color:var(--muted);font-size:calc(10px * var(--fs))}
-.spark{display:block;width:100%;height:auto;margin-top:4px;overflow:visible}
-.spark-point{cursor:pointer;outline:none}
+.spark-wrap{margin-top:12px;min-width:0;contain:inline-size}
+.spark-label{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px}
+.spark-label strong{font-size:calc(17px * var(--fs));white-space:nowrap}
+.spark-tick.on{fill:var(--text)}
+.spark-label span{color:var(--muted);font-size:calc(12px * var(--fs))}
+.spark-frame{position:relative;display:flex;margin-top:6px}
+.spark-axis{position:relative;flex:none;width:38px;border-right:1px solid var(--line)}
+.spark-axis span{position:absolute;right:6px;transform:translateY(-50%);color:var(--muted);font-size:calc(11px * var(--fs));font-weight:700;font-variant-numeric:tabular-nums}
+.spark-scroll{flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;touch-action:pan-x pan-y}
+.spark-scroll::-webkit-scrollbar{display:none}
+.spark-scroll.scrollable{-webkit-mask-image:linear-gradient(90deg,transparent,#000 22px);mask-image:linear-gradient(90deg,transparent,#000 22px)}
+.spark{display:block;width:auto;height:auto;max-width:none;margin:0;overflow:visible;user-select:none;-webkit-user-select:none}
+.spark-grid{stroke:var(--line);stroke-width:1;stroke-dasharray:3 4}
+.spark-cursor{stroke:var(--muted2);stroke-width:1;opacity:.5}
+.spark-tick{fill:var(--muted);font-size:calc(11px * var(--fs));font-weight:700}
+.spark-hint{margin-top:6px;color:var(--muted);font-size:calc(11px * var(--fs));text-align:right}
+.spark-point{cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent}
 .spark-point:focus-visible circle:last-child{stroke:var(--text)}
 
 /* Ajustes */
-.settings{display:grid;gap:12px;max-width:640px}
+.settings{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;max-width:640px}
 .settings-card{background:var(--s);border:1px solid var(--line);border-radius:20px;padding:16px}
 .settings-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
 .settings-head h2{margin:0;font-size:calc(15px * var(--fs));letter-spacing:-.02em}
@@ -410,7 +421,7 @@ button:disabled,input:disabled{opacity:.6}
 .diary-ex i{font-style:normal}
 @media(max-width:600px){.today-head{align-items:flex-start}
 
-.exprog-list{grid-template-columns:1fr}
+.exprog-list{grid-template-columns:minmax(0,1fr)}
 .diary-ex{flex-direction:column;gap:3px}.diary-ex>span:last-child{justify-content:flex-start;text-align:left}}
 
 /* iPhone: el texto escala con el ancho de la pantalla y el contenido respeta
@@ -909,3 +920,20 @@ button.peek-row .chev{flex:none;width:18px;color:var(--muted2);transition:transf
 
 /* Ventanas opacas: en el tema claro los recuadros de dentro llevan un gris suave para distinguirse */
 :root[data-theme="light"] .modal :is(.libitem,.daychip:not(.active),.segmented,.modal-actions button:not(.primary),.exsearch,.switch-row,.import-preview){background:#f2f4f8;border-color:#e1e6ee}
+
+/* Sensación de app nativa en el móvil */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+*{-webkit-tap-highlight-color:transparent}
+/* Botones y barra inferior: una pulsación larga no selecciona texto ni abre el menú del sistema */
+button,.nav,.daychip{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+/* Instalada en la pantalla de inicio: sin "rebote" ni recargar al tirar hacia abajo */
+@media(display-mode:standalone){html,body{overscroll-behavior-y:none}}
+/* Móvil en horizontal: el contenido esquiva el notch de los lados (la barra inferior ya va centrada) */
+@media(orientation:landscape) and (max-height:500px){
+  .app{padding-left:max(22px,env(safe-area-inset-left));padding-right:max(22px,env(safe-area-inset-right))}
+  /* Poca altura: cabecera y título más compactos para que se vea el contenido */
+  .topbar{height:56px}
+  main{padding-top:12px}
+  h1{font-size:30px}
+  .pagehead{margin-bottom:12px}
+}

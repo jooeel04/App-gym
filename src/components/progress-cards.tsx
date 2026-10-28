@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useWorkout } from "@/controllers/workout-controller";
-import { formatShortDate } from "@/domain/calendar";
+import { formatDayMonth, formatShortDate } from "@/domain/calendar";
 import { BODY_FIELDS, type BodyField, type BodyMetrics } from "@/domain/types";
 import { TapLineChart } from "./tap-line-chart";
 import { closeOnBackdrop } from "./backdrop";
@@ -105,7 +105,7 @@ export function BodyCard() {
         </p>
       )}
       <TapLineChart color="var(--accent)" caption={BODY_LABELS[field].label + " por fecha"}
-        points={series.map((e) => ({ key: e.date, value: e.metrics[field]!, label: fmt(e.metrics[field]!) + " " + unit, sub: formatShortDate(e.date) }))} />
+        points={series.map((e) => ({ key: e.date, value: e.metrics[field]!, label: fmt(e.metrics[field]!) + " " + unit, sub: formatShortDate(e.date), tick: formatDayMonth(e.date) }))} />
       {series.length < 2 && <p className="body-hint">Anota tus medidas cada semana para ver aquí cómo cambian.</p>}
       <button type="button" className="settings-btn" onClick={() => setEditing(today)}>
         {log.some((e) => e.date === today) ? "✎ Cambiar las medidas de hoy" : "＋ Anotar medidas de hoy"}

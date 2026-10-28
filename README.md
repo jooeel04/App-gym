@@ -56,6 +56,28 @@ npm install
 npm run dev   # http://localhost:3000
 ```
 
+### 4. Base de datos local con datos demo (Docker)
+Necesita [Docker Desktop](https://www.docker.com/products/docker-desktop/) abierto. La CLI de
+Supabase (`supabase/config.toml`) levanta Postgres, Auth y Studio en contenedores, aplica
+`supabase/migrations/` y carga `supabase/seed.sql`: un año de entrenos demo con fechas hasta hoy.
+
+```bash
+npm run db:start    # arranca los contenedores (la primera vez descarga las imágenes)
+npm run db:reset    # borra la base local y vuelve a cargar migraciones y datos demo
+npm run db:stop     # apaga los contenedores (los datos se conservan)
+```
+
+Copia en `.env.local` la URL y la clave que muestra `npm run db:status`:
+
+```
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+```
+
+Cuentas demo (contraseña `demo1234`): `demo@rutina.local` (52 semanas), `ana@rutina.local`
+(40 semanas) y `leo@rutina.local` (26 semanas, 3 días por semana), en el grupo `DEMO01`.
+Studio (ver las tablas): http://127.0.0.1:54323 · Correos de prueba: http://127.0.0.1:54324
+
 ## Arquitectura (MVC + SOLID)
 
 ```

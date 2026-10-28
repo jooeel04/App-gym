@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
-import { formatShortDate } from "@/domain/calendar";
+import { formatDayMonth, formatShortDate } from "@/domain/calendar";
 import { estimate1RM } from "@/domain/progression";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { Exercise } from "@/domain/types";
@@ -66,7 +66,7 @@ function ExerciseCard({ exercise: x }: { exercise: Exercise }) {
             <TapLineChart color={color} caption={"Fuerza de " + x.name + " por fecha"}
               points={history.filter((s) => s.e1rm > 0).map((s) => {
                 const best = s.sets.reduce((a, b) => (estimate1RM(b.weight ?? 0, b.reps ?? 0) > estimate1RM(a.weight ?? 0, a.reps ?? 0) ? b : a));
-                return { key: String(s.week), value: s.e1rm, label: "Fuerza " + fmt(Math.round(s.e1rm * 2) / 2) + " kg", sub: (s.date ? formatShortDate(s.date) : "Semana " + s.week) + " · " + describeSet(best) };
+                return { key: String(s.week), value: s.e1rm, label: "Fuerza " + fmt(Math.round(s.e1rm * 2) / 2) + " kg", sub: (s.date ? formatShortDate(s.date) : "Semana " + s.week) + " · " + describeSet(best), tick: s.date ? formatDayMonth(s.date) : "S" + s.week };
               })} />
           </>
         )}
