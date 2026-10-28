@@ -91,10 +91,14 @@ localStorage), lo que permite probar la interfaz: `npx next start -p 3100`.
 - **`backdrop-filter`**: escribe solo la propiedad sin prefijo. El compilador de CSS
   (LightningCSS) **borra las dos** si van juntas `backdrop-filter` y
   `-webkit-backdrop-filter`; él ya añade el prefijo para Safari.
-- **Cristal líquido** (`liquid-glass-react`): solo en la barra de pestañas y la del
-  descanso, como capa de fondo (`GlassLayer`). Se carga solo en el navegador (lee
-  `navigator`). Dentro del cristal nada puede usar `mix-blend-mode` (aísla el grupo y
-  anula el desenfoque) y la barra que lo lleva no debe tener su propio `backdrop-filter`.
+- **Cristal líquido** (`liquid-glass-react`): `GlassLayer` es una capa detrás del
+  contenido (se carga solo en el navegador, porque lee `navigator`, y solo cerca de la
+  pantalla). La barra de pestañas y la del descanso la llevan en su JSX; el resto de
+  tarjetas y botones la reciben de `GlassSurfaces` (lista `GLASS_SURFACES`; para que algo
+  lleve cristal, añade su selector ahí). El elemento queda marcado con `data-glass="on"`.
+  Reglas: nada dentro del cristal con `mix-blend-mode` (anula el desenfoque); el elemento
+  no debe tener su propio `backdrop-filter`; las capas son `span`, así que las reglas
+  tipo `.tarjeta span{…}` las alcanzan (por eso se les quita el margen en el CSS).
 - Comentarios, textos de la interfaz y mensajes de commit en **español**.
 - Los archivos pueden tener finales de línea CRLF (Windows); normalízalos antes de
   hacer ediciones de varias líneas con scripts.

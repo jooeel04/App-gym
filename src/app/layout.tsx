@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { GlassSurfaces } from "@/components/glass-surfaces";
 import { ServiceWorkerRegistration } from "@/components/service-worker";
 import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
@@ -33,6 +34,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body>
         {children}
+        {/* Cristal líquido en las tarjetas y botones de todas las pantallas. */}
+        <GlassSurfaces />
         <ServiceWorkerRegistration />
       </body>
     </html>

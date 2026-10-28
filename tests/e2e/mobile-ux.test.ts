@@ -123,6 +123,36 @@ describe("Barra de pestañas con cristal líquido (liquid-glass-react)", () => {
   });
 });
 
+// Tarjetas y botones visibles sin cristal (o cuyo propio desenfoque le impide ver lo que
+// hay detrás), y cuántos cristales hay activos a la vez (solo los que están en pantalla).
+const glassReport = () => {
+  const missing: string[] = [];
+  const sel = "main :is(.chart,.hero,.stat-tile,.routine-day,.set-box,.set-account,button.primary)";
+  for (const el of document.querySelectorAll<HTMLElement>(sel)) {
+    const r = el.getBoundingClientRect();
+    if (!r.width || r.bottom < 0 || r.top > innerHeight) continue;
+    const name = (el.getAttribute("class") ?? "").split(" ")[0] + " «" + (el.textContent ?? "").trim().slice(0, 18) + "»";
+    if (el.dataset.glass !== "on" || !el.querySelector(":scope > .glass-slot .glass-layer.on filter")) { missing.push(name + " sin cristal"); continue; }
+    if (getComputedStyle(el).backdropFilter !== "none") missing.push(name + " con desenfoque propio");
+    if (getComputedStyle(el).isolation !== "isolate") missing.push(name + " sin capa propia (el cristal quedaría encima)");
+  }
+  return { missing, active: document.querySelectorAll(".glass-layer.on").length };
+};
+
+describe("Cristal líquido en toda la app", () => {
+  for (const tab of TABS) {
+    it(`tarjetas y botones de ${tab}`, async () => {
+      await setDevice(page, PHONES[2]);
+      await open(page, tab);
+      await new Promise((r) => setTimeout(r, 900));
+      const report = await page.evaluate(glassReport);
+      expect(report.missing).toEqual([]);
+      expect(report.active).toBeGreaterThan(1);
+      expect(report.active).toBeLessThanOrEqual(30);
+    });
+  }
+});
+
 describe("Progreso · Tus ejercicios", () => {
   it("empieza plegado, se despliega al tocar y la gráfica se desliza con el dedo", async () => {
     await setDevice(page, PHONES[2]);

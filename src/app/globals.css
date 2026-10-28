@@ -989,12 +989,11 @@ button,.nav,.daychip{-webkit-user-select:none;user-select:none;-webkit-touch-cal
    CSS (un desenfoque en la barra impediría al cristal ver lo que hay detrás). */
 :root{--glass-tint:rgba(16,18,24,.5)}
 :root[data-theme="light"]{--glass-tint:rgba(255,255,255,.55)}
-.glass-layer{position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit}
+.glass-layer{position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit}
 .glass-tint{display:block;background:var(--glass-tint)}
 /* Safari anterior a iOS 18 solo entiende el desenfoque con prefijo. */
 .glass-layer .glass__warp{-webkit-backdrop-filter:blur(18px) saturate(150%)}
-.nav:has(>.glass-layer.on),.restbar:has(>.glass-layer.on){background:transparent;border-color:transparent;box-shadow:none;backdrop-filter:none}
-.restbar>:not(.glass-layer){position:relative;z-index:1}
+.nav[data-glass="on"],.restbar[data-glass="on"]{background:transparent;border-color:transparent;box-shadow:none;backdrop-filter:none}
 /* La librería pinta el cristal como inline-flex (deja 4 px de línea debajo) y anima su
    tamaño desde 270 × 69 al montarse: aquí ocupa justo la barra y aparece sin saltos. */
 .glass-layer .glass{vertical-align:top}
@@ -1003,3 +1002,31 @@ button,.nav,.daychip{-webkit-user-select:none;user-select:none;-webkit-touch-cal
    aísla el grupo y el cristal deja de ver (y desenfocar) lo que hay detrás. Con mezcla
    normal siguen dibujando el reflejo del borde y el desenfoque funciona. */
 .glass-layer>span{mix-blend-mode:normal!important}
+
+/* ----- Cristal líquido en toda la app (GlassSurfaces) -----
+   El cristal va entre el fondo propio de cada tarjeta o botón y su contenido: así se
+   conservan los colores de estado (botón principal, día elegido, serie hecha) y el texto
+   se lee igual. Cada elemento con cristal tiene su propia capa (isolation) para que el
+   cristal no quede por encima del texto, y no lleva desenfoque propio (no dejaría al
+   cristal ver lo que hay detrás). */
+:where([data-glass],:has(>.glass-slot)){position:relative;isolation:isolate}
+.glass-slot{position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit}
+/* Reglas como ".stat-tile span{margin-top:2px}" alcanzan también a las capas del cristal
+   (son span): sin márgenes quedan justo encima de su tarjeta. */
+:is(.glass-slot,.glass-layer),:is(.glass-slot,.glass-layer) *{margin:0!important}
+.glass-slot .glass-tint{background:transparent}
+.glass-slot .glass{box-shadow:none!important}
+/* El filtro de refracción pinta algo más allá del elemento y Chrome no lo recorta con las
+   esquinas redondeadas: sin esto, los botones redondos llevan un recuadro detrás. El
+   recorte va en la propia capa (en un contenedor la dejaría sin ver lo que hay detrás). */
+.glass-layer .glass__warp{border-radius:var(--glass-r,0px);clip-path:inset(0 round var(--glass-r,0px))}
+[data-glass="on"]{backdrop-filter:none!important}
+/* Al pulsar, el botón de cristal se hunde un poco (respuesta inmediata al dedo). */
+button[data-glass]{transition:transform .15s cubic-bezier(.32,.72,0,1)}
+button[data-glass]:active{transform:scale(.97)}
+@media(prefers-reduced-motion:reduce){button[data-glass]{transition:none}button[data-glass]:active{transform:none}}
+
+/* Deshacer la última serie anotada */
+.set-undo{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 0;padding:4px 4px 4px 14px;border-radius:14px;background:var(--glass);border:1px solid var(--glass-line);color:var(--soft);font-size:calc(13px * var(--fs));font-weight:700;animation:fade-up .2s ease-out}
+.set-undo button{min-height:44px;padding:0 14px;border:0;border-radius:11px;background:transparent;color:var(--accent);font-size:calc(14px * var(--fs));font-weight:850}
+@media(prefers-reduced-motion:reduce){.set-undo{animation:none}}

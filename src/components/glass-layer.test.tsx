@@ -42,6 +42,30 @@ describe("GlassLayer · cristal líquido de las barras flotantes", () => {
     expect(layer().querySelector<HTMLElement>(".glass")!.style.borderRadius).toBe("32px");
   });
 
+  it("sin radio indicado, usa las esquinas de su contenedor", async () => {
+    render(<div style={{ borderRadius: "22px" }}><GlassLayer /></div>);
+    await waitFor(() => expect(document.querySelector(".glass-layer")).toHaveClass("on"));
+    expect(document.querySelector<HTMLElement>(".glass-layer .glass")!.style.borderRadius).toBe("22px");
+  });
+
+  it("solo se activa cuando está en pantalla (ahorra batería)", async () => {
+    let notify: (visible: boolean) => void = () => {};
+    vi.stubGlobal("IntersectionObserver", class {
+      constructor(cb: IntersectionObserverCallback) { notify = (v) => cb([{ isIntersecting: v } as IntersectionObserverEntry], this as unknown as IntersectionObserver); }
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+    });
+    render(<Bar />);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(layer()).not.toHaveClass("on");
+    notify(true);
+    await waitFor(() => expect(layer()).toHaveClass("on"));
+    notify(false);
+    await waitFor(() => expect(layer()).not.toHaveClass("on"));
+    vi.unstubAllGlobals();
+  });
+
   it("si el sistema pide menos transparencia, la barra se queda sólida", async () => {
     media((q) => q.includes("reduced-transparency"));
     render(<Bar />);

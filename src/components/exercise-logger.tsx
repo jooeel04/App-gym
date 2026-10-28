@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { MUSCLE_NAMES, musclesFor } from "@/domain/exercise-library";
 import { parseRepRange, suggestNext } from "@/domain/progression";
@@ -53,14 +53,36 @@ export function ExerciseLogger({ exercise: x, superset }: { exercise: Exercise; 
 const hasReps = (e: SetEntry) => !!String(e.reps ?? "").trim();
 const describeEntry = (e: SetEntry) => (e.weight?.trim() ? e.weight.replace(".", ",") + " × " : "× ") + (e.reps ?? "");
 
+// Segundos que se ofrece deshacer la última serie anotada.
+const UNDO_MS = 6000;
+
 // Fichas de las series (hechas, la actual y las que faltan) y la serie elegida para anotar.
+// Tras anotar una, durante unos segundos se puede deshacer (por si se tocó sin querer o
+// con otro número): vuelve a como estaba y, si empezó el descanso, lo para.
 function SetLogger({ exercise: x }: { exercise: Exercise }) {
-  const { model, stats, week, day } = useWorkout();
+  const { model, stats, week, day, actions } = useWorkout();
   const last = stats.lastBefore(x, week);
   const sets = range(x.sets);
   const pending = sets.find((s) => !hasReps(model.getEntry(week, day, x.id, s))) ?? null;
   const [pick, setPick] = useState<number | null>(null);
+  const [undo, setUndo] = useState<{ set: number; prev: SetEntry } | null>(null);
   const current = pick ?? pending;
+
+  useEffect(() => {
+    if (!undo) return;
+    const timer = setTimeout(() => setUndo(null), UNDO_MS);
+    return () => clearTimeout(timer);
+  }, [undo]);
+
+  const revert = () => {
+    if (!undo) return;
+    const { set: s, prev } = undo;
+    actions.setEntry(week, day, x.id, s, "reps", prev.reps ?? "");
+    actions.setEntry(week, day, x.id, s, "weight", prev.weight ?? "");
+    if (!hasReps(prev)) actions.stopRest();
+    setPick(s);
+    setUndo(null);
+  };
 
   return (
     <>
@@ -78,8 +100,15 @@ function SetLogger({ exercise: x }: { exercise: Exercise }) {
         })}
       </div>
       {current
-        ? <SetStepper key={current} exercise={x} set={current} old={last?.sets.find((r) => r.set === current)} onSaved={() => setPick(null)} />
+        ? <SetStepper key={current} exercise={x} set={current} old={last?.sets.find((r) => r.set === current)}
+            onSaved={(prev) => { setPick(null); setUndo({ set: current, prev }); }} />
         : <p className="set-alldone"><CheckIcon /> Todas las series anotadas. Toca una para cambiarla.</p>}
+      {undo && (
+        <p className="set-undo" role="status">
+          <span>Serie {undo.set} anotada</span>
+          <button type="button" onClick={revert}>Deshacer</button>
+        </p>
+      )}
     </>
   );
 }
@@ -90,7 +119,7 @@ const bump = (v: string, d: number) => String(Math.max(0, Math.round(((Number(v)
 // Carga y repeticiones de una serie con botones grandes. Empieza con lo propuesto (peso
 // de la serie anterior o de la última vez; repeticiones de la última vez o el mínimo
 // del rango) y se guarda al pulsar "Serie hecha".
-function SetStepper({ exercise: x, set: s, old, onSaved }: { exercise: Exercise; set: number; old?: SetResult; onSaved: () => void }) {
+function SetStepper({ exercise: x, set: s, old, onSaved }: { exercise: Exercise; set: number; old?: SetResult; onSaved: (prev: SetEntry) => void }) {
   const { model, week, day, actions } = useWorkout();
   const e = model.getEntry(week, day, x.id, s);
   const saved = hasReps(e);
@@ -100,9 +129,12 @@ function SetStepper({ exercise: x, set: s, old, onSaved }: { exercise: Exercise;
 
   const save = () => {
     if (!reps.trim()) return;
+    const prev = { weight: e.weight, reps: e.reps };
     if (kg.trim() !== (e.weight ?? "").trim()) actions.setEntry(week, day, x.id, s, "weight", kg.trim());
     actions.setEntry(week, day, x.id, s, "reps", reps.trim());
-    onSaved();
+    // Un toque de vibración confirma que se ha guardado (Android; iPhone no vibra desde la web).
+    if ("vibrate" in navigator) navigator.vibrate(12);
+    onSaved(prev);
   };
 
   return (
