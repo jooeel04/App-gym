@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
+import { musclesFor } from "@/domain/exercise-library";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
+import { BodyMap } from "./body-map";
 import { ExerciseModal } from "./exercise-modal";
 import { ScheduleCard, WeekdayPicker } from "./schedule-card";
 
@@ -29,15 +31,19 @@ export function RoutineView() {
               <button className="start" onClick={() => actions.startDay(d)}>Entrenar →</button>
             </div>
             <WeekdayPicker day={d} />
-            {model.exercisesOfDay(d).map((x) => (
-              <div className="routine-ex" key={x.id}>
-                <div className="routine-ex-head">
-                  <div><strong>{x.name}</strong><div className="meta">{x.prescription}</div></div>
-                  <button className="remove-ex" type="button" onClick={() => actions.deleteExercise(x.id)}>Eliminar</button>
+            {model.exercisesOfDay(d).map((x) => {
+              const muscles = musclesFor(x.name);
+              return (
+                <div className="routine-ex" key={x.id}>
+                  <div className="routine-ex-head">
+                    {muscles && <BodyMap primary={muscles.primary} secondary={muscles.secondary} size="sm" />}
+                    <div><strong>{x.name}</strong><div className="meta">{x.prescription}</div></div>
+                    <button className="remove-ex" type="button" onClick={() => actions.deleteExercise(x.id)}>Eliminar</button>
+                  </div>
+                  {x.note && <p>{x.note}</p>}
                 </div>
-                {x.note && <p>{x.note}</p>}
-              </div>
-            ))}
+              );
+            })}
             <div className="routine-actions">
               <button className="add-ex" type="button" onClick={() => setAddingDay(d)}>＋ Añadir ejercicio</button>
             </div>

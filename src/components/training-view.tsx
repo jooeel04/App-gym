@@ -2,8 +2,10 @@
 
 import { useWorkout } from "@/controllers/workout-controller";
 import { formatShortDate, WEEKDAY_SHORT } from "@/domain/calendar";
+import { MUSCLE_NAMES, musclesFor } from "@/domain/exercise-library";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { Exercise, SetField } from "@/domain/types";
+import { BodyMap } from "./body-map";
 import { describeSet } from "./exercise-progress";
 import { ChevronIcon } from "./icons";
 import { TodayPanel } from "./today-panel";
@@ -67,6 +69,7 @@ function ExerciseCard({ exercise: x, index }: { exercise: Exercise; index: numbe
   const n = model.loggedSets(week, day, x), done = model.isExerciseDone(week, day, x);
   const checked = model.isExerciseChecked(week, day, x.id);
   const last = stats.lastBefore(x, week);
+  const muscles = musclesFor(x.name);
   // Con todas las series anotadas el tick ya está puesto y no se puede quitar a mano.
   const filled = done && !checked;
   const set = (s: number, field: SetField) => (e: React.ChangeEvent<HTMLInputElement>) => actions.setEntry(week, day, x.id, s, field, e.target.value);
@@ -92,6 +95,12 @@ function ExerciseCard({ exercise: x, index }: { exercise: Exercise; index: numbe
         <ChevronIcon />
       </summary>
       <div className="exbody">
+        {muscles && (
+          <div className="exmuscles">
+            <BodyMap primary={muscles.primary} secondary={muscles.secondary} size="sm" />
+            <span><b>{muscles.primary.map((m) => MUSCLE_NAMES[m]).join(", ")}</b>{muscles.secondary.length > 0 && <small>También: {muscles.secondary.map((m) => MUSCLE_NAMES[m].toLowerCase()).join(", ")}</small>}</span>
+          </div>
+        )}
         {x.note && <p className="cue">{x.note}</p>}
         <div className="sethead"><span>Serie</span><span>Carga · kg</span><span>Reps</span></div>
         {range(x.sets).map((s) => {
