@@ -54,7 +54,7 @@ localStorage), lo que permite probar la interfaz: `npx next start -p 3100`.
 
 ## Claves del código
 
-- **Pestañas**: `AppShell` pinta la vista según la URL; se navega con
+- **Pestañas**: Hoy (`/entrenar`, `TrainingView`), Rutina, Progreso y Ajustes. `AppShell` pinta la vista según la URL; se navega con
   `history.pushState` (`switchTab` / `navigateTab` en el controlador), sin pedir la
   página al servidor. Las páginas de `src/app/(app)/*` solo devuelven `null` y el
   título. Carrusel entre pestañas (botones y gesto) en `app-shell.tsx` +

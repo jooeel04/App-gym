@@ -9,12 +9,13 @@ Varias personas, cada una con su cuenta (correo y contraseña) y sus propios dat
 - Añadir ejercicios por día con series, objetivo de repeticiones y detalle técnico; eliminar ejercicios cuando ya no se necesiten.
 - Registro por serie de carga, repeticiones y nota; conserva las series opcionales.
 - Calendario: cada día de la rutina se asigna a un día de la semana (L–D), con presets y fecha de inicio del ciclo.
-- Recuperar días: Entrenar muestra lo que toca hoy y los días de las últimas dos semanas que quedaron sin hacer, para registrarlos hoy.
+- Hoy (pestaña principal): lo que toca hoy con un botón grande para empezar, los días de las últimas dos semanas que quedaron sin hacer («Hacer hoy»), los días de descanso y «Hacer otro día»; «Corregir series» abre la lista editable.
+- Asistente para cuentas nuevas (sin datos): qué días entrena, qué rutina quiere (recomendada, la de un amigo o vacía) y cómo queda la semana.
 - Calendario en Progreso: al tocar un día se ve lo entrenado esa fecha (ejercicios y series), marcando los días recuperados.
 - Cuentas con correo y contraseña: los datos de cada persona se guardan en su cuenta y los ve en cualquier dispositivo donde inicie sesión.
 - Resumen por semana y día, historial de cargas y exportación a CSV.
 - Copia y restauración de datos en JSON.
-- Entrenar: peso y repeticiones propuestos en cada serie (de la serie anterior o de la última vez; con escribir solo las repeticiones basta) y botón "Igual que la última vez", temporizador de descanso, sugerencia de progresión (doble progresión), récords personales, series de calentamiento, superseries, calculadora de discos y resumen al completar el día (con la comparación de cada ejercicio frente a la última vez).
+- Al entrenar: peso y repeticiones propuestos en cada serie (de la serie anterior o de la última vez; con escribir solo las repeticiones basta) y botón "Igual que la última vez", temporizador de descanso, sugerencia de progresión (doble progresión), récords personales, series de calentamiento, superseries, calculadora de discos y resumen al completar el día (con la comparación de cada ejercicio frente a la última vez).
 - Entreno en curso: botón "Empezar entreno" (o empieza solo al anotar la primera serie) que abre una pantalla completa con un ejercicio cada vez (avanza solo al terminarlo, flechas y barra de pasos para moverse), barra flotante con el tiempo y los ejercicios hechos al minimizarla, la pantalla no se apaga y "Terminar" muestra el resumen.
 - Progreso: racha de semanas, fuerza (1RM estimado) y récord de cada ejercicio, peso corporal y medidas.
 - Amigos: compartir la rutina con un código (en Rutina) y clasificación de días entrenados por grupos (en Ajustes).

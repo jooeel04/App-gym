@@ -53,7 +53,7 @@ export function WorkoutFocus() {
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
         <div className="focus-time">
-          <small><span className="live-dot" aria-hidden="true" />Día {day} · {DAY_NAMES[day]}</small>
+          <small><span className="live-dot" aria-hidden="true" />{DAY_NAMES[day]}</small>
           <strong>{clock(now - active.startedAt)}</strong>
         </div>
         <button type="button" className="live-finish" onClick={actions.finishWorkout}>Terminar</button>

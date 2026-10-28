@@ -30,6 +30,7 @@ function ExerciseCard({ exercise: x }: { exercise: Exercise }) {
   const last = history[history.length - 1], prev = history[history.length - 2];
   const record = stats.record(x);
   const fresh = records.some((r) => r.exerciseId === x.id);
+  const [info, setInfo] = useState(false);
   const color = "var(--day" + x.day + ")";
 
   return (
@@ -43,27 +44,28 @@ function ExerciseCard({ exercise: x }: { exercise: Exercise }) {
         : (
           <>
             <div className="lasttime">
-              <span>Última vez · Semana {last.week}{last.date && " · " + formatShortDate(last.date)}</span>
+              <span>La última vez · {last.date ? formatShortDate(last.date) : "semana " + last.week}</span>
               <div className="setchips">
                 {last.sets.map((r) => <span key={r.set} className="setchip">{describeSet(r)}</span>)}
               </div>
             </div>
             <div className="exprog-1rm">
-              <span>1RM estimado</span>
+              <span>Fuerza<button type="button" className="info-btn" aria-expanded={info} aria-label="¿Qué es la fuerza?" onClick={() => setInfo(!info)}>i</button></span>
               <strong>{last.e1rm ? fmt(Math.round(last.e1rm * 2) / 2) + " kg" : "—"}</strong>
               {prev && last.e1rm > 0 && prev.e1rm > 0 && <Delta value={Math.round((last.e1rm - prev.e1rm) * 2) / 2} unit=" kg" />}
             </div>
+            {info && <p className="exprog-info">Fuerza = lo máximo que podrías levantar una vez (1RM), calculado con tus series. Si sube, te estás haciendo más fuerte.</p>}
             {record && (
               <p className={"exprog-record" + (fresh ? " fresh" : "")}>
-                🏆 Récord: <b>{fmt(record.best1RM.weight)} kg × {record.best1RM.reps}</b> · 1RM {fmt(Math.round(record.best1RM.value * 2) / 2)} kg
+                🏆 Récord: <b>{fmt(record.best1RM.weight)} kg × {record.best1RM.reps}</b> · fuerza {fmt(Math.round(record.best1RM.value * 2) / 2)} kg
                 {record.best1RM.date && " · " + formatShortDate(record.best1RM.date)}
                 {fresh && <span className="new-tag">¡Nuevo!</span>}
               </p>
             )}
-            <TapLineChart color={color} caption={"Fuerza estimada (1RM) por semana de " + x.name}
+            <TapLineChart color={color} caption={"Fuerza de " + x.name + " por fecha"}
               points={history.filter((s) => s.e1rm > 0).map((s) => {
                 const best = s.sets.reduce((a, b) => (estimate1RM(b.weight ?? 0, b.reps ?? 0) > estimate1RM(a.weight ?? 0, a.reps ?? 0) ? b : a));
-                return { key: String(s.week), value: s.e1rm, label: "1RM " + fmt(Math.round(s.e1rm * 2) / 2) + " kg", sub: "Semana " + s.week + " · " + describeSet(best) + (s.date ? " · " + formatShortDate(s.date) : "") };
+                return { key: String(s.week), value: s.e1rm, label: "Fuerza " + fmt(Math.round(s.e1rm * 2) / 2) + " kg", sub: (s.date ? formatShortDate(s.date) : "Semana " + s.week) + " · " + describeSet(best) };
               })} />
           </>
         )}

@@ -56,7 +56,7 @@ export function ExerciseModal({ day, exercise, onClose }: { day: number; exercis
       <div className={"modal exmodal" + (tab === "library" ? " library" : "")}>
         <div className="exmodal-head">
           <h2 id="exerciseModalTitle">{editing ? "Editar ejercicio" : "Añadir ejercicio"}</h2>
-          <span>Día {day} · {DAY_NAMES[day]}</span>
+          <span>{DAY_NAMES[day]}</span>
         </div>
         <div className="segmented exmodal-tabs" role="tablist" hidden={editing}>
           <button type="button" role="tab" aria-selected={tab === "library"} onClick={() => setTab("library")}>Biblioteca</button>

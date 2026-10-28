@@ -115,7 +115,7 @@ function ImportModal({ initialCode, onClose }: { initialCode: string; onClose: (
             <div className="import-preview">
               {DAYS.filter((d) => routine.some((x) => x.day === d)).map((d) => (
                 <div key={d}>
-                  <b><i className="swatch" style={{ background: "var(--day" + d + ")" }} /> Día {d} · {DAY_NAMES[d]}</b>
+                  <b><i className="swatch" style={{ background: "var(--day" + d + ")" }} /> {DAY_NAMES[d]}</b>
                   {routine.filter((x) => x.day === d).map((x, i) => <span key={i}>{x.name} <em>{x.prescription}</em></span>)}
                 </div>
               ))}

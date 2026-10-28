@@ -60,6 +60,8 @@ interface WorkoutContextValue {
   version: number;
   week: number;
   day: number;
+  // El día lo ha elegido el usuario (no es el que toca hoy según el calendario).
+  picked: boolean;
   toast: { text: string; visible: boolean };
   rest: RestTimer | null;
   records: RecordHit[];
@@ -183,7 +185,7 @@ export function WorkoutProvider({ mode, initialSnapshot, email, children }: Prov
   const focus = today ? calendar.focusFor(today) : null;
   const week = Math.min(selectedWeek ?? focus?.week ?? 1, model.weeksCount);
   const day = selectedDay ?? focus?.day ?? 1;
-  const value: WorkoutContextValue = { model, stats, calendar, diary, mode, email, sync: syncStatus, today, ready, loadFailed, version, week, day, toast, rest, records, summary, active, focusOpen: focusOpen && !!active, actions };
+  const value: WorkoutContextValue = { model, stats, calendar, diary, mode, email, sync: syncStatus, today, ready, loadFailed, version, week, day, picked: selectedDay !== null || selectedWeek !== null, toast, rest, records, summary, active, focusOpen: focusOpen && !!active, actions };
   return <WorkoutContext value={value}>{children}</WorkoutContext>;
 }
 
@@ -313,7 +315,7 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       if (!copied) return;
       markSessionStart(w, d);
       autoStart(w, d);
-      showToast("↺ Copiado de la semana " + last.week);
+      showToast("↺ Copiado de la última vez (" + (last.date ? formatShortDate(last.date) : "semana " + last.week) + ")");
       completeWhenDone(w, d);
     },
 
@@ -329,7 +331,7 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
     startWorkout(w: number, d: number) {
       const current = getActiveWorkout();
       if (current && !(current.week === w && current.day === d)
-        && !confirm("Ya tienes un entreno en curso (Día " + current.day + " · " + DAY_NAMES[current.day] + "). ¿Empezar este en su lugar?")) return;
+        && !confirm("Ya tienes un entreno en curso (" + DAY_NAMES[current.day] + "). ¿Empezar este en su lugar?")) return;
       unlockAudio();
       markSessionStart(w, d);
       setActiveWorkout({ week: w, day: d, startedAt: readSessionStart(w, d) ?? Date.now() });
@@ -337,7 +339,7 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       setDay(d);
       goTo("/entrenar");
       setFocus(true);
-      showToast("💪 ¡Entreno en marcha! Día " + d + " · " + DAY_NAMES[d]);
+      showToast("💪 ¡Entreno en marcha! " + DAY_NAMES[d]);
     },
 
     // Vuelve a la pantalla completa del entreno en curso desde cualquier pestaña.
@@ -411,7 +413,7 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       setWeek(session.week);
       setDay(session.day);
       goTo("/entrenar");
-      showToast("Recuperando Día " + session.day + " · " + DAY_NAMES[session.day] + " (" + formatShortDate(session.date) + ")");
+      showToast("Hoy haces " + DAY_NAMES[session.day] + " (era el " + formatShortDate(session.date) + ")");
     },
 
     setWeekday(d: number, weekday: number) {
@@ -427,13 +429,13 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       model.setStartDate(iso);
       setWeek(null);
       setDay(null);
-      showToast("Semana del ciclo actualizada");
+      showToast("Semana actualizada");
     },
 
     addExercise(d: number, data: NewExerciseInput) {
       if (!data.name.trim()) return false;
       model.addExercise(d, { ...data, name: data.name.trim(), target: data.target.trim(), note: data.note.trim() });
-      showToast("Ejercicio añadido al Día " + d);
+      showToast("Ejercicio añadido a " + DAY_NAMES[d]);
       return true;
     },
 
@@ -446,6 +448,23 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
 
     moveExercise(id: number, direction: -1 | 1) {
       model.moveExercise(id, direction);
+    },
+
+    // Fin del asistente de cuentas nuevas: rutina elegida (null = la recomendada que ya
+    // tiene, "empty" = vacía, o la lista de un amigo) y días de la semana de cada rutina.
+    finishSetup(schedule: WeekSchedule, routine: (NewExerciseInput & { day: number })[] | "empty" | null) {
+      if (routine) {
+        model.routine.map((x) => x.id).forEach((id) => model.removeExercise(id));
+        if (routine !== "empty") {
+          routine.filter((x) => x.day >= 1 && x.day <= 5 && x.name?.trim())
+            .forEach((x) => model.addExercise(x.day, { name: x.name.trim(), sets: x.sets, target: x.target ?? "", note: x.note ?? "", superset: !!x.superset }));
+        }
+      }
+      model.setSchedule(schedule);
+      setWeek(null);
+      setDay(null);
+      goTo(routine === "empty" ? "/rutina" : "/entrenar");
+      showToast(routine === "empty" ? "¡Listo! Añade tus ejercicios a cada día" : "¡Todo listo! 💪");
     },
 
     // Rutina de un amigo: se añade a la propia o la sustituye (borrando la actual).

@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkout } from "@/controllers/workout-controller";
+import { formatLongDate } from "@/domain/calendar";
 import { DAY_NAMES } from "@/domain/snapshot";
 import { closeOnBackdrop } from "./backdrop";
 import { Delta } from "./exercise-progress";
@@ -10,7 +11,7 @@ const fmt = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 1 
 // Resumen al completar un día o terminar el entreno en curso: duración, series, carga
 // movida, récords batidos y cómo fue cada ejercicio frente a la última vez.
 export function DaySummary() {
-  const { summary, model, stats, records, actions } = useWorkout();
+  const { summary, model, stats, records, today, actions } = useWorkout();
   if (!summary) return null;
   const { week, day, minutes } = summary;
   const tally = stats.day(week, day);
@@ -39,7 +40,7 @@ export function DaySummary() {
       <div className="modal summary">
         <div className="summary-emoji" aria-hidden="true">{complete ? "🎉" : "💪"}</div>
         <h2 id="summaryTitle">{complete ? "¡Día completado!" : "Entreno terminado"}</h2>
-        <p>Día {day} · {DAY_NAMES[day]} · Semana {week}</p>
+        <p>{DAY_NAMES[day]}{today && " · " + formatLongDate(today).toLowerCase()}</p>
         <div className="summary-grid">
           <div><strong>{minutes ? minutes + " min" : "—"}</strong><span>Duración</span></div>
           <div><strong>{tally.n}</strong><span>Series</span></div>

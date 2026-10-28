@@ -24,13 +24,13 @@ const PRESETS: { label: string; schedule: WeekSchedule }[] = [
 const SHORT_NAMES: Record<number, string> = { 1: "Torso", 2: "Pierna", 3: "Empujes", 4: "Tirones", 5: "Hombros" };
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-// "Tu semana": qué rutina toca cada día de la semana, planes rápidos y en qué
-// semana del ciclo estás.
+// "Tu semana": qué rutina toca cada día de la semana. Los planes rápidos y la semana
+// del ciclo (se configuran una vez) están en la ventana "Cambiar mis días".
 export function ScheduleCard() {
-  const { model, today, actions } = useWorkout();
+  const { model, today } = useWorkout();
   const [picking, setPicking] = useState<number | null>(null);
+  const [settings, setSettings] = useState(false);
   const schedule = model.schedule;
-  const activePreset = PRESETS.find((p) => DAYS.every((d) => p.schedule[d] === schedule[d]));
   const trainingDays = WEEKDAYS.filter((wd) => DAYS.some((d) => schedule[d] === wd)).length;
   const unscheduled = DAYS.filter((d) => !schedule[d]);
 
@@ -38,7 +38,7 @@ export function ScheduleCard() {
     <section className="chart planner">
       <div className="charttitle">
         <h2>Tu semana</h2>
-        <span>{trainingDays} {trainingDays === 1 ? "día" : "días"} de entreno · {7 - trainingDays} de descanso</span>
+        <span>{trainingDays} {trainingDays === 1 ? "día" : "días"} · {7 - trainingDays} de descanso</span>
       </div>
       <p className="planner-hint">Toca un día para elegir qué rutina haces.</p>
       <div className="week-strip">
@@ -59,27 +59,46 @@ export function ScheduleCard() {
         })}
       </div>
       {unscheduled.length > 0 && (
-        <p className="schedule-note">Sin día fijo: {unscheduled.map((d) => DAY_NAMES[d]).join(", ")}. Puedes hacerlos cuando quieras desde Entrenar.</p>
+        <p className="schedule-note">Sin día fijo: {unscheduled.map((d) => DAY_NAMES[d]).join(", ")}. Puedes hacerlos cuando quieras desde Hoy.</p>
       )}
 
-      <div className="planner-section">
-        <b>Planes rápidos</b>
-        <div className="preset-list">
-          {PRESETS.map((p) => (
-            <button key={p.label} type="button" className={"preset" + (p === activePreset ? " active" : "")}
-              onClick={() => actions.applySchedulePreset(p.schedule, p.label)}>
-              <span className="preset-dots" aria-hidden="true">
-                {WEEKDAYS.map((wd) => <i key={wd} className={Object.values(p.schedule).includes(wd) ? "on" : ""} />)}
-              </span>
-              <span>{p.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <CycleWeek />
+      <button type="button" className="settings-btn" onClick={() => setSettings(true)}>⚙️ Cambiar mis días</button>
       {picking !== null && <DaySheet weekday={picking} onClose={() => setPicking(null)} />}
+      {settings && <WeekSettings onClose={() => setSettings(false)} />}
     </section>
+  );
+}
+
+// "Cambiar mis días": planes rápidos y semana del ciclo, que se configuran una vez.
+function WeekSettings({ onClose }: { onClose: () => void }) {
+  const { model, actions } = useWorkout();
+  const schedule = model.schedule;
+  const activePreset = PRESETS.find((p) => DAYS.every((d) => p.schedule[d] === schedule[d]));
+  // Fuera de las pestañas (su contenedor se desplaza), si no la ventana no queda fija en pantalla.
+  return createPortal(
+    <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="weekSettingsTitle" {...closeOnBackdrop(onClose)}>
+      <div className="modal week-settings">
+        <h2 id="weekSettingsTitle">Cambiar mis días</h2>
+        <p>Lo configuras una vez y te olvidas. También puedes tocar cada día de «Tu semana».</p>
+        <div className="planner-section">
+          <b>Planes rápidos</b>
+          <div className="preset-list">
+            {PRESETS.map((p) => (
+              <button key={p.label} type="button" className={"preset" + (p === activePreset ? " active" : "")}
+                onClick={() => actions.applySchedulePreset(p.schedule, p.label)}>
+                <span className="preset-dots" aria-hidden="true">
+                  {WEEKDAYS.map((wd) => <i key={wd} className={Object.values(p.schedule).includes(wd) ? "on" : ""} />)}
+                </span>
+                <span>{p.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <CycleWeek />
+        <div className="modal-actions"><button className="primary" type="button" onClick={onClose}>Listo</button></div>
+      </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -97,7 +116,7 @@ function CycleWeek() {
 
   return (
     <div className="planner-section">
-      <b>Semana del ciclo</b>
+      <b>¿En qué semana vas?</b>
       <div className="cycle-week">
         <button type="button" aria-label="Semana anterior" onClick={() => setWeek(current - 1)} disabled={current <= 1}>−</button>
         <div><strong>Semana {Math.max(current, 1)}</strong><small>esta semana · empezó el {formatShortDate(model.startDate)}</small></div>

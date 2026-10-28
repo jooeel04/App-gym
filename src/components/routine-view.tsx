@@ -21,23 +21,20 @@ export function RoutineView() {
     <section className="view active">
       <div className="pagehead">
         <div>
-          <div className="eyebrow">Plan de entrenamiento</div>
-          <h1>Rutina por día</h1>
-          <p className="lede">Elige qué día de la semana haces cada rutina y añade, edita u ordena sus ejercicios.</p>
+          <div className="eyebrow">Tu plan</div>
+          <h1>Rutina</h1>
         </div>
       </div>
       <ScheduleCard />
-      <ShareRoutineCard />
       <div className="routine-grid">
         {DAYS.map((d) => {
           const list = model.exercisesOfDay(d);
           return (
             <article className="routine-day" key={d}>
               <div className="routine-head">
-                <div><span>Día {d}</span><h2>{DAY_NAMES[d]}</h2></div>
-                <button className="start" onClick={() => actions.startDay(d)}>Entrenar →</button>
+                <div><span><i className="swatch" style={{ background: "var(--day" + d + ")" }} />{model.weekdayFor(d) ? WEEKDAY_NAMES[model.weekdayFor(d)] : "Sin día fijo"}</span><h2>{DAY_NAMES[d]}</h2></div>
+                <button className="start" onClick={() => actions.startDay(d)}>Hacer hoy →</button>
               </div>
-              <span className={"wk-tag" + (model.weekdayFor(d) ? "" : " none")}>{model.weekdayFor(d) ? "Se entrena el " + WEEKDAY_NAMES[model.weekdayFor(d)] : "Sin día fijo"}</span>
               {list.map((x, i) => {
                 const muscles = musclesFor(x.name);
                 const inSuperset = x.superset || list[i - 1]?.superset;
@@ -70,6 +67,7 @@ export function RoutineView() {
           );
         })}
       </div>
+      <ShareRoutineCard />
       {editing && <ExerciseModal day={editing.day} exercise={editing.exercise} onClose={() => setEditing(null)} />}
     </section>
   );

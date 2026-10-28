@@ -55,7 +55,7 @@ export function ActivityCalendar() {
         {Array.from({ length: daysInMonth }, (_, i) => {
           const date = addDays(first, i);
           const done = Array.from(activity.get(date) ?? []).sort();
-          const label = formatLongDate(date) + ": " + (done.length ? done.map((d) => "Día " + d + " · " + DAY_NAMES[d]).join(", ") : "sin entrenar");
+          const label = formatLongDate(date) + ": " + (done.length ? done.map((d) => DAY_NAMES[d]).join(", ") : "sin entrenar");
           return (
             <button type="button" className={"calday" + (date === today ? " today" : "") + (date === sel ? " selected" : "")} key={date} title={label} aria-label={label} aria-pressed={date === sel} onClick={() => setSelected(date)}>
               <i className={"caldot" + (done.length ? " done" : "")} style={done.length ? { background: dotBackground(done) } : undefined} />
@@ -74,12 +74,14 @@ export function ActivityCalendar() {
               <div className="calinfo-row">
                 <i className="caldot done" style={{ background: "var(--day" + d + ")" }} />
                 <span>
-                  <b>Día {d} · {DAY_NAMES[d]}</b>
-                  <small>
-                    {sessions.map((s) => "Semana " + s.week
-                      + (s.plannedDate && s.plannedDate !== sel ? (s.plannedDate < sel ? " · recuperado" : " · adelantado") + " (era el " + formatShortDate(s.plannedDate) + ")" : "")).join(" · ")}
-                    {sessions.every((s) => s.exercises.length === 0) && (sessions.length ? " · " : "") + "Marcado con el tick"}
-                  </small>
+                  <b>{DAY_NAMES[d]}</b>
+                  {(() => {
+                    // Si se hizo otro día del que tocaba, se indica cuándo tocaba.
+                    const moved = sessions.filter((s) => s.plannedDate && s.plannedDate !== sel)
+                      .map((s) => (s.plannedDate! < sel ? "Hecho más tarde" : "Adelantado") + " · era el " + formatShortDate(s.plannedDate!));
+                    if (sessions.every((s) => s.exercises.length === 0)) moved.push("Marcado como hecho");
+                    return moved.length > 0 && <small>{moved.join(" · ")}</small>;
+                  })()}
                 </span>
               </div>
               {sessions.flatMap((s) => s.exercises).map(({ exercise, sets }) => (

@@ -721,3 +721,80 @@ body:has(.focus-mode) .toast.show{transform:translate(-50%,0)}
 .body-entry em{flex:none;font-style:normal;color:var(--muted)}
 .body-more{width:100%;margin-top:2px}
 .modal-actions .danger-btn{background:var(--danger-bg);border-color:var(--danger-line);color:var(--danger-text)}
+
+/* ===== Hoy (antes "Entrenar") ===== */
+.hero{--hero:var(--accent);padding:20px;margin-bottom:12px;border-radius:28px;background:linear-gradient(160deg,color-mix(in srgb,var(--hero) 26%,var(--s1)),var(--s1) 70%);border:1px solid color-mix(in srgb,var(--hero) 40%,var(--line))}
+.hero small{display:block;color:var(--muted);font-size:calc(11px * var(--fs));font-weight:850;letter-spacing:.1em;text-transform:uppercase}
+.hero h2{display:flex;align-items:center;gap:10px;margin:6px 0 4px;font-size:calc(36px * var(--fs));line-height:1.05;letter-spacing:-.04em}
+.hero h2 i{flex:none;width:14px;height:14px;border-radius:50%;background:var(--hero)}
+.hero p{margin:4px 0 0;color:var(--soft);font-size:calc(14px * var(--fs))}
+.hero .start-workout{margin:18px 0 0;padding:20px;font-size:calc(19px * var(--fs));border-radius:20px}
+.hero .hero-note{color:var(--muted)}
+.pending-card{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;padding:12px 14px;border-radius:18px;background:var(--warn-bg);border:1px solid var(--warn-line)}
+.pending-card b{display:block;font-size:calc(13px * var(--fs))}
+.pending-card span{display:block;margin-top:2px;color:var(--muted);font-size:calc(11px * var(--fs))}
+.pending-card button{flex:none;border:0;border-radius:12px;padding:10px 12px;background:var(--warn-text);color:#1a1200;font-size:calc(12px * var(--fs));font-weight:850}
+:root[data-theme="light"] .pending-card button{color:#fff}
+.peek{margin-top:2px}
+.peek h3{margin:0 0 6px;font-size:calc(14px * var(--fs))}
+.peek-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--hair)}
+.peek-row .n{flex:none;width:26px;height:26px;border-radius:9px;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent);font-size:calc(11px * var(--fs));font-weight:900}
+.peek-row.done .n{background:var(--day3);color:#fff}
+.peek-row div{flex:1;min-width:0}
+.peek-row b{display:block;font-size:calc(13px * var(--fs))}
+.peek-row small{color:var(--muted);font-size:calc(11px * var(--fs))}
+.peek-row em{flex:none;font-style:normal;color:var(--soft);font-size:calc(12px * var(--fs));font-weight:750;white-space:nowrap}
+.hoy-links{display:flex;justify-content:space-between;gap:10px;margin:6px 0 10px}
+.other-day{border:0;background:transparent;color:var(--accent);font-size:calc(13px * var(--fs));font-weight:850;padding:8px 2px}
+.days .day .swatch{display:inline-block;width:8px;height:8px;border-radius:50%;margin-bottom:6px}
+.rest-card{text-align:center;padding:26px 18px}
+.rest-emoji{font-size:54px}
+.rest-card h2{margin:6px 0;font-size:calc(28px * var(--fs));letter-spacing:-.03em}
+.rest-card p{margin:0;color:var(--muted);font-size:calc(13px * var(--fs))}
+.rest-next{display:flex;align-items:center;gap:12px;margin-top:16px;padding:14px;border-radius:18px;background:var(--s0);border:1px solid var(--line);text-align:left}
+.rest-next i{flex:none;width:12px;height:12px;border-radius:50%}
+.rest-next b{display:block;font-size:calc(14px * var(--fs))}
+.rest-next span{color:var(--muted);font-size:calc(12px * var(--fs))}
+/* Rutina: "Cambiar mis días" y cabecera de cada rutina */
+.planner .settings-btn{margin-top:14px}
+.modal.week-settings{width:min(520px,100%)}
+.week-settings .planner-section:first-of-type{margin-top:6px}
+.routine-head span .swatch{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+/* "Fuerza" con su explicación (ⓘ) */
+.info-btn{display:inline-grid;place-items:center;width:18px;height:18px;margin-left:6px;padding:0;border-radius:50%;border:1px solid var(--muted);background:transparent;color:var(--muted);font-size:10px;font-weight:900;font-style:italic;vertical-align:middle}
+.exprog-info{margin:6px 0 0;padding:9px 11px;border-radius:12px;background:var(--accent-bg);color:var(--soft);font-size:calc(11px * var(--fs));line-height:1.45}
+
+/* ===== Asistente para cuentas nuevas ===== */
+.wizard{position:fixed;z-index:70;left:0;right:0;top:var(--vv-top,0);height:var(--vv-h,100%);overflow-y:auto;display:flex;flex-direction:column;
+  padding:calc(16px + env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));
+  background:var(--bg);animation:fade-in .3s ease-out}
+.wizard>*{width:100%;max-width:520px;margin-left:auto;margin-right:auto}
+.wizard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
+.wizard-dots{display:flex;gap:6px}
+.wizard-dots i{width:28px;height:6px;border-radius:9px;background:var(--s2)}
+.wizard-dots i.on{background:var(--accent)}
+.wizard-skip{border:0;background:transparent;color:var(--muted);font-size:calc(13px * var(--fs));font-weight:800;padding:8px}
+.wizard h1{margin:0 0 6px;font-size:calc(30px * var(--fs));letter-spacing:-.04em}
+.wizard-sub{margin:0 0 20px;color:var(--muted);font-size:calc(14px * var(--fs))}
+.wizard-days{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.wizard-days button{height:70px;border-radius:18px;border:1px solid var(--line2);background:var(--s1);color:var(--soft);font-size:calc(16px * var(--fs));font-weight:850;transition:background-color .2s,transform .15s}
+.wizard-days button.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.wizard-days button:active{transform:scale(.95)}
+.wizard-opt{display:flex;gap:14px;align-items:center;width:100%;margin-bottom:10px;padding:16px;border-radius:20px;border:1px solid var(--line2);background:var(--s1);color:var(--text);text-align:left}
+.wizard-opt.on{border-color:var(--accent);background:var(--accent-bg)}
+.wizard-opt>span:first-child{font-size:28px}
+.wizard-opt b{display:block;font-size:calc(15px * var(--fs))}
+.wizard-opt small{display:block;margin-top:2px;color:var(--muted);font-size:calc(12px * var(--fs))}
+.wizard-code{margin:-2px 0 12px;text-align:center;letter-spacing:.3em;font-weight:850}
+.wizard-plan{display:grid;gap:8px;margin-bottom:14px}
+.wizard-plan div{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:14px;background:var(--s0);border:1px solid var(--line);font-size:calc(14px * var(--fs))}
+.wizard-plan b{display:flex;align-items:center;gap:8px}
+.wizard-plan b i{width:10px;height:10px;border-radius:50%}
+.wizard-actions{display:flex;gap:10px;margin-top:auto;padding-top:20px}
+.wizard-actions button{flex:1;min-height:54px;border:1px solid var(--line2);border-radius:18px;background:var(--s1);color:var(--text);font-size:calc(15px * var(--fs));font-weight:900}
+.wizard-actions .primary{flex:2;background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.wizard-actions .primary:disabled{opacity:.5}
+body:has(.wizard){overflow:hidden}
+@media(prefers-reduced-motion:reduce){.wizard{animation:none}}
+/* Con la barra del entreno y el descanso a la vez, el final de la página no queda tapado */
+body:has(.livebar):has(.restbar) .app{padding-bottom:calc(252px + env(safe-area-inset-bottom))}

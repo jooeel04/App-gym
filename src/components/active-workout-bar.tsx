@@ -29,11 +29,11 @@ export function ActiveWorkoutBar() {
   const done = list.filter((x) => model.isExerciseDone(active.week, active.day, x)).length;
 
   return (
-    <div className="livebar" role="status" aria-label={"Entreno en curso: Día " + active.day + ", " + done + " de " + list.length + " ejercicios"}>
+    <div className="livebar" role="status" aria-label={"Entreno en curso: " + DAY_NAMES[active.day] + ", " + done + " de " + list.length + " ejercicios"}>
       <button type="button" className="live-info" onClick={actions.openWorkout} aria-label="Abrir el entreno en curso a pantalla completa">
         <span className="live-dot" aria-hidden="true" />
         <span className="live-text">
-          <small>En curso · Día {active.day} · {DAY_NAMES[active.day]}</small>
+          <small>En curso · {DAY_NAMES[active.day]}</small>
           <strong>{clock(now - active.startedAt)}</strong>
         </span>
         <span className="live-count">{done}/{list.length}<small>ejercicios</small></span>
