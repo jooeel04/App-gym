@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useWorkout } from "@/controllers/workout-controller";
 import { MUSCLE_NAMES, musclesFor, searchLibrary, type LibraryExercise } from "@/domain/exercise-library";
@@ -34,6 +34,10 @@ export function ExerciseModal({ day, exercise, onClose }: { day: number; exercis
   const searching = query.trim().length > 0;
   const results = searchLibrary(query, searching ? null : filter);
   const muscles = musclesFor(draft.name);
+  // Al cambiar de día o de búsqueda, la lista vuelve arriba (si no, al haber bajado
+  // parecía que no cambiaba: muchos ejercicios están en varios días).
+  const listRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { listRef.current?.scrollTo(0, 0); }, [filter, query]);
 
   const pick = (x: LibraryExercise) => {
     setDraft({ ...draft, name: x.name, sets: x.sets, target: x.target, note: x.note });
@@ -49,7 +53,7 @@ export function ExerciseModal({ day, exercise, onClose }: { day: number; exercis
   // Fuera de las pestañas (su contenedor se desplaza), si no la ventana no queda fija en pantalla.
   return createPortal(
     <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="exerciseModalTitle" {...closeOnBackdrop(onClose)}>
-      <div className="modal exmodal">
+      <div className={"modal exmodal" + (tab === "library" ? " library" : "")}>
         <div className="exmodal-head">
           <h2 id="exerciseModalTitle">{editing ? "Editar ejercicio" : "Añadir ejercicio"}</h2>
           <span>Día {day} · {DAY_NAMES[day]}</span>
@@ -62,7 +66,7 @@ export function ExerciseModal({ day, exercise, onClose }: { day: number; exercis
         {tab === "library" ? (
           <>
             <input className="exsearch" type="search" placeholder="Buscar por nombre o músculo (p. ej. «remo», «glúteo»)" value={query}
-              onChange={(e) => setQuery(e.target.value)} aria-label="Buscar ejercicio" autoFocus />
+              onChange={(e) => setQuery(e.target.value)} aria-label="Buscar ejercicio" />
             <div className="daychips">
               {DAYS.map((d) => (
                 <button key={d} type="button" className={"daychip" + (!searching && filter === d ? " active" : "")} onClick={() => { setFilter(d); setQuery(""); }}>
@@ -71,7 +75,7 @@ export function ExerciseModal({ day, exercise, onClose }: { day: number; exercis
               ))}
               <button type="button" className={"daychip" + (searching || filter === null ? " active" : "")} onClick={() => { setFilter(null); setQuery(""); }}>Todos</button>
             </div>
-            <div className="liblist">
+            <div className="liblist" ref={listRef}>
               {results.length === 0 && <div className="empty">No hay ejercicios con esa búsqueda. Puedes añadirlo «A mano».</div>}
               {results.map((x) => (
                 <div key={x.name} className="libitem">

@@ -703,3 +703,11 @@ body:has(.focus-mode) .toast.show{transform:translate(-50%,0)}
 .summary-vs>div{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding-top:6px;border-top:1px solid var(--hair)}
 .summary-vs>div>span:first-child{min-width:0;color:var(--soft)}
 .summary-vs .delta{flex:none;margin:0;font-size:calc(11px * var(--fs))}
+
+/* Añadir ejercicio: la ventana cabe en la parte visible (también con el teclado) y en
+   la biblioteca solo se desplaza la lista, que ocupa el hueco que queda. */
+.modal.exmodal{max-height:min(88vh,calc(var(--vv-h,100vh) - 30px))}
+.modal.exmodal.library{overflow:hidden}
+.exmodal.library .liblist{flex:1 1 auto;min-height:0;max-height:none;overscroll-behavior:contain}
+.exmodal.library :is(.exmodal-head,.exmodal-tabs,.exsearch,.daychips,.modal-actions){flex:none}
+@media(pointer:coarse){.exmodal.library:has(.exsearch:focus) .modal-actions{display:none}}
