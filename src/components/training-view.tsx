@@ -28,7 +28,13 @@ export function TrainingView() {
   const list = model.exercisesOfDay(day);
   // Entreno en curso en este día: se abre el siguiente ejercicio por hacer.
   const live = !!active && active.week === week && active.day === day;
-  const next = live ? list.findIndex((x) => !model.isExerciseDone(week, day, x)) : -1;
+  const pending = live ? list.findIndex((x) => !model.isExerciseDone(week, day, x)) : -1;
+  // Mientras se escribe en un ejercicio no se salta al siguiente (al poner el peso de la
+  // última serie ya cuenta como anotada, pero faltan las repeticiones): se avanza al
+  // cerrar el teclado o tocar fuera.
+  const [editing, setEditing] = useState(false);
+  const [next, setNext] = useState(pending);
+  if (!editing && next !== pending) setNext(pending);
   const listRef = useRef<HTMLDivElement>(null);
   // Al empezar y al terminar cada ejercicio, la pantalla baja hasta el siguiente.
   useEffect(() => {
@@ -81,7 +87,9 @@ export function TrainingView() {
         </button>
       )}
 
-      <div className="list" key={day} ref={listRef}>
+      <div className="list" key={day} ref={listRef}
+        onFocus={(e) => setEditing(e.target instanceof HTMLInputElement)}
+        onBlur={(e) => { if (!(e.relatedTarget instanceof HTMLInputElement && e.currentTarget.contains(e.relatedTarget))) setEditing(false); }}>
         {list.map((x, i) => (
           <ExerciseCard key={x.id + "-" + week + "-" + day} exercise={x} index={i} open={live ? i === next : i === 0} next={i === next}
             superset={x.superset && i < list.length - 1 ? "first" : list[i - 1]?.superset ? "second" : null} />

@@ -223,6 +223,23 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
     setSummary({ week: w, day: d, minutes: minutesSince(started) });
   };
 
+  // Mientras se escribe en una serie el día no se da por completado (con el peso de la
+  // última serie ya cuenta como anotada, pero faltan las repeticiones): se espera a
+  // cerrar el teclado o tocar fuera.
+  let waiting: [number, number] | null = null;
+  const typing = () => document.activeElement instanceof HTMLInputElement && !!document.activeElement.closest(".exercise");
+  const completeWhenDone = (w: number, d: number) => {
+    if (typing()) waiting = [w, d];
+    else completeDay(w, d);
+  };
+  // (Solo en el navegador: el controlador también se pinta en el servidor.)
+  if (typeof document !== "undefined") document.addEventListener("focusout", () => setTimeout(() => {
+    if (!waiting || typing()) return;
+    const [w, d] = waiting;
+    waiting = null;
+    completeDay(w, d);
+  }, 0));
+
   // Al anotar algo sin entreno en curso, empieza solo (desde la primera anotación).
   const autoStart = (w: number, d: number) => {
     if (getActiveWorkout() || model.isDayCompleted(w, d)) return;
@@ -272,7 +289,7 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       const prefs = getRestPrefs();
       if (field === "reps" && !String(before.reps ?? "").trim() && value.trim() && prefs.enabled && !linked) startRest(prefs.seconds);
       if (field !== "note") checkRecord(w, d, id, s);
-      completeDay(w, d);
+      completeWhenDone(w, d);
     },
 
     // Tick manual: cuenta el ejercicio como hecho aunque no tenga series anotadas.
