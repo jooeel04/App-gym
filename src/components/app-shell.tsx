@@ -7,6 +7,7 @@ import { registerTabAnimator, switchTab, useWorkout } from "@/controllers/workou
 import { useScreenAwake } from "@/lib/screen-awake";
 import { syncThemeBar } from "@/lib/theme";
 import { DaySummary } from "./day-summary";
+import { GlassLayer } from "./glass-layer";
 import { LoadProblem } from "./load-problem";
 import { BrandIcon, ClockIcon, ProgressIcon, RoutineIcon, SettingsIcon, StrongIcon, TrainingIcon, TrophyIcon } from "./icons";
 import { ProgressView } from "./progress-view";
@@ -199,6 +200,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
       <nav className="nav" aria-label="Navegación">
+        <GlassLayer radius={32} />
         <span className="nav-lens" ref={lensRef} aria-hidden="true" />
         {NAV.map(({ href, label, Icon }, i) => (
           <a key={href} href={href} className={"navbtn" + (href === current.href ? " active" : "")} aria-current={href === current.href ? "page" : undefined} onClick={onNavClick(i)}>

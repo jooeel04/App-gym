@@ -165,15 +165,43 @@ function TodayList({ done }: { done: boolean }) {
   );
 }
 
+// "Ahora no" en la tarjeta de los avisos: no vuelve a salir en este dispositivo (se
+// pueden activar después en Ajustes → Permisos).
+const PERM_CARD_KEY = "rutina:perm-card-hidden";
+const PERM_CARD_EVENT = "rutina-perm-card";
+const permCardHidden = () => {
+  try {
+    return localStorage.getItem(PERM_CARD_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+const subscribePermCard = (onChange: () => void) => {
+  window.addEventListener(PERM_CARD_EVENT, onChange);
+  return () => window.removeEventListener(PERM_CARD_EVENT, onChange);
+};
+function hidePermCard() {
+  try {
+    localStorage.setItem(PERM_CARD_KEY, "1");
+  } catch {
+    // Sin almacenamiento se oculta igual hasta recargar.
+  }
+  window.dispatchEvent(new Event(PERM_CARD_EVENT));
+}
+
 // Mientras no se hayan dado los permisos, invita a darlos (avisos del descanso).
 function PermissionCard() {
   const permission = useSyncExternalStore(subscribePermission, notifyState, () => "granted" as NotifyState);
-  if (permission !== "default") return null;
+  const hidden = useSyncExternalStore(subscribePermCard, permCardHidden, () => true);
+  if (permission !== "default" || hidden) return null;
   return (
     <div className="perm-card">
       <BellIcon />
       <div><b>Activa los avisos</b><span>Para que el móvil te avise al acabar el descanso, aunque estés en otra app.</span></div>
-      <button type="button" onClick={() => { void requestPermissions(); }}>Activar</button>
+      <div className="perm-actions">
+        <button type="button" className="perm-later" onClick={hidePermCard}>Ahora no</button>
+        <button type="button" onClick={() => { void requestPermissions(); }}>Activar</button>
+      </div>
     </div>
   );
 }

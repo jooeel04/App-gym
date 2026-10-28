@@ -1,5 +1,5 @@
 import type { Exercise } from "./types";
-import type { ExerciseSession } from "./workout-stats";
+import type { ExerciseSession, SetResult } from "./workout-stats";
 
 // 1RM estimado (fórmula de Epley): lo que se podría levantar a una repetición.
 export function estimate1RM(weight: number, reps: number) {
@@ -50,4 +50,39 @@ export function suggestNext(x: Exercise, last: ExerciseSession | null): Suggesti
     return { kind: "reach", weight, reps: range.min, text: "Mantén " + kg(weight) + " y llega a " + range.min + " reps en todas las series" };
   }
   return { kind: "reps", weight, reps: Math.min(minReps + 1, range.max), text: "Mantén " + kg(weight) + " e intenta " + Math.min(minReps + 1, range.max) + " reps (máx. " + range.max + ")" };
+}
+
+export interface TrendPoint {
+  week: number;
+  date: string | null;
+  value: number; // fuerza en kg (redondeada a 0,5) o repeticiones
+  best: SetResult; // la serie que da ese valor
+}
+
+// Evolución de un ejercicio para Progreso: con carga, la fuerza (1RM estimado); sin
+// carga (peso corporal), las repeticiones de la mejor serie. `change` compara la
+// última sesión con la anterior (null si solo hay una).
+export interface ProgressTrend {
+  kind: "strength" | "reps";
+  points: TrendPoint[];
+  last: TrendPoint;
+  change: number | null;
+}
+
+const bestBy = (sets: SetResult[], score: (r: SetResult) => number) => sets.reduce((a, b) => (score(b) > score(a) ? b : a));
+
+export function progressTrend(history: ExerciseSession[]): ProgressTrend | null {
+  const strength = history.some((s) => s.e1rm > 0);
+  const points: TrendPoint[] = strength
+    ? history.filter((s) => s.e1rm > 0).map((s) => ({
+        week: s.week, date: s.date, value: Math.round(s.e1rm * 2) / 2,
+        best: bestBy(s.sets, (r) => estimate1RM(r.weight ?? 0, r.reps ?? 0)),
+      }))
+    : history.filter((s) => s.sets.some((r) => (r.reps ?? 0) > 0)).map((s) => {
+        const best = bestBy(s.sets, (r) => r.reps ?? 0);
+        return { week: s.week, date: s.date, value: best.reps ?? 0, best };
+      });
+  if (!points.length) return null;
+  const last = points[points.length - 1], prev = points[points.length - 2];
+  return { kind: strength ? "strength" : "reps", points, last, change: prev ? Math.round((last.value - prev.value) * 2) / 2 : null };
 }

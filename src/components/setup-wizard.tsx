@@ -6,7 +6,7 @@ import { useWorkout } from "@/controllers/workout-controller";
 import { WEEKDAY_NAMES, WEEKDAY_SHORT, WEEKDAYS } from "@/domain/calendar";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { NewExerciseInput, WeekSchedule } from "@/domain/types";
-import { ClipboardIcon, PartyIcon, PencilIcon, SleepIcon, UsersIcon } from "./icons";
+import { CheckIcon, ClipboardIcon, PartyIcon, PencilIcon, SleepIcon, UsersIcon } from "./icons";
 
 type Shared = NewExerciseInput & { day: number };
 type Choice = "base" | "friend" | "empty";
@@ -102,9 +102,15 @@ export function SetupWizard() {
           <div className="wizard-days">
             {WEEKDAYS.map((wd) => (
               <button key={wd} type="button" aria-pressed={weekdays.includes(wd)} aria-label={capitalize(WEEKDAY_NAMES[wd])}
-                className={weekdays.includes(wd) ? "on" : ""} onClick={() => toggle(wd)}>{WEEKDAY_SHORT[wd]}</button>
+                className={weekdays.includes(wd) ? "on" : ""} onClick={() => toggle(wd)}>
+                {WEEKDAY_SHORT[wd]}{weekdays.includes(wd) && <CheckIcon className="wizard-day-check" />}
+              </button>
             ))}
           </div>
+          {/* Cuántos días van, además del color y la marca de cada uno. */}
+          <p className="wizard-count" aria-live="polite">
+            {weekdays.length === 0 ? "Ningún día elegido" : weekdays.length + (weekdays.length === 1 ? " día" : " días") + " a la semana"}
+          </p>
         </>
       )}
 
@@ -151,7 +157,7 @@ export function SetupWizard() {
         </>
       )}
 
-      {error && <p className="auth-msg error">{error}</p>}
+      {error && <p className="auth-msg error" role="alert">{error}</p>}
       <div className="wizard-actions">
         {step > 1 && <button type="button" onClick={() => { setError(""); setStep(step - 1); }}>Atrás</button>}
         <button type="button" className="primary" onClick={next} disabled={busy || (step === 2 && choice === "friend" && code.trim().length < 6)}>

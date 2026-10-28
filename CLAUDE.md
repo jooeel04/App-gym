@@ -31,10 +31,18 @@ despliega solo desde `main` (dominio: app-gym-swart.vercel.app). No hay CLI de V
 ## Comprobar antes de subir
 
 ```bash
+npm test                # Vitest: dominio y componentes (jsdom), *.test.ts(x) en src/
+npm run test:e2e        # móviles reales emulados en Edge/Chrome (tests/e2e): botones ≥44 px,
+                        # textos ≥11 px, nada se sale, gráficas y cristal. Necesita
+                        # npm run db:start + npm run dev (cuentas demo)
 npx tsc --noEmit        # los avisos de LayoutProps/PageProps son normales sin compilar
 npx eslint .
 npx next build          # genera también esos tipos
 ```
+
+Cambios de interfaz con TDD: primero la prueba (en rojo), luego el código, y todo en
+verde antes de subir. Los componentes se prueban dentro de `WorkoutProvider` en modo
+local con los datos de `tests/workout-fixture.tsx`.
 
 Sin variables de Supabase la app arranca en **modo local** (sin cuentas, datos en
 localStorage), lo que permite probar la interfaz: `npx next start -p 3100`.
@@ -78,7 +86,15 @@ localStorage), lo que permite probar la interfaz: `npx next start -p 3100`.
   `:root`, claro en `:root[data-theme="light"]`). Al final hay capas que refinan lo
   anterior: "Liquid Glass" (estilo iOS 26) y "Transiciones integradas". El
   desenfoque (`backdrop-filter`) solo en elementos flotantes, por rendimiento.
-  Respeta `prefers-reduced-motion`.
+  Respeta `prefers-reduced-motion`. Mínimos: textos de 11 px (`calc(11px * var(--fs))`)
+  y botones de 44 px (lo comprueba `npm run test:e2e`).
+- **`backdrop-filter`**: escribe solo la propiedad sin prefijo. El compilador de CSS
+  (LightningCSS) **borra las dos** si van juntas `backdrop-filter` y
+  `-webkit-backdrop-filter`; él ya añade el prefijo para Safari.
+- **Cristal líquido** (`liquid-glass-react`): solo en la barra de pestañas y la del
+  descanso, como capa de fondo (`GlassLayer`). Se carga solo en el navegador (lee
+  `navigator`). Dentro del cristal nada puede usar `mix-blend-mode` (aísla el grupo y
+  anula el desenfoque) y la barra que lo lleva no debe tener su propio `backdrop-filter`.
 - Comentarios, textos de la interfaz y mensajes de commit en **español**.
 - Los archivos pueden tener finales de línea CRLF (Windows); normalízalos antes de
   hacer ediciones de varias líneas con scripts.

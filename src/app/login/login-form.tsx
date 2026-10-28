@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { BrandIcon } from "@/components/icons";
+import { useActionState, useId, useState } from "react";
+import { BrandIcon, EyeIcon, EyeOffIcon } from "@/components/icons";
 import { authenticate, requestPasswordReset, type AuthFormState } from "./actions";
 
 function Brand() {
@@ -9,6 +9,24 @@ function Brand() {
     <div className="brand auth-brand">
       <span className="brand-icon"><BrandIcon /></span>
       <span><span className="brand-word">RUTINA</span><span className="brand-sub">SEGUIMIENTO</span></span>
+    </div>
+  );
+}
+
+// Contraseña con un botón (ojo) para verla mientras se escribe: así se puede comprobar en
+// el móvil sin tener que adivinar qué se ha tecleado.
+function PasswordField({ label, name, autoComplete, disabled }: { label: string; name: string; autoComplete: string; disabled: boolean }) {
+  const id = useId();
+  const [shown, setShown] = useState(false);
+  return (
+    <div className="form-label">
+      <label htmlFor={id}>{label}</label>
+      <div className="pw-field">
+        <input id={id} name={name} type={shown ? "text" : "password"} autoComplete={autoComplete} minLength={6} required disabled={disabled} />
+        <button type="button" className="pw-toggle" aria-label="Mostrar contraseña" aria-pressed={shown} onClick={() => setShown(!shown)}>
+          {shown ? <EyeOffIcon /> : <EyeIcon />}
+        </button>
+      </div>
     </div>
   );
 }
@@ -58,7 +76,7 @@ export function LoginForm({ confirmationFailed }: { confirmationFailed: boolean 
             <p>Cada persona tiene su propia cuenta: tus registros se guardan solo en la tuya y se sincronizan entre tus dispositivos.</p>
             <form action={action}>
               <label className="form-label">Correo electrónico<input name="email" type="email" autoComplete="email" required disabled={pending} /></label>
-              <label className="form-label">Contraseña<input name="password" type="password" autoComplete="current-password" minLength={6} required disabled={pending} /></label>
+              <PasswordField label="Contraseña" name="password" autoComplete="current-password" disabled={pending} />
               <Messages state={state} />
               <div className="modal-actions">
                 <button type="submit" name="intent" value="signup" disabled={pending}>Crear cuenta</button>
@@ -83,8 +101,8 @@ export function NewPasswordForm({ action }: { action: (prev: AuthFormState, form
         <h2>Contraseña nueva</h2>
         <p>Escribe la contraseña que quieres usar a partir de ahora.</p>
         <form action={submit}>
-          <label className="form-label">Contraseña nueva<input name="password" type="password" autoComplete="new-password" minLength={6} required disabled={pending} /></label>
-          <label className="form-label">Repite la contraseña<input name="confirm" type="password" autoComplete="new-password" minLength={6} required disabled={pending} /></label>
+          <PasswordField label="Contraseña nueva" name="password" autoComplete="new-password" disabled={pending} />
+          <PasswordField label="Repite la contraseña" name="confirm" autoComplete="new-password" disabled={pending} />
           <Messages state={state} />
           <div className="modal-actions">
             <button className="primary" type="submit" disabled={pending}>{pending ? "Guardando…" : "Guardar contraseña"}</button>

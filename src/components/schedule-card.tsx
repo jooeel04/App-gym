@@ -22,7 +22,9 @@ const PRESETS: { label: string; schedule: WeekSchedule }[] = [
   { label: "3 días", schedule: { 1: 1, 2: 3, 3: 5, 4: 0, 5: 0 } },
 ];
 
-const SHORT_NAMES: Record<number, string> = { 1: "Torso", 2: "Pierna", 3: "Empujes", 4: "Tirones", 5: "Hombros" };
+// Abreviatura de cada rutina en "Tu semana" (el nombre entero no cabe a un tamaño legible
+// en una columna de un día; el botón lo lleva completo para el lector de pantalla).
+const SHORT_NAMES: Record<number, string> = { 1: "Tor", 2: "Pie", 3: "Emp", 4: "Tir", 5: "Hom" };
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // "Tu semana": qué rutina toca cada día de la semana. Los planes rápidos y la semana

@@ -78,6 +78,18 @@ Cuentas demo (contraseña `demo1234`): `demo@rutina.local` (52 semanas), `ana@ru
 (40 semanas) y `leo@rutina.local` (26 semanas, 3 días por semana), en el grupo `DEMO01`.
 Studio (ver las tablas): http://127.0.0.1:54323 · Correos de prueba: http://127.0.0.1:54324
 
+### 5. Pruebas
+
+```bash
+npm test             # dominio y componentes (Vitest + Testing Library, sin servidor)
+npm run test:e2e     # en móviles emulados con Edge/Chrome; necesita npm run db:start y npm run dev
+```
+
+Las pruebas en móvil comprueban, en tamaños de 320 px a tablet (vertical y horizontal),
+que nada se sale de la pantalla, que los botones miden al menos 44 px y los textos 11 px,
+que las gráficas se deslizan con el dedo y que la barra de pestañas lleva el cristal
+líquido. Si no encuentran el navegador, indica su ruta en `BROWSER_PATH`.
+
 ## Arquitectura (MVC + SOLID)
 
 ```
