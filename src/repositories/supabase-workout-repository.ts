@@ -20,9 +20,9 @@ interface LogRow {
   weight: number | null; reps: number | null; note: string | null;
 }
 
-// Persistencia en Supabase (Postgres) protegida por RLS. Sirve tanto en el
-// servidor (lectura inicial) como en el navegador (escrituras): solo depende
-// del SupabaseClient que se le inyecte.
+// Persistencia en Supabase (Postgres). Se usa solo en el servidor, con la clave
+// secreta, sobre el programa único de la app (user_id null). Solo depende del
+// SupabaseClient que se le inyecte.
 // - Las series se agrupan durante ENTRY_DEBOUNCE_MS para no enviar una petición por tecla.
 // - Las escrituras se encadenan en una cola para respetar el orden (p. ej. crear un
 //   ejercicio antes de registrar sus series).
@@ -32,18 +32,18 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
   private batch: Batch | null = null;
   private timer: ReturnType<typeof setTimeout> | undefined;
 
-  constructor(private readonly db: SupabaseClient, private programId: string | null = null) {}
+  private programId: string | null = null;
 
-  get currentProgramId() {
-    return this.programId;
+  constructor(private readonly db: SupabaseClient) {}
+
+  private programQuery() {
+    return this.db.from("programs").select("id, weeks_count").is("user_id", null).maybeSingle();
   }
 
   // ---- Lectura ----
 
   async load(): Promise<WorkoutSnapshot | null> {
-    const program = await must<{ id: string; weeks_count: number } | null>(
-      this.db.from("programs").select("id, weeks_count").maybeSingle(),
-    );
+    const program = await must<{ id: string; weeks_count: number } | null>(this.programQuery());
     if (!program) return null;
     this.programId = program.id;
 
@@ -99,7 +99,7 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
   }
 
   private async writeEntries(changes: EntryChange[]) {
-    const programId = this.requireProgram();
+    const programId = await this.requireProgram();
     const upserts: Record<string, unknown>[] = [], deletes: Record<string, unknown>[] = [];
     changes.forEach((c) => {
       const row = toLogRow(c.week, c.day, c.exerciseId, c.set, c.entry);
@@ -115,7 +115,7 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
       this.programId = await must<string>(this.db.rpc("replace_program", toProgramPayload(snapshot)));
       return;
     }
-    const db = this.db, programId = this.requireProgram();
+    const db = this.db, programId = await this.requireProgram();
     switch (change.type) {
       case "completed": {
         const key = { program_id: programId, week: change.week, day: change.day };
@@ -143,8 +143,12 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
     }
   }
 
-  private requireProgram() {
-    if (!this.programId) throw new Error("No hay programa cargado");
+  private async requireProgram() {
+    if (!this.programId) {
+      const program = await must<{ id: string } | null>(this.programQuery());
+      if (!program) throw new Error("No hay programa creado");
+      this.programId = program.id;
+    }
     return this.programId;
   }
 }

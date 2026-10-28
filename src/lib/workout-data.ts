@@ -1,27 +1,23 @@
 import "server-only";
-import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import type { WorkoutSnapshot } from "@/domain/types";
 import { SupabaseWorkoutRepository } from "@/repositories/supabase-workout-repository";
-import { isSupabaseConfigured } from "./supabase/env";
-import { createSupabaseServerClient, getCurrentUser } from "./supabase/server";
+import { createSupabaseAdminClient, isSupabaseConfigured } from "./supabase/admin";
 
-export type Account = { mode: "cloud"; email: string } | { mode: "local" };
+// "cloud": datos en Supabase a través del servidor. "local": datos en el navegador.
+export type StorageMode = "cloud" | "local";
 
 export interface InitialWorkout {
-  account: Account;
+  mode: StorageMode;
   snapshot: WorkoutSnapshot | null;
-  programId: string | null;
 }
 
-// Capa de acceso a datos del servidor: valida la sesión y lee el programa del
-// usuario con RLS. Sin Supabase configurado, la app arranca en modo local.
+// Lectura inicial en el servidor. Sin Supabase configurado, la app arranca en modo local.
 export async function loadInitialWorkout(): Promise<InitialWorkout> {
-  if (!isSupabaseConfigured) return { account: { mode: "local" }, snapshot: null, programId: null };
+  // Los datos cambian en cada visita: no se generan en el build.
+  await connection();
+  if (!isSupabaseConfigured) return { mode: "local", snapshot: null };
 
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-
-  const repository = new SupabaseWorkoutRepository(await createSupabaseServerClient());
-  const snapshot = await repository.load();
-  return { account: { mode: "cloud", email: user.email }, snapshot, programId: repository.currentProgramId };
+  const snapshot = await new SupabaseWorkoutRepository(createSupabaseAdminClient()).load();
+  return { mode: "cloud", snapshot };
 }

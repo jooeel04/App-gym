@@ -8,17 +8,15 @@ import { BASE_ROUTINE } from "@/domain/base-routine";
 import type { NewExerciseInput, SetField, WorkoutSnapshot } from "@/domain/types";
 import { WorkoutModel } from "@/domain/workout-model";
 import { WorkoutStats } from "@/domain/workout-stats";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { Account } from "@/lib/workout-data";
-import { signOutAction } from "@/app/login/actions";
+import type { StorageMode } from "@/lib/workout-data";
 import { LocalWorkoutRepository } from "@/repositories/local-workout-repository";
-import { SupabaseWorkoutRepository } from "@/repositories/supabase-workout-repository";
+import { ServerActionWorkoutRepository } from "@/repositories/server-action-workout-repository";
 import type { WorkoutRepository } from "@/repositories/workout-repository";
 
 interface WorkoutContextValue {
   model: WorkoutModel;
   stats: WorkoutStats;
-  account: Account;
+  mode: StorageMode;
   ready: boolean;
   version: number;
   week: number;
@@ -35,26 +33,23 @@ export function useWorkout() {
   return ctx;
 }
 
-// Raíz de composición: elige el repositorio según la cuenta y crea el modelo.
-function createModel(account: Account, snapshot: WorkoutSnapshot | null, programId: string | null) {
-  const repository: WorkoutRepository = account.mode === "cloud"
-    ? new SupabaseWorkoutRepository(createSupabaseBrowserClient(), programId)
-    : new LocalWorkoutRepository();
+// Raíz de composición: elige el repositorio según el modo y crea el modelo.
+function createModel(mode: StorageMode, snapshot: WorkoutSnapshot | null) {
+  const repository: WorkoutRepository = mode === "cloud" ? new ServerActionWorkoutRepository() : new LocalWorkoutRepository();
   return new WorkoutModel(repository, BASE_ROUTINE, snapshot);
 }
 
 interface ProviderProps {
-  account: Account;
+  mode: StorageMode;
   initialSnapshot: WorkoutSnapshot | null;
-  programId: string | null;
   children: ReactNode;
 }
 
 // Controlador: guarda el estado de la interfaz (semana, día, avisos), traduce
 // las acciones del usuario en cambios del modelo y expone el modelo a las vistas.
-export function WorkoutProvider({ account, initialSnapshot, programId, children }: ProviderProps) {
+export function WorkoutProvider({ mode, initialSnapshot, children }: ProviderProps) {
   const router = useRouter();
-  const [model] = useState(() => createModel(account, initialSnapshot, programId));
+  const [model] = useState(() => createModel(mode, initialSnapshot));
   const [ready, setReady] = useState(initialSnapshot !== null);
   const [week, setWeek] = useState(1);
   const [day, setDay] = useState(1);
@@ -62,18 +57,18 @@ export function WorkoutProvider({ account, initialSnapshot, programId, children 
   const [showToast] = useState(() => createToaster(setToast));
   const version = useSyncExternalStore(model.subscribe, model.getVersion, model.getVersion);
 
-  // Primera carga en el navegador: modo local, o cuenta nueva sin programa
+  // Primera carga en el navegador: modo local, o base de datos todavía vacía
   // (se crea a partir de los datos locales de este dispositivo, si los hay).
   useEffect(() => {
     if (ready) return;
-    const seed = account.mode === "cloud" ? new LocalWorkoutRepository().load() : Promise.resolve(null);
+    const seed = mode === "cloud" ? new LocalWorkoutRepository().load() : Promise.resolve(null);
     seed.then((s) => model.load(s))
       .then(() => setReady(true))
       .catch(() => showToast("No se pudieron cargar los datos"));
-  }, [account.mode, model, ready, showToast]);
+  }, [mode, model, ready, showToast]);
 
   useEffect(() => {
-    model.setSaveErrorHandler(() => showToast(account.mode === "cloud" ? "No se pudo sincronizar con el servidor" : "No se pudo guardar en este navegador"));
+    model.setSaveErrorHandler(() => showToast(mode === "cloud" ? "No se pudo sincronizar con el servidor" : "No se pudo guardar en este navegador"));
     const flush = () => { model.flush().catch(() => {}); };
     const onVisibility = () => { if (document.visibilityState === "hidden") flush(); };
     window.addEventListener("pagehide", flush);
@@ -82,7 +77,7 @@ export function WorkoutProvider({ account, initialSnapshot, programId, children 
       window.removeEventListener("pagehide", flush);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [account.mode, model, showToast]);
+  }, [mode, model, showToast]);
 
   const stats = useMemo(() => new WorkoutStats(model), [model]);
   const actions = useMemo(
@@ -91,7 +86,7 @@ export function WorkoutProvider({ account, initialSnapshot, programId, children 
   );
 
   const safeWeek = Math.min(week, model.weeksCount);
-  const value: WorkoutContextValue = { model, stats, account, ready, version, week: safeWeek, day, toast, actions };
+  const value: WorkoutContextValue = { model, stats, mode, ready, version, week: safeWeek, day, toast, actions };
   return <WorkoutContext value={value}>{children}</WorkoutContext>;
 }
 
@@ -174,11 +169,6 @@ function createActions({ model, showToast, setWeek, setDay, goTo }: ActionDeps) 
       if (!confirm("¿Borrar todos los registros y marcas de días completados? Esta acción no se puede deshacer.")) return;
       model.clearLogs();
       showToast("Registros borrados");
-    },
-
-    async signOut() {
-      await model.flush().catch(() => {});
-      await signOutAction();
     },
 
     showToast,

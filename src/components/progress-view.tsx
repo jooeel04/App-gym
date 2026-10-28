@@ -9,11 +9,11 @@ const small = { fontSize: 12, fontWeight: 500 };
 
 // Vista "Progreso": totales, actividad por semana, historial de cargas y herramientas de datos.
 export function ProgressView() {
-  const { model, stats, week, account, actions } = useWorkout();
+  const { model, stats, week, mode, actions } = useWorkout();
   const fileInput = useRef<HTMLInputElement>(null);
   const all = stats.all(), cur = stats.week(week);
   const history = stats.loadHistory();
-  const cloud = account.mode === "cloud";
+  const cloud = mode === "cloud";
 
   return (
     <section className="view active">
@@ -71,14 +71,13 @@ export function ProgressView() {
         <div className="charttitle"><h2>Tus datos</h2><span>{cloud ? "Sincronizados en la nube" : "Guardados localmente"}</span></div>
         <div className="note-box">
           {cloud
-            ? <>Sesión iniciada como <strong>{account.email}</strong>. Los registros se guardan en tu cuenta y puedes verlos desde cualquier dispositivo.</>
+            ? "Los registros se guardan en tu base de datos de Supabase y los ves igual desde cualquier dispositivo."
             : "Los registros quedan en el almacenamiento local de este navegador y dispositivo. Para cambiar de móvil, descarga una copia y restáurala en el otro. No se envían a ningún servidor."}
         </div>
         <div className="tools">
           <button className="quiet" onClick={actions.exportJson}>Descargar copia JSON</button>
           <button className="quiet" onClick={actions.exportCsv}>Exportar a CSV</button>
           <button className="quiet" onClick={() => fileInput.current?.click()}>Restaurar copia</button>
-          {cloud && <button className="quiet" onClick={actions.signOut}>Cerrar sesión</button>}
           <button className="quiet danger" onClick={actions.clearData}>Borrar registros</button>
         </div>
         <input
