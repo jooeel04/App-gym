@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import { switchTab, useWorkout } from "@/controllers/workout-controller";
 import { syncThemeBar } from "@/lib/theme";
@@ -13,7 +13,7 @@ import { RestTimerBar } from "./rest-timer";
 import { RoutineView } from "./routine-view";
 import { SettingsView } from "./settings-view";
 import { TrainingView } from "./training-view";
-import { useTabSwipe } from "./use-tab-swipe";
+import { PEEK_GAP, useTabSwipe } from "./use-tab-swipe";
 
 const NAV = [
   { href: "/entrenar", label: "Entrenar", Icon: TrainingIcon, View: TrainingView },
@@ -40,12 +40,20 @@ function onTabClick(href: string) {
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { ready, loadFailed, toast, sync } = useWorkout();
-  const current = NAV[tabIndex(pathname)];
-  // Dirección del cambio de pestaña: la nueva entra por la derecha si está a la derecha
-  // en la barra inferior, y por la izquierda si está a la izquierda.
+  const index = tabIndex(pathname);
+  const current = NAV[index];
+  // Al deslizar con el dedo asoma la pestaña vecina (`peek`); si se suelta en ella,
+  // pasa a ser la actual sin animación de entrada (ya llegó deslizándose).
+  const [peek, setPeek] = useState<{ index: number; top: number } | null>(null);
+  const [swipedTo, setSwipedTo] = useState<string | null>(null);
+  // Dirección del cambio de pestaña con los botones: la nueva entra por la derecha si
+  // está a la derecha en la barra inferior, y por la izquierda si está a la izquierda.
   const [slide, setSlide] = useState({ path: pathname, from: "" });
   if (slide.path !== pathname) {
-    setSlide({ path: pathname, from: tabIndex(pathname) > tabIndex(slide.path) ? "right" : "left" });
+    const swiped = swipedTo === pathname;
+    setSlide({ path: pathname, from: swiped ? "" : index > tabIndex(slide.path) ? "right" : "left" });
+    if (swipedTo) setSwipedTo(null);
+    if (peek) setPeek(null);
   }
 
   useEffect(() => { document.title = current.label + " · RUTINA"; }, [current]);
@@ -53,8 +61,30 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   // En el móvil se cambia de pestaña deslizando el dedo a izquierda o derecha.
   const mainRef = useRef<HTMLElement>(null);
-  const goToTab = useCallback((i: number) => switchTab(NAV[i].href), []);
-  useTabSwipe(mainRef, tabIndex(pathname), NAV.length, goToTab);
+  const pagerRef = useRef<HTMLDivElement>(null);
+  const swipeCommitted = useRef(false);
+  const onPeek = useCallback((i: number | null) => setPeek(i === null ? null : { index: i, top: window.scrollY }), []);
+  const onCommit = useCallback((i: number) => {
+    swipeCommitted.current = true;
+    setSwipedTo(NAV[i].href);
+    switchTab(NAV[i].href, false);
+  }, []);
+  useTabSwipe(mainRef, pagerRef, index, NAV.length, { onPeek, onCommit });
+
+  // Tras un cambio por deslizamiento, antes de pintar: la pista vuelve a su sitio
+  // (la pestaña nueva ya ocupa el lugar de la actual) y se sube al principio.
+  useLayoutEffect(() => {
+    if (!swipeCommitted.current) return;
+    swipeCommitted.current = false;
+    const pager = pagerRef.current;
+    if (pager) {
+      pager.style.transition = "";
+      pager.style.transform = "";
+    }
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  const pages = peek ? [index, peek.index] : [index];
 
   return (
     <>
@@ -73,7 +103,21 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
         <main ref={mainRef}>
           {ready
-            ? <div key={pathname} className={"page" + (slide.from ? " from-" + slide.from : "")}><current.View /></div>
+            ? (
+              <div className="pager" ref={pagerRef}>
+                {pages.map((i) => {
+                  const { href, View } = NAV[i];
+                  const isPeek = i !== index;
+                  return (
+                    <div key={href} aria-hidden={isPeek || undefined} inert={isPeek || undefined}
+                      className={"page" + (isPeek ? " peek" : slide.from ? " from-" + slide.from : "")}
+                      style={isPeek && peek ? { top: peek.top, left: i > index ? `calc(100% + ${PEEK_GAP}px)` : `calc(-100% - ${PEEK_GAP}px)` } : undefined}>
+                      <View />
+                    </div>
+                  );
+                })}
+              </div>
+            )
             : loadFailed
               ? <LoadProblem onRetry={() => window.location.reload()} />
               : <div className="empty">Cargando tus datos…</div>}

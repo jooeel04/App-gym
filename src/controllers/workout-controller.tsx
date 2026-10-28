@@ -431,10 +431,10 @@ function createToaster(setToast: (update: (t: { text: string; visible: boolean }
 
 // Cambio de pestaña instantáneo: se actualiza la URL en el navegador (Next sincroniza
 // usePathname con history.pushState) sin pedir la página al servidor.
-export function switchTab(path: string) {
+export function switchTab(path: string, resetScroll = true) {
   if (window.location.pathname === path) return;
   window.history.pushState(null, "", path);
-  window.scrollTo(0, 0);
+  if (resetScroll) window.scrollTo(0, 0);
 }
 
 // Vuelve a leer la fecha cuando la app vuelve a primer plano (p. ej. al día siguiente).
