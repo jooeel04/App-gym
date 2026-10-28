@@ -46,9 +46,7 @@ export function ActivityCalendar() {
           const label = formatLongDate(date) + ": " + (done.length ? done.map((d) => "Día " + d + " · " + DAY_NAMES[d]).join(", ") : "sin entrenar");
           return (
             <span className={"calday" + (date === today ? " today" : "")} key={date} title={label} aria-label={label}>
-              <i className={"caldot" + (done.length ? " done" : "")} style={done.length ? { background: dotBackground(done) } : undefined}>
-                {done.join("+")}
-              </i>
+              <i className={"caldot" + (done.length ? " done" : "")} style={done.length ? { background: dotBackground(done) } : undefined} />
               <small>{i + 1}</small>
             </span>
           );
@@ -56,7 +54,7 @@ export function ActivityCalendar() {
       </div>
       <div className="legend">
         {DAYS.map((d) => (
-          <span key={d}><i className="caldot done" style={{ background: "var(--day" + d + ")" }}>{d}</i>{DAY_NAMES[d]}</span>
+          <span key={d}><i className="caldot done" style={{ background: "var(--day" + d + ")" }} />{DAY_NAMES[d]}</span>
         ))}
       </div>
     </section>

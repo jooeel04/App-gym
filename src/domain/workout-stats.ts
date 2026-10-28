@@ -1,12 +1,52 @@
-import { DAYS } from "./snapshot";
-import type { Tally } from "./types";
+import { parseISODate } from "./calendar";
+import { DAYS, isLogged, parseKey } from "./snapshot";
+import type { Exercise, SetEntry, Tally } from "./types";
 import type { WorkoutModel } from "./workout-model";
 
 export function percent(n: number, p: number) {
   return p ? Math.min(100, Math.round((n / p) * 100)) : 0;
 }
 
-// Cálculos de solo lectura sobre el modelo: series anotadas y volumen levantado.
+// Una serie anotada con sus valores numéricos (null si no se escribió).
+export interface SetResult {
+  set: number;
+  weight: number | null;
+  reps: number | null;
+}
+
+// Lo que se hizo en un ejercicio en una semana del ciclo.
+export interface ExerciseSession {
+  week: number;
+  date: string | null; // fecha real más reciente de sus series
+  sets: SetResult[];
+  topWeight: number | null; // carga máxima
+  reps: number; // repeticiones totales
+  volume: number; // kg × repeticiones
+}
+
+// Totales de una semana del ciclo o de un mes.
+export interface PeriodTotals {
+  key: string;
+  label: string;
+  volume: number;
+  reps: number;
+  sets: number;
+}
+
+function toNumber(v: string | undefined) {
+  if (v == null || String(v).trim() === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+function addSet(t: { volume: number; reps: number; sets: number }, e: SetEntry) {
+  const kg = toNumber(e.weight), reps = toNumber(e.reps);
+  t.sets++;
+  if (reps) t.reps += reps;
+  if (kg && reps) t.volume += kg * reps;
+}
+
+// Cálculos de solo lectura sobre el modelo: series anotadas, cargas y repeticiones.
 export class WorkoutStats {
   constructor(private readonly model: WorkoutModel) {}
 
@@ -31,16 +71,82 @@ export class WorkoutStats {
     return { n, p };
   }
 
-  // Volumen de un día de rutina en una semana: suma de kg × repeticiones de sus series.
-  volume(w: number, d: number) {
-    let total = 0;
-    this.model.exercisesOfDay(d).forEach((x) => {
-      for (let s = 1; s <= x.sets; s++) {
-        const e = this.model.getEntry(w, d, x.id, s);
-        const kg = Number(e.weight), reps = Number(e.reps);
-        if (kg > 0 && reps > 0) total += kg * reps;
-      }
-    });
-    return Math.round(total);
+  // ---- Por ejercicio ----
+
+  session(x: Exercise, w: number): ExerciseSession | null {
+    const sets: SetResult[] = [];
+    let date: string | null = null;
+    for (let s = 1; s <= x.sets; s++) {
+      const e = this.model.getEntry(w, x.day, x.id, s);
+      if (!isLogged(e)) continue;
+      sets.push({ set: s, weight: toNumber(e.weight), reps: toNumber(e.reps) });
+      if (e.date && (!date || e.date > date)) date = e.date;
+    }
+    if (!sets.length) return null;
+    const weights = sets.map((r) => r.weight).filter((v): v is number => v !== null);
+    return {
+      week: w,
+      date,
+      sets,
+      topWeight: weights.length ? Math.max(...weights) : null,
+      reps: sets.reduce((sum, r) => sum + (r.reps ?? 0), 0),
+      volume: Math.round(sets.reduce((sum, r) => sum + (r.weight ?? 0) * (r.reps ?? 0), 0)),
+    };
   }
+
+  // Semanas en que se anotó el ejercicio, de la más antigua a la más reciente.
+  exerciseHistory(x: Exercise): ExerciseSession[] {
+    const history: ExerciseSession[] = [];
+    for (let w = 1; w <= this.model.weeksCount; w++) {
+      const s = this.session(x, w);
+      if (s) history.push(s);
+    }
+    return history;
+  }
+
+  // La última vez que se hizo el ejercicio antes de la semana `w`.
+  lastBefore(x: Exercise, w: number): ExerciseSession | null {
+    for (let prev = w - 1; prev >= 1; prev--) {
+      const s = this.session(x, prev);
+      if (s) return s;
+    }
+    return null;
+  }
+
+  // ---- Totales por semana y por mes ----
+
+  weeklyTotals(): PeriodTotals[] {
+    return Array.from({ length: this.model.weeksCount }, (_, i) => {
+      const w = i + 1, t = { key: String(w), label: "S" + w, volume: 0, reps: 0, sets: 0 };
+      this.model.routine.forEach((x) => {
+        for (let s = 1; s <= x.sets; s++) {
+          const e = this.model.getEntry(w, x.day, x.id, s);
+          if (isLogged(e)) addSet(t, e);
+        }
+      });
+      t.volume = Math.round(t.volume);
+      return t;
+    });
+  }
+
+  // Por mes real de entrenamiento (series con fecha), del más antiguo al más reciente.
+  monthlyTotals(): PeriodTotals[] {
+    const months = new Map<string, PeriodTotals>();
+    Object.entries(this.model.snapshot.entries).forEach(([k, e]) => {
+      if (!e.date || !isLogged(e) || !this.model.findExercise(parseKey(k)[2])) return;
+      const key = e.date.slice(0, 7);
+      const t = months.get(key) ?? { key, label: monthLabel(key), volume: 0, reps: 0, sets: 0 };
+      addSet(t, e);
+      months.set(key, t);
+    });
+    return Array.from(months.values())
+      .sort((a, b) => (a.key < b.key ? -1 : 1))
+      .map((t) => ({ ...t, volume: Math.round(t.volume) }));
+  }
+}
+
+// "2026-10" → "oct 26"
+function monthLabel(key: string) {
+  const d = parseISODate(key + "-01");
+  return d.toLocaleDateString("es-ES", { month: "short" }).replace(".", "") + " " + String(d.getFullYear()).slice(2);
 }

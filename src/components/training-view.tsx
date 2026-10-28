@@ -4,6 +4,7 @@ import { useWorkout } from "@/controllers/workout-controller";
 import { formatShortDate, WEEKDAY_SHORT } from "@/domain/calendar";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { Exercise, SetField } from "@/domain/types";
+import { describeSet } from "./exercise-progress";
 import { ChevronIcon } from "./icons";
 import { TodayPanel } from "./today-panel";
 
@@ -62,9 +63,10 @@ export function TrainingView() {
 }
 
 function ExerciseCard({ exercise: x, index }: { exercise: Exercise; index: number }) {
-  const { model, week, day, actions } = useWorkout();
+  const { model, stats, week, day, actions } = useWorkout();
   const n = model.loggedSets(week, day, x), done = model.isExerciseDone(week, day, x);
   const checked = model.isExerciseChecked(week, day, x.id);
+  const last = stats.lastBefore(x, week);
   // Con todas las series anotadas el tick ya está puesto y no se puede quitar a mano.
   const filled = done && !checked;
   const set = (s: number, field: SetField) => (e: React.ChangeEvent<HTMLInputElement>) => actions.setEntry(week, day, x.id, s, field, e.target.value);
@@ -94,7 +96,7 @@ function ExerciseCard({ exercise: x, index }: { exercise: Exercise; index: numbe
         <div className="sethead"><span>Serie</span><span>Carga · kg</span><span>Reps</span></div>
         {range(x.sets).map((s) => {
           const e = model.getEntry(week, day, x.id, s);
-          const old = week > 1 ? model.getEntry(week - 1, day, x.id, s) : {};
+          const old = last?.sets.find((r) => r.set === s);
           const label = x.name + ", serie " + s;
           return (
             <div className="setrow" key={s}>
@@ -105,8 +107,8 @@ function ExerciseCard({ exercise: x, index }: { exercise: Exercise; index: numbe
                 <summary>{e.note ? "Ver nota" : "＋ Nota"}</summary>
                 <input type="text" maxLength={160} placeholder="Anotación de esta serie" aria-label={"Nota " + label} value={e.note ?? ""} onChange={set(s, "note")} />
               </details>
-              {(old.weight || old.reps) && (
-                <div className="prev">Semana anterior: {old.weight ? old.weight + " kg" : "—"}{old.reps ? " · " + old.reps + " reps" : ""}</div>
+              {old && (
+                <div className="prev">Última vez (semana {last!.week}): {describeSet(old)}{old.reps !== null && " reps"}</div>
               )}
             </div>
           );

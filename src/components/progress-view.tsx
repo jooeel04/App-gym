@@ -2,39 +2,35 @@
 
 import { useRef } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
-import { percent } from "@/domain/workout-stats";
 import { ActivityCalendar } from "./activity-calendar";
 import { DailyLog } from "./daily-log";
-import { DayProgressCharts } from "./day-progress-charts";
+import { ExerciseProgress } from "./exercise-progress";
+import { ProgressSummary, TrendChart } from "./progress-charts";
 
-const small = { fontSize: 12, fontWeight: 500 };
-
-// Vista "Progreso": totales, calendario de días entrenados, progreso por día de rutina,
-// registro diario y herramientas de datos.
+// Vista "Progreso": resumen de la semana y el mes, evolución de cargas y repeticiones,
+// calendario de días entrenados, progreso por ejercicio, registro diario y datos.
 export function ProgressView() {
-  const { model, stats, week, mode, email, actions } = useWorkout();
+  const { mode, email, actions } = useWorkout();
   const fileInput = useRef<HTMLInputElement>(null);
-  const all = stats.all(), cur = stats.week(week);
   const cloud = mode === "cloud";
 
   return (
     <section className="view active">
       <div className="pagehead">
         <div>
-          <div className="eyebrow">Resumen del ciclo</div>
+          <div className="eyebrow">Tu avance</div>
           <h1>Progreso</h1>
-          <p className="lede">Series anotadas y cargas registradas durante {model.weeksCount} semanas.</p>
+          <p className="lede">Cargas y repeticiones semana a semana y mes a mes, y lo que hiciste la última vez en cada ejercicio.</p>
         </div>
       </div>
 
-      <div className="stats">
-        <div className="stat"><span>Series anotadas</span><strong>{all.n} <small style={small}>/ {all.p}</small></strong><small>en todo el ciclo</small></div>
-        <div className="stat"><span>Semana actual</span><strong>{cur.n} <small style={small}>/ {cur.p}</small></strong><small>Semana {week} · {percent(cur.n, cur.p)}% de series</small></div>
-      </div>
+      <ProgressSummary />
+
+      <TrendChart />
 
       <ActivityCalendar />
 
-      <DayProgressCharts />
+      <ExerciseProgress />
 
       <DailyLog />
 
