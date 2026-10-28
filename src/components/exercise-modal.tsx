@@ -63,15 +63,17 @@ export function ExerciseModal({ day, onClose }: { day: number; onClose: () => vo
             <div className="liblist">
               {results.length === 0 && <div className="empty">No hay ejercicios con esa búsqueda. Puedes añadirlo «A mano».</div>}
               {results.map((x) => (
-                <button key={x.name} type="button" className="libitem" onClick={() => pick(x)}>
+                <div key={x.name} className="libitem">
                   <BodyMap primary={x.primary} secondary={x.secondary} size="sm" />
-                  <span className="libtext">
-                    <strong>{x.name}</strong>
-                    <small>{x.primary.map((m) => MUSCLE_NAMES[m]).join(" · ")}</small>
-                    <em>{x.sets} × {x.target}</em>
-                  </span>
-                  <span className="libadd" aria-hidden="true">＋</span>
-                </button>
+                  <button type="button" className="libpick" onClick={() => pick(x)}>
+                    <span className="libtext">
+                      <strong>{x.name}</strong>
+                      <small>{x.primary.map((m) => MUSCLE_NAMES[m]).join(" · ")}</small>
+                      <em>{x.sets} × {x.target}</em>
+                    </span>
+                    <span className="libadd" aria-hidden="true">＋</span>
+                  </button>
+                </div>
               ))}
             </div>
             <div className="modal-actions">
