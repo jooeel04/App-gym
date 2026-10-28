@@ -1,20 +1,18 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { DAY_NAMES } from "@/domain/snapshot";
 
-const clock = (ms: number) => {
+export const clock = (ms: number) => {
   const s = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
   return (h ? h + ":" + String(m).padStart(2, "0") : String(m)) + ":" + String(s % 60).padStart(2, "0");
 };
 
 // Barra flotante del entreno en curso: tiempo transcurrido, ejercicios hechos y
-// botones para volver al entreno o terminarlo. Mientras dura, la pantalla no se apaga.
+// botones para abrirlo a pantalla completa o terminarlo. Mientras dura, la pantalla no se apaga.
 export function ActiveWorkoutBar() {
-  const { active, model, week, day, actions } = useWorkout();
-  const pathname = usePathname();
+  const { active, model, actions } = useWorkout();
   const [now, setNow] = useState(() => Date.now());
   const startedAt = active?.startedAt;
 
@@ -29,11 +27,10 @@ export function ActiveWorkoutBar() {
   if (!active) return null;
   const list = model.exercisesOfDay(active.day);
   const done = list.filter((x) => model.isExerciseDone(active.week, active.day, x)).length;
-  const viewing = pathname === "/entrenar" && week === active.week && day === active.day;
 
   return (
     <div className="livebar" role="status" aria-label={"Entreno en curso: Día " + active.day + ", " + done + " de " + list.length + " ejercicios"}>
-      <button type="button" className="live-info" onClick={actions.openWorkout} disabled={viewing} aria-label="Ir al entreno en curso">
+      <button type="button" className="live-info" onClick={actions.openWorkout} aria-label="Abrir el entreno en curso a pantalla completa">
         <span className="live-dot" aria-hidden="true" />
         <span className="live-text">
           <small>En curso · Día {active.day} · {DAY_NAMES[active.day]}</small>

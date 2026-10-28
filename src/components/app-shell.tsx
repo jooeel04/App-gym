@@ -14,6 +14,7 @@ import { RestTimerBar } from "./rest-timer";
 import { RoutineView } from "./routine-view";
 import { SettingsView } from "./settings-view";
 import { TrainingView } from "./training-view";
+import { WorkoutFocus } from "./workout-focus";
 import { PEEK_GAP, useTabSwipe } from "./use-tab-swipe";
 
 const NAV = [
@@ -192,6 +193,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         ))}
       </nav>
       {ready && <ActiveWorkoutBar />}
+      {ready && <WorkoutFocus />}
       {ready && <RestTimerBar />}
       {ready && <DaySummary />}
       <div className={"toast" + (toast.visible ? " show" : "")} role="status" aria-live="polite">{toast.text}</div>

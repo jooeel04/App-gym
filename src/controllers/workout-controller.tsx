@@ -66,6 +66,8 @@ interface WorkoutContextValue {
   summary: DaySummaryInfo | null;
   // Entreno en curso en este dispositivo (null si no hay ninguno).
   active: ActiveWorkout | null;
+  // Pantalla completa del entreno en curso (modo foco) abierta.
+  focusOpen: boolean;
   actions: ReturnType<typeof createActions>;
 }
 
@@ -112,6 +114,7 @@ export function WorkoutProvider({ mode, initialSnapshot, email, children }: Prov
   const [rest, setRest] = useState<RestTimer | null>(null);
   const [records, setRecords] = useState<RecordHit[]>([]);
   const [summary, setSummary] = useState<DaySummaryInfo | null>(null);
+  const [focusOpen, setFocus] = useState(false);
   const version = useSyncExternalStore(model.subscribe, model.getVersion, model.getVersion);
   const today = useSyncExternalStore(subscribeToDayChange, todayISO, () => null);
   const active = useSyncExternalStore(subscribeActiveWorkout, getActiveWorkout, () => null);
@@ -171,7 +174,7 @@ export function WorkoutProvider({ mode, initialSnapshot, email, children }: Prov
   const stats = useMemo(() => new WorkoutStats(model), [model]);
   const actions = useMemo(
     () => createActions({
-      model, stats, sync, showToast, setWeek, setDay, goTo: navigateTab, setRest, setSummary,
+      model, stats, sync, showToast, setWeek, setDay, goTo: navigateTab, setRest, setSummary, setFocus,
       addRecord: (hit: RecordHit) => setRecords((list) => [...list, hit]),
     }),
     [model, stats, sync, showToast],
@@ -180,7 +183,7 @@ export function WorkoutProvider({ mode, initialSnapshot, email, children }: Prov
   const focus = today ? calendar.focusFor(today) : null;
   const week = Math.min(selectedWeek ?? focus?.week ?? 1, model.weeksCount);
   const day = selectedDay ?? focus?.day ?? 1;
-  const value: WorkoutContextValue = { model, stats, calendar, diary, mode, email, sync: syncStatus, today, ready, loadFailed, version, week, day, toast, rest, records, summary, active, actions };
+  const value: WorkoutContextValue = { model, stats, calendar, diary, mode, email, sync: syncStatus, today, ready, loadFailed, version, week, day, toast, rest, records, summary, active, focusOpen: focusOpen && !!active, actions };
   return <WorkoutContext value={value}>{children}</WorkoutContext>;
 }
 
@@ -194,10 +197,11 @@ interface ActionDeps {
   goTo: (path: string) => void;
   setRest: (rest: RestTimer | null | ((r: RestTimer | null) => RestTimer | null)) => void;
   setSummary: (summary: DaySummaryInfo | null) => void;
+  setFocus: (open: boolean) => void;
   addRecord: (hit: RecordHit) => void;
 }
 
-function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, setRest, setSummary, addRecord }: ActionDeps) {
+function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, setRest, setSummary, setFocus, addRecord }: ActionDeps) {
   const backup = new BackupService(model);
   const recordTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const celebrated = new Set<string>();
@@ -219,7 +223,7 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
     if (!model.syncDayCompleted(w, d)) return;
     const started = isActive(w, d) ? getActiveWorkout()!.startedAt : readSessionStart(w, d);
     clearSessionStart(w, d);
-    if (isActive(w, d)) setActiveWorkout(null);
+    if (isActive(w, d)) { setActiveWorkout(null); setFocus(false); }
     setSummary({ week: w, day: d, minutes: minutesSince(started) });
   };
 
@@ -311,16 +315,23 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       setWeek(w);
       setDay(d);
       goTo("/entrenar");
+      setFocus(true);
       showToast("💪 ¡Entreno en marcha! Día " + d + " · " + DAY_NAMES[d]);
     },
 
-    // Vuelve a la pantalla del entreno en curso desde cualquier pestaña.
+    // Vuelve a la pantalla completa del entreno en curso desde cualquier pestaña.
     openWorkout() {
       const a = getActiveWorkout();
       if (!a) return;
       setWeek(a.week);
       setDay(a.day);
       goTo("/entrenar");
+      setFocus(true);
+    },
+
+    // Minimiza la pantalla completa: se vuelve a la lista con la barra del entreno.
+    closeFocus() {
+      setFocus(false);
     },
 
     // Termina el entreno: sin nada anotado se descarta; si quedan ejercicios se pide
@@ -336,6 +347,7 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
         setActiveWorkout(null);
         clearSessionStart(w, d);
         setRest(null);
+        setFocus(false);
         showToast("Entreno descartado");
         return;
       }
@@ -344,6 +356,7 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       setActiveWorkout(null);
       clearSessionStart(w, d);
       setRest(null);
+      setFocus(false);
       setSummary({ week: w, day: d, minutes: minutesSince(a.startedAt) });
     },
 

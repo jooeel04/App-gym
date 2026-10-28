@@ -28,13 +28,7 @@ export function TrainingView() {
   const list = model.exercisesOfDay(day);
   // Entreno en curso en este día: se abre el siguiente ejercicio por hacer.
   const live = !!active && active.week === week && active.day === day;
-  const pending = live ? list.findIndex((x) => !model.isExerciseDone(week, day, x)) : -1;
-  // Mientras se escribe en un ejercicio no se salta al siguiente (al poner el peso de la
-  // última serie ya cuenta como anotada, pero faltan las repeticiones): se avanza al
-  // cerrar el teclado o tocar fuera.
-  const [editing, setEditing] = useState(false);
-  const [next, setNext] = useState(pending);
-  if (!editing && next !== pending) setNext(pending);
+  const { next, editingHandlers } = useNextExercise(live);
   const listRef = useRef<HTMLDivElement>(null);
   // Al empezar y al terminar cada ejercicio, la pantalla baja hasta el siguiente.
   useEffect(() => {
@@ -83,21 +77,49 @@ export function TrainingView() {
       {!live && !done && list.length > 0 && (
         <button type="button" className="start-workout" onClick={() => actions.startWorkout(week, day)}>
           <span aria-hidden="true">▶</span> Empezar entreno
-          <small>Cronómetro en marcha y pantalla siempre encendida</small>
+          <small>Pantalla completa, ejercicio a ejercicio, con cronómetro</small>
+        </button>
+      )}
+      {live && (
+        <button type="button" className="start-workout resume" onClick={actions.openWorkout}>
+          <span aria-hidden="true">⤢</span> Volver a pantalla completa
         </button>
       )}
 
-      <div className="list" key={day} ref={listRef}
-        onFocus={(e) => setEditing(e.target instanceof HTMLInputElement)}
-        onBlur={(e) => { if (!(e.relatedTarget instanceof HTMLInputElement && e.currentTarget.contains(e.relatedTarget))) setEditing(false); }}>
+      <div className="list" key={day} ref={listRef} {...editingHandlers}>
         {list.map((x, i) => (
           <ExerciseCard key={x.id + "-" + week + "-" + day} exercise={x} index={i} open={live ? i === next : i === 0} next={i === next}
-            superset={x.superset && i < list.length - 1 ? "first" : list[i - 1]?.superset ? "second" : null} />
+            superset={supersetRole(list, i)} />
         ))}
       </div>
       {plates && <PlateCalculator onClose={() => setPlates(false)} />}
     </section>
   );
+}
+
+type SupersetRole = "first" | "second" | null;
+
+// Papel del ejercicio `i` en una superserie: el primero va enlazado con el siguiente.
+export const supersetRole = (list: Exercise[], i: number): SupersetRole =>
+  list[i].superset && i < list.length - 1 ? "first" : list[i - 1]?.superset ? "second" : null;
+
+// Siguiente ejercicio por hacer del día en pantalla (-1 si no hay o `live` es false).
+// Mientras se escribe en un ejercicio no se salta al siguiente (al poner el peso de la
+// última serie ya cuenta como anotada, pero faltan las repeticiones): se avanza al
+// cerrar el teclado o tocar fuera. `editingHandlers` va en el contenedor de las series.
+export function useNextExercise(live: boolean) {
+  const { model, week, day } = useWorkout();
+  const pending = live ? model.exercisesOfDay(day).findIndex((x) => !model.isExerciseDone(week, day, x)) : -1;
+  const [editing, setEditing] = useState(false);
+  const [next, setNext] = useState(pending);
+  if (!editing && next !== pending) setNext(pending);
+  const editingHandlers = {
+    onFocus: (e: React.FocusEvent<HTMLElement>) => setEditing(e.target instanceof HTMLInputElement),
+    onBlur: (e: React.FocusEvent<HTMLElement>) => {
+      if (!(e.relatedTarget instanceof HTMLInputElement && e.currentTarget.contains(e.relatedTarget))) setEditing(false);
+    },
+  };
+  return { next, editingHandlers };
 }
 
 // Fila de una serie: carga, repeticiones, nota y lo que se hizo la última vez.
@@ -121,20 +143,11 @@ function SetRow({ exercise: x, set: s, label, old, oldWeek }: { exercise: Exerci
   );
 }
 
-function ExerciseCard({ exercise: x, index, open, next, superset }: { exercise: Exercise; index: number; open: boolean; next: boolean; superset: "first" | "second" | null }) {
-  const { model, stats, week, day, actions } = useWorkout();
+function ExerciseCard({ exercise: x, index, open, next, superset }: { exercise: Exercise; index: number; open: boolean; next: boolean; superset: SupersetRole }) {
+  const { model, week, day, actions } = useWorkout();
   const n = model.loggedSets(week, day, x), done = model.isExerciseDone(week, day, x);
-  const checked = model.isExerciseChecked(week, day, x.id);
-  const last = stats.lastBefore(x, week);
-  const tip = suggestNext(x, last);
-  const muscles = musclesFor(x.name);
-  // Series de calentamiento visibles: las que ya tienen datos, o las añadidas ahora.
-  const [warmups, setWarmups] = useState(() => WARMUP_SETS.filter((s) => {
-    const e = model.getEntry(week, day, x.id, s);
-    return e.weight || e.reps;
-  }).length);
   // Con todas las series anotadas el tick ya está puesto y no se puede quitar a mano.
-  const filled = done && !checked;
+  const filled = done && !model.isExerciseChecked(week, day, x.id);
 
   return (
     <details className={"exercise" + (superset ? " superset " + superset : "") + (next ? " next" : "")} open={open}>
@@ -159,25 +172,43 @@ function ExerciseCard({ exercise: x, index, open, next, superset }: { exercise: 
         </button>
         <ChevronIcon />
       </summary>
-      <div className="exbody">
-        {muscles && (
-          <div className="exmuscles">
-            <BodyMap primary={muscles.primary} secondary={muscles.secondary} size="sm" />
-            <span><b>{muscles.primary.map((m) => MUSCLE_NAMES[m]).join(", ")}</b>{muscles.secondary.length > 0 && <small>También: {muscles.secondary.map((m) => MUSCLE_NAMES[m].toLowerCase()).join(", ")}</small>}</span>
-          </div>
-        )}
-        {tip && <div className={"tip " + tip.kind}><span aria-hidden="true">{tip.kind === "increase" ? "📈" : "💡"}</span>{tip.text}</div>}
-        {superset === "first" && <p className="ss-note">Superserie: haz una serie de este y otra del siguiente sin descansar entre ambos.</p>}
-        {x.note && <p className="cue">{x.note}</p>}
-        <div className="sethead"><span>Serie</span><span>Carga · kg</span><span>Reps</span></div>
-        {WARMUP_SETS.slice(0, warmups).map((s, i) => <SetRow key={s} exercise={x} set={s} label={"C" + (i + 1)} />)}
-        {range(x.sets).map((s) => (
-          <SetRow key={s} exercise={x} set={s} label={String(s)} old={last?.sets.find((r) => r.set === s)} oldWeek={last?.week} />
-        ))}
-        {warmups < WARMUP_SETS.length && (
-          <button type="button" className="add-warmup" onClick={() => setWarmups(warmups + 1)}>＋ Serie de calentamiento</button>
-        )}
-      </div>
+      <div className="exbody"><ExerciseDetail exercise={x} superset={superset} /></div>
     </details>
+  );
+}
+
+// Contenido de un ejercicio: músculos, consejo, indicaciones y series. Se usa en la
+// tarjeta de la lista y en la pantalla completa del entreno en curso.
+export function ExerciseDetail({ exercise: x, superset }: { exercise: Exercise; superset: SupersetRole }) {
+  const { model, stats, week, day } = useWorkout();
+  const last = stats.lastBefore(x, week);
+  const tip = suggestNext(x, last);
+  const muscles = musclesFor(x.name);
+  // Series de calentamiento visibles: las que ya tienen datos, o las añadidas ahora.
+  const [warmups, setWarmups] = useState(() => WARMUP_SETS.filter((s) => {
+    const e = model.getEntry(week, day, x.id, s);
+    return e.weight || e.reps;
+  }).length);
+
+  return (
+    <>
+      {muscles && (
+        <div className="exmuscles">
+          <BodyMap primary={muscles.primary} secondary={muscles.secondary} size="sm" />
+          <span><b>{muscles.primary.map((m) => MUSCLE_NAMES[m]).join(", ")}</b>{muscles.secondary.length > 0 && <small>También: {muscles.secondary.map((m) => MUSCLE_NAMES[m].toLowerCase()).join(", ")}</small>}</span>
+        </div>
+      )}
+      {tip && <div className={"tip " + tip.kind}><span aria-hidden="true">{tip.kind === "increase" ? "📈" : "💡"}</span>{tip.text}</div>}
+      {superset === "first" && <p className="ss-note">Superserie: haz una serie de este y otra del siguiente sin descansar entre ambos.</p>}
+      {x.note && <p className="cue">{x.note}</p>}
+      <div className="sethead"><span>Serie</span><span>Carga · kg</span><span>Reps</span></div>
+      {WARMUP_SETS.slice(0, warmups).map((s, i) => <SetRow key={s} exercise={x} set={s} label={"C" + (i + 1)} />)}
+      {range(x.sets).map((s) => (
+        <SetRow key={s} exercise={x} set={s} label={String(s)} old={last?.sets.find((r) => r.set === s)} oldWeek={last?.week} />
+      ))}
+      {warmups < WARMUP_SETS.length && (
+        <button type="button" className="add-warmup" onClick={() => setWarmups(warmups + 1)}>＋ Serie de calentamiento</button>
+      )}
+    </>
   );
 }
