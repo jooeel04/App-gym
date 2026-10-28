@@ -9,6 +9,8 @@ export interface Exercise {
   target: string;
   optionalLast: boolean;
   custom?: boolean;
+  // Superserie: se hace seguido del siguiente ejercicio del día, sin descanso entre ambos.
+  superset?: boolean;
 }
 
 // Valores tal como se escriben en los campos del formulario, más la fecha real
@@ -31,6 +33,7 @@ export type WeekSchedule = Record<string, number>;
 // checked:   "semana|día|ejercicio" → fecha en que se marcó a mano con el tick
 // schedule:  día de la rutina → día de la semana
 // startDate: lunes en que empieza la semana 1 del ciclo
+// body:      fecha → peso corporal y medidas de ese día
 export interface WorkoutSnapshot {
   version: 1;
   weeksCount: number;
@@ -40,13 +43,28 @@ export interface WorkoutSnapshot {
   routine: Exercise[];
   schedule?: WeekSchedule;
   startDate?: string;
+  body?: Record<string, BodyMetrics>;
 }
+
+// Peso corporal (kg) y medidas (cm) de un día. Todos opcionales.
+export interface BodyMetrics {
+  weight?: number;
+  waist?: number;
+  chest?: number;
+  arm?: number;
+  thigh?: number;
+  hip?: number;
+}
+
+export const BODY_FIELDS = ["weight", "waist", "chest", "arm", "thigh", "hip"] as const;
+export type BodyField = (typeof BODY_FIELDS)[number];
 
 export interface NewExerciseInput {
   name: string;
   sets: number;
   target: string;
   note: string;
+  superset?: boolean;
 }
 
 // Cambios que el modelo comunica al repositorio para persistirlos.
@@ -56,9 +74,12 @@ export type WorkoutChange =
   | { type: "exerciseChecked"; week: number; day: number; exerciseId: number; date: string | null }
   | { type: "exerciseAdded"; exercise: Exercise; position: number }
   | { type: "exerciseRemoved"; exerciseId: number }
+  | { type: "exerciseUpdated"; exercise: Exercise }
+  | { type: "routineOrder"; ids: number[] }
   | { type: "weeksCount"; weeksCount: number }
   | { type: "weekRemoved"; week: number }
   | { type: "schedule"; schedule: WeekSchedule; startDate: string | null }
+  | { type: "body"; date: string; metrics: BodyMetrics | null }
   | { type: "logsCleared" }
   | { type: "replaced" };
 

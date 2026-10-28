@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { blankSnapshot, dayKey, entryKey, exerciseKey, parseKey } from "@/domain/snapshot";
 import { isISODate } from "@/domain/calendar";
-import type { Exercise, SetEntry, WeekSchedule, WorkoutChange, WorkoutSnapshot } from "@/domain/types";
+import { BODY_FIELDS, type BodyMetrics, type Exercise, type SetEntry, type WeekSchedule, type WorkoutChange, type WorkoutSnapshot } from "@/domain/types";
 import type { WorkoutRepository } from "./workout-repository";
 
 const ENTRY_DEBOUNCE_MS = 600;
@@ -17,12 +17,13 @@ type Result<T> = { data: T; error: unknown };
 
 interface ExerciseRow {
   local_id: number; day: number; position: number; group_name: string; name: string; note: string;
-  prescription: string; sets: number; target: string; optional_last: boolean; custom: boolean;
+  prescription: string; sets: number; target: string; optional_last: boolean; custom: boolean; superset: boolean;
 }
 interface LogRow {
   week: number; day: number; exercise_local_id: number; set_number: number;
   weight: number | null; reps: number | null; note: string | null; logged_on: string | null;
 }
+type BodyRow = { date: string } & Record<(typeof BODY_FIELDS)[number], number | null>;
 interface ProgramRow { id: string; weeks_count: number; schedule: WeekSchedule | null; start_date: string | null }
 
 // Persistencia en Supabase (Postgres). Se usa solo en el servidor, con la sesión del
@@ -57,16 +58,18 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
     this.programId = program.id;
 
     const id = program.id;
-    const [exercises, logs, completed] = await Promise.all([
-      must<ExerciseRow[]>(this.db.from("exercises").select("local_id, day, position, group_name, name, note, prescription, sets, target, optional_last, custom").eq("program_id", id).order("position")),
+    const [exercises, logs, completed, body] = await Promise.all([
+      must<ExerciseRow[]>(this.db.from("exercises").select("local_id, day, position, group_name, name, note, prescription, sets, target, optional_last, custom, superset").eq("program_id", id).order("position")),
       selectAll<LogRow>((from, to) => this.db.from("set_logs").select("week, day, exercise_local_id, set_number, weight, reps, note, logged_on").eq("program_id", id).order("week").order("day").range(from, to)),
       must<{ week: number; day: number }[]>(this.db.from("completed_days").select("week, day").eq("program_id", id)),
+      must<BodyRow[]>(this.db.from("body_metrics").select("date, " + BODY_FIELDS.join(", ")).eq("program_id", id)),
     ]);
 
     const snapshot = blankSnapshot(exercises.map(fromExerciseRow));
     snapshot.weeksCount = program.weeks_count;
     if (program.schedule) snapshot.schedule = program.schedule;
     if (program.start_date) snapshot.startDate = program.start_date;
+    if (body.length) snapshot.body = Object.fromEntries(body.map((r) => [r.date, fromBodyRow(r)]));
     const checked: Record<string, string> = {};
     logs.forEach((r) => {
       if (r.set_number === CHECK_SET) checked[exerciseKey(r.week, r.day, r.exercise_local_id)] = r.logged_on ?? "";
@@ -148,6 +151,14 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
       case "exerciseAdded":
         await must(db.from("exercises").insert(toExerciseRow(programId, change.exercise, change.position)));
         return;
+      case "exerciseUpdated": {
+        await must(db.from("exercises").update(exerciseFields(change.exercise)).match({ program_id: programId, local_id: change.exercise.id }));
+        return;
+      }
+      case "routineOrder":
+        await Promise.all(change.ids.map((id, i) =>
+          must(db.from("exercises").update({ position: i + 1 }).match({ program_id: programId, local_id: id }))));
+        return;
       case "exerciseRemoved":
         // Las series del ejercicio se borran en cascada.
         await must(db.from("exercises").delete().match({ program_id: programId, local_id: change.exerciseId }));
@@ -161,6 +172,12 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
       case "weekRemoved":
         await must(db.rpc("remove_week", { p_program_id: programId, p_week: change.week }));
         return;
+      case "body": {
+        const key = { program_id: programId, date: change.date };
+        if (change.metrics) await must(db.from("body_metrics").upsert({ ...key, ...toBodyColumns(change.metrics) }, { onConflict: "program_id,date" }));
+        else await must(db.from("body_metrics").delete().match(key));
+        return;
+      }
       case "logsCleared":
         await must(db.from("set_logs").delete().eq("program_id", programId));
         await must(db.from("completed_days").delete().eq("program_id", programId));
@@ -208,16 +225,20 @@ function fromExerciseRow(r: ExerciseRow): Exercise {
   return {
     id: r.local_id, day: r.day, group: r.group_name, name: r.name, note: r.note,
     prescription: r.prescription, sets: r.sets, target: r.target,
-    optionalLast: r.optional_last, custom: r.custom,
+    optionalLast: r.optional_last, custom: r.custom, superset: r.superset,
+  };
+}
+
+// Columnas que se pueden editar de un ejercicio.
+function exerciseFields(x: Exercise) {
+  return {
+    group_name: x.group || "", name: x.name, note: x.note || "", prescription: x.prescription || "",
+    sets: x.sets, target: x.target || "Sin rango", optional_last: !!x.optionalLast, custom: !!x.custom, superset: !!x.superset,
   };
 }
 
 function toExerciseRow(programId: string, x: Exercise, position: number) {
-  return {
-    program_id: programId, local_id: x.id, day: x.day, position,
-    group_name: x.group || "", name: x.name, note: x.note || "", prescription: x.prescription || "",
-    sets: x.sets, target: x.target || "Sin rango", optional_last: !!x.optionalLast, custom: !!x.custom,
-  };
+  return { program_id: programId, local_id: x.id, day: x.day, position, ...exerciseFields(x) };
 }
 
 function fromLogRow(r: LogRow): SetEntry {
@@ -260,5 +281,16 @@ function toProgramPayload(snapshot: WorkoutSnapshot) {
   return {
     p_weeks_count: snapshot.weeksCount, p_exercises: snapshot.routine, p_logs: logs, p_completed: completed,
     p_schedule: snapshot.schedule ?? null, p_start_date: isISODate(snapshot.startDate) ? snapshot.startDate : null,
+    p_body: Object.entries(snapshot.body ?? {}).filter(([date]) => isISODate(date)).map(([date, m]) => ({ date, ...toBodyColumns(m) })),
   };
+}
+
+function toBodyColumns(m: BodyMetrics) {
+  return Object.fromEntries(BODY_FIELDS.map((f) => [f, typeof m[f] === "number" && m[f]! > 0 ? m[f] : null]));
+}
+
+function fromBodyRow(r: BodyRow): BodyMetrics {
+  const m: BodyMetrics = {};
+  BODY_FIELDS.forEach((f) => { if (r[f] != null) m[f] = Number(r[f]); });
+  return m;
 }

@@ -13,6 +13,7 @@ export function TodayPanel() {
   const missed = calendar.missedSessions(today);
   const focus = calendar.focusFor(today);
   const onToday = focus && focus.week === week && focus.day === day;
+  const streak = calendar.streak(today);
 
   return (
     <section className="today-card">
@@ -25,6 +26,11 @@ export function TodayPanel() {
               ? todaySessions.map((s) => "Día " + s.day + " · " + DAY_NAMES[s.day] + " (semana " + s.week + ")").join(" + ")
               : "Día de descanso"}
           </span>
+        </div>
+        <div className="streak-badge" title={"Mejor racha: " + streak.best + " semanas"}>
+          <span aria-hidden="true">🔥</span>
+          <b>{streak.current}</b>
+          <small>{streak.current === 1 ? "semana" : "semanas"}</small>
         </div>
         {!onToday && <button className="weekaction" type="button" onClick={actions.goToToday}>Ir a hoy</button>}
       </div>

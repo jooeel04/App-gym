@@ -81,3 +81,9 @@ export function TrashIcon() {
     <svg viewBox="0 0 24 24" fill="none"><path d="M5 7h14M10 7V5h4v2m-7 0 1 12h8l1-12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
   );
 }
+
+export function ClockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13" r="8" stroke="currentColor" strokeWidth="1.8" /><path d="M12 9v4l2.5 2M9 2h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+  );
+}

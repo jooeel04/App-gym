@@ -3,8 +3,9 @@
 import { useRef, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
+import { DEFAULT_REST, getRestPrefs, REST_OPTIONS, setRestPrefs, subscribePrefs } from "@/lib/preferences";
 import { currentTheme, setTheme, subscribeTheme, type Theme } from "@/lib/theme";
-import { ChevronIcon, DatabaseIcon, DownloadIcon, LogoutIcon, MoonIcon, TableIcon, TrashIcon, UploadIcon, UserIcon } from "./icons";
+import { ChevronIcon, ClockIcon, DatabaseIcon, DownloadIcon, LogoutIcon, MoonIcon, TableIcon, TrashIcon, UploadIcon, UserIcon } from "./icons";
 
 const THEMES: { value: Theme; label: string; hint: string }[] = [
   { value: "dark", label: "Oscuro", hint: "Fondo negro" },
@@ -37,6 +38,7 @@ function SettingsRow({ icon, title, text, onClick, tone }: { icon: ReactNode; ti
 export function SettingsView() {
   const { mode, email, sync, actions } = useWorkout();
   const theme = useSyncExternalStore(subscribeTheme, currentTheme, () => "dark" as Theme);
+  const rest = useSyncExternalStore(subscribePrefs, getRestPrefs, () => DEFAULT_REST);
   const fileInput = useRef<HTMLInputElement>(null);
   const cloud = mode === "cloud";
   const syncText = sync.offline
@@ -64,6 +66,21 @@ export function SettingsView() {
                 </span>
                 <span className="theme-label"><strong>{t.label}</strong><small>{t.hint}</small></span>
                 <span className="theme-check" aria-hidden="true">✓</span>
+              </button>
+            ))}
+          </div>
+        </SettingsCard>
+
+        <SettingsCard icon={<ClockIcon />} title="Descanso entre series" text="Al anotar las repeticiones empieza una cuenta atrás; al acabar, el móvil vibra y pita.">
+          <label className="switch-row">
+            <span><b>Temporizador automático</b><small>{rest.enabled ? "Activado" : "Desactivado"}</small></span>
+            <input type="checkbox" role="switch" className="switch" checked={rest.enabled} onChange={(e) => setRestPrefs({ ...rest, enabled: e.target.checked })} />
+          </label>
+          <div className="rest-options" role="radiogroup" aria-label="Duración del descanso">
+            {REST_OPTIONS.map((s) => (
+              <button key={s} type="button" role="radio" aria-checked={rest.seconds === s} disabled={!rest.enabled}
+                className={"rest-option" + (rest.seconds === s ? " active" : "")} onClick={() => setRestPrefs({ ...rest, seconds: s })}>
+                {s < 60 ? s + " s" : Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0")}
               </button>
             ))}
           </div>

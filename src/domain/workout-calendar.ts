@@ -67,6 +67,22 @@ export class WorkoutCalendar {
     return this.model.isDayCompleted(week, day) || this.model.hasLoggedSets(week, day);
   }
 
+  // Rachas: semanas seguidas con todos los días de rutina hechos. La semana en
+  // curso suma si ya está completa; si no, no rompe la racha todavía.
+  streak(today: string): { current: number; best: number; weekDone: number; weekTotal: number } {
+    const days = DAYS.filter((d) => this.model.exercisesOfDay(d).length > 0);
+    const complete = (w: number) => days.length > 0 && days.every((d) => this.isDone(w, d));
+    const now = Math.min(Math.max(this.cycleWeekOf(today) ?? 1, 1), this.model.weeksCount);
+    let current = 0;
+    for (let w = complete(now) ? now : now - 1; w >= 1 && complete(w); w--) current++;
+    let best = 0, run = 0;
+    for (let w = 1; w <= now; w++) {
+      run = complete(w) ? run + 1 : 0;
+      best = Math.max(best, run);
+    }
+    return { current, best, weekDone: days.filter((d) => this.isDone(now, d)).length, weekTotal: days.length };
+  }
+
   // Días planificados en las últimas dos semanas que no se hicieron.
   missedSessions(today: string, windowDays = MAKEUP_WINDOW_DAYS): PlannedSession[] {
     const missed: PlannedSession[] = [];

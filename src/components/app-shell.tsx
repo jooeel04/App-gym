@@ -5,8 +5,11 @@ import { useEffect, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import { switchTab, useWorkout } from "@/controllers/workout-controller";
 import { syncThemeBar } from "@/lib/theme";
+import { DaySummary } from "./day-summary";
+import { LoadProblem } from "./load-problem";
 import { BrandIcon, ProgressIcon, RoutineIcon, SettingsIcon, TrainingIcon } from "./icons";
 import { ProgressView } from "./progress-view";
+import { RestTimerBar } from "./rest-timer";
 import { RoutineView } from "./routine-view";
 import { SettingsView } from "./settings-view";
 import { TrainingView } from "./training-view";
@@ -35,7 +38,7 @@ function onTabClick(href: string) {
 // las páginas de cada ruta solo aportan el título y permiten abrir la URL directamente.
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { ready, toast, sync } = useWorkout();
+  const { ready, loadFailed, toast, sync } = useWorkout();
   const current = NAV[tabIndex(pathname)];
   // Dirección del cambio de pestaña: la nueva entra por la derecha si está a la derecha
   // en la barra inferior, y por la izquierda si está a la izquierda.
@@ -65,7 +68,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main>
           {ready
             ? <div key={pathname} className={"page" + (slide.from ? " from-" + slide.from : "")}><current.View /></div>
-            : <div className="empty">Cargando tus datos…</div>}
+            : loadFailed
+              ? <LoadProblem onRetry={() => window.location.reload()} />
+              : <div className="empty">Cargando tus datos…</div>}
           {children}
         </main>
       </div>
@@ -76,6 +81,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           </a>
         ))}
       </nav>
+      {ready && <RestTimerBar />}
+      {ready && <DaySummary />}
       <div className={"toast" + (toast.visible ? " show" : "")} role="status" aria-live="polite">{toast.text}</div>
     </>
   );

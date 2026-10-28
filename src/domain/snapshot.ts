@@ -3,6 +3,10 @@ import type { Exercise, SetEntry, WorkoutSnapshot } from "./types";
 export const DAY_NAMES: Record<number, string> = { 1: "Torso", 2: "Pierna", 3: "Empujes", 4: "Tirones", 5: "Hombros y brazos" };
 export const DAYS = [1, 2, 3, 4, 5] as const;
 
+// Series de calentamiento: números de serie aparte (11-13) para que no cuenten en
+// el progreso, los récords ni para completar el ejercicio.
+export const WARMUP_SETS = [11, 12, 13];
+
 export const SNAPSHOT_VERSION = 1;
 
 // Por defecto: Día 1 el lunes … Día 5 el viernes.

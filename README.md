@@ -14,6 +14,10 @@ Varias personas, cada una con su cuenta (correo y contraseña) y sus propios dat
 - Cuentas con correo y contraseña: los datos de cada persona se guardan en su cuenta y los ve en cualquier dispositivo donde inicie sesión.
 - Resumen por semana y día, historial de cargas y exportación a CSV.
 - Copia y restauración de datos en JSON.
+- Entrenar: temporizador de descanso, sugerencia de progresión (doble progresión), récords personales, series de calentamiento, superseries, calculadora de discos y resumen al completar el día.
+- Progreso: racha de semanas, fuerza (1RM estimado) por ejercicio, récords, peso corporal y medidas.
+- Amigos: compartir la rutina con un código y clasificación de días entrenados por grupos.
+- Recuperación de contraseña por correo.
 - Instalación en pantalla de inicio (PWA) y uso sin conexión: los cambios se guardan en el dispositivo y se envían a la cuenta al volver internet.
 
 ## Puesta en marcha
@@ -26,6 +30,7 @@ En el SQL Editor del proyecto, ejecuta en orden los archivos de `supabase/migrat
 4. `20261031000000_exercise_checks.sql`
 5. `20261101000000_multi_user_accounts.sql`
 6. `20261102000000_allow_exercise_check_rows.sql`
+7. `20261103000000_gym_features.sql`
 
 En Authentication → URL Configuration, añade `https://tu-dominio/auth/confirm` (y `http://localhost:3000/auth/confirm`) a las Redirect URLs: es el enlace del correo de confirmación de cuenta.
 

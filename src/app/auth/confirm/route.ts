@@ -16,8 +16,11 @@ export async function GET(request: NextRequest) {
   else if (tokenHash && type) ok = !(await supabase.auth.verifyOtp({ type, token_hash: tokenHash })).error;
 
   const url = request.nextUrl.clone();
+  // Destino tras confirmar (p. ej. la pantalla de contraseña nueva). Solo rutas de la app.
+  const next = searchParams.get("next");
+  const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : type === "recovery" ? "/auth/nueva-contrasena" : "/entrenar";
   url.search = "";
-  url.pathname = ok ? "/entrenar" : "/login";
+  url.pathname = ok ? safeNext : "/login";
   if (!ok) url.searchParams.set("error", "confirmacion");
   return NextResponse.redirect(url);
 }

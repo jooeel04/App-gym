@@ -2,7 +2,8 @@
 
 import { isISODate } from "@/domain/calendar";
 import { isValidSnapshot } from "@/domain/snapshot";
-import type { WorkoutChange, WorkoutSnapshot } from "@/domain/types";
+import { isExercise, isInt, isText } from "@/domain/validation";
+import { BODY_FIELDS, type WorkoutChange, type WorkoutSnapshot } from "@/domain/types";
 import { getUserRepository } from "@/lib/workout-data";
 
 // Puerta del navegador a la base de datos. Las Server Actions son endpoints
@@ -34,8 +35,6 @@ export async function applyWorkoutChanges(changes: unknown, snapshot: unknown): 
   await Promise.all([...writes, repository.flush()]);
 }
 
-const isInt = (v: unknown, min: number, max: number) => Number.isInteger(v) && (v as number) >= min && (v as number) <= max;
-const isText = (v: unknown, max: number) => v === undefined || (typeof v === "string" && v.length <= max);
 
 function isWorkoutChange(c: unknown): c is WorkoutChange {
   const x = c as Record<string, unknown>;
@@ -45,18 +44,18 @@ function isWorkoutChange(c: unknown): c is WorkoutChange {
       const e = x.entry as Record<string, unknown> | null;
       const entryOk = e === null || (typeof e === "object" && isText(e.weight, 12) && isText(e.reps, 12) && isText(e.note, 160)
         && (e.date === undefined || isISODate(e.date)));
-      return isInt(x.week, 1, 520) && isInt(x.day, 1, 5) && isInt(x.exerciseId, 0, 1e6) && isInt(x.set, 1, 10) && entryOk;
+      return isInt(x.week, 1, 520) && isInt(x.day, 1, 5) && isInt(x.exerciseId, 0, 1e6) && isInt(x.set, 1, 13) && entryOk;
     }
     case "completed":
       return isInt(x.week, 1, 520) && isInt(x.day, 1, 5) && typeof x.done === "boolean";
     case "exerciseChecked":
       return isInt(x.week, 1, 520) && isInt(x.day, 1, 5) && isInt(x.exerciseId, 0, 1e6) && (x.date === null || isISODate(x.date));
-    case "exerciseAdded": {
-      const ex = x.exercise as Record<string, unknown>;
-      return !!ex && isInt(ex.id, 0, 1e6) && isInt(ex.day, 1, 5) && isInt(ex.sets, 1, 10)
-        && typeof ex.name === "string" && ex.name.length >= 1 && ex.name.length <= 80
-        && isText(ex.note, 240) && isText(ex.target, 30) && isText(ex.prescription, 60) && isInt(x.position, 0, 1e6);
-    }
+    case "exerciseAdded":
+      return isExercise(x.exercise) && isInt(x.position, 0, 1e6);
+    case "exerciseUpdated":
+      return isExercise(x.exercise);
+    case "routineOrder":
+      return Array.isArray(x.ids) && x.ids.length <= 300 && x.ids.every((id) => isInt(id, 0, 1e6));
     case "exerciseRemoved":
       return isInt(x.exerciseId, 0, 1e6);
     case "weeksCount":
@@ -68,6 +67,12 @@ function isWorkoutChange(c: unknown): c is WorkoutChange {
       const scheduleOk = !!schedule && typeof schedule === "object"
         && Object.entries(schedule).every(([day, weekday]) => /^[1-5]$/.test(day) && isInt(weekday, 1, 7));
       return scheduleOk && (x.startDate === null || isISODate(x.startDate));
+    }
+    case "body": {
+      const m = x.metrics as Record<string, unknown> | null;
+      const metricsOk = m === null || (typeof m === "object"
+        && Object.entries(m).every(([k, v]) => (BODY_FIELDS as readonly string[]).includes(k) && typeof v === "number" && v > 0 && v < 1000));
+      return isISODate(x.date) && metricsOk;
     }
     case "logsCleared":
     case "replaced":

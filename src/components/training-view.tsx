@@ -1,13 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { formatShortDate, WEEKDAY_SHORT } from "@/domain/calendar";
 import { MUSCLE_NAMES, musclesFor } from "@/domain/exercise-library";
-import { DAY_NAMES, DAYS } from "@/domain/snapshot";
+import { suggestNext } from "@/domain/progression";
+import { DAY_NAMES, DAYS, WARMUP_SETS } from "@/domain/snapshot";
 import type { Exercise, SetField } from "@/domain/types";
+import type { SetResult } from "@/domain/workout-stats";
 import { BodyMap } from "./body-map";
 import { describeSet } from "./exercise-progress";
 import { ChevronIcon } from "./icons";
+import { PlateCalculator } from "./plate-calculator";
 import { TodayPanel } from "./today-panel";
 
 const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
@@ -16,10 +20,12 @@ const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 // marca como completado automáticamente cuando todos sus ejercicios están anotados.
 export function TrainingView() {
   const { model, stats, calendar, today, week, day, actions } = useWorkout();
+  const [plates, setPlates] = useState(false);
   const dt = stats.day(week, day);
   const done = model.isDayCompleted(week, day);
   const planned = calendar.plannedDate(week, day);
   const recovering = !!(today && planned && planned < today && !calendar.isDone(week, day));
+  const list = model.exercisesOfDay(day);
 
   return (
     <section className="view active">
@@ -29,7 +35,7 @@ export function TrainingView() {
           <h1>Entrenar</h1>
           <p className="lede">Anota tus series: cada día se marca como completado al terminar todos sus ejercicios.</p>
         </div>
-        <div className="headnote">Se guarda automáticamente<br />mientras escribes.</div>
+        <button type="button" className="tool-btn" onClick={() => setPlates(true)}>🏋️ Discos</button>
       </div>
 
       <TodayPanel />
@@ -58,27 +64,60 @@ export function TrainingView() {
       </div>
 
       <div className="list">
-        {model.exercisesOfDay(day).map((x, i) => <ExerciseCard key={x.id + "-" + week + "-" + day} exercise={x} index={i} />)}
+        {list.map((x, i) => (
+          <ExerciseCard key={x.id + "-" + week + "-" + day} exercise={x} index={i}
+            superset={x.superset && i < list.length - 1 ? "first" : list[i - 1]?.superset ? "second" : null} />
+        ))}
       </div>
+      {plates && <PlateCalculator onClose={() => setPlates(false)} />}
     </section>
   );
 }
 
-function ExerciseCard({ exercise: x, index }: { exercise: Exercise; index: number }) {
+// Fila de una serie: carga, repeticiones, nota y lo que se hizo la última vez.
+function SetRow({ exercise: x, set: s, label, old, oldWeek }: { exercise: Exercise; set: number; label: string; old?: SetResult; oldWeek?: number }) {
+  const { model, week, day, actions } = useWorkout();
+  const e = model.getEntry(week, day, x.id, s);
+  const warmup = s > x.sets;
+  const aria = x.name + (warmup ? ", calentamiento " : ", serie ") + label;
+  const set = (field: SetField) => (ev: React.ChangeEvent<HTMLInputElement>) => actions.setEntry(week, day, x.id, s, field, ev.target.value);
+  return (
+    <div className={"setrow" + (warmup ? " warmup" : "")}>
+      <div className="setnum">{label}{x.optionalLast && s === x.sets && <span className="optional">Opcional</span>}</div>
+      <label className="field"><input type="number" min="0" step="0.5" inputMode="decimal" placeholder="— kg" aria-label={aria + ", carga"} value={e.weight ?? ""} onChange={set("weight")} /></label>
+      <label className="field"><input type="number" min="0" step="1" inputMode="numeric" placeholder="—" aria-label={aria + ", repeticiones"} value={e.reps ?? ""} onChange={set("reps")} /></label>
+      <details className="setnote">
+        <summary>{e.note ? "Ver nota" : "＋ Nota"}</summary>
+        <input type="text" maxLength={160} placeholder="Anotación de esta serie" aria-label={"Nota " + aria} value={e.note ?? ""} onChange={set("note")} />
+      </details>
+      {old && <div className="prev">Última vez (semana {oldWeek}): {describeSet(old)}{old.reps !== null && " reps"}</div>}
+    </div>
+  );
+}
+
+function ExerciseCard({ exercise: x, index, superset }: { exercise: Exercise; index: number; superset: "first" | "second" | null }) {
   const { model, stats, week, day, actions } = useWorkout();
   const n = model.loggedSets(week, day, x), done = model.isExerciseDone(week, day, x);
   const checked = model.isExerciseChecked(week, day, x.id);
   const last = stats.lastBefore(x, week);
+  const tip = suggestNext(x, last);
   const muscles = musclesFor(x.name);
+  // Series de calentamiento visibles: las que ya tienen datos, o las añadidas ahora.
+  const [warmups, setWarmups] = useState(() => WARMUP_SETS.filter((s) => {
+    const e = model.getEntry(week, day, x.id, s);
+    return e.weight || e.reps;
+  }).length);
   // Con todas las series anotadas el tick ya está puesto y no se puede quitar a mano.
   const filled = done && !checked;
-  const set = (s: number, field: SetField) => (e: React.ChangeEvent<HTMLInputElement>) => actions.setEntry(week, day, x.id, s, field, e.target.value);
 
   return (
-    <details className="exercise" open={index === 0}>
+    <details className={"exercise" + (superset ? " superset " + superset : "")} open={index === 0}>
       <summary>
         <span className="idx">{String(index + 1).padStart(2, "0")}</span>
-        <span className="exmain"><span className="exname">{x.name}</span><span className="pres">{x.prescription}</span></span>
+        <span className="exmain">
+          <span className="exname">{x.name}</span>
+          <span className="pres">{x.prescription}{superset && <span className="ss-tag">Superserie</span>}</span>
+        </span>
         <span className="exprogress">{n}/{x.sets}</span>
         <button
           type="button"
@@ -101,27 +140,17 @@ function ExerciseCard({ exercise: x, index }: { exercise: Exercise; index: numbe
             <span><b>{muscles.primary.map((m) => MUSCLE_NAMES[m]).join(", ")}</b>{muscles.secondary.length > 0 && <small>También: {muscles.secondary.map((m) => MUSCLE_NAMES[m].toLowerCase()).join(", ")}</small>}</span>
           </div>
         )}
+        {tip && <div className={"tip " + tip.kind}><span aria-hidden="true">{tip.kind === "increase" ? "📈" : "💡"}</span>{tip.text}</div>}
+        {superset === "first" && <p className="ss-note">Superserie: haz una serie de este y otra del siguiente sin descansar entre ambos.</p>}
         {x.note && <p className="cue">{x.note}</p>}
         <div className="sethead"><span>Serie</span><span>Carga · kg</span><span>Reps</span></div>
-        {range(x.sets).map((s) => {
-          const e = model.getEntry(week, day, x.id, s);
-          const old = last?.sets.find((r) => r.set === s);
-          const label = x.name + ", serie " + s;
-          return (
-            <div className="setrow" key={s}>
-              <div className="setnum">{s}{x.optionalLast && s === x.sets && <span className="optional">Opcional</span>}</div>
-              <label className="field"><input type="number" min="0" step="0.5" inputMode="decimal" placeholder="— kg" aria-label={label + ", carga"} value={e.weight ?? ""} onChange={set(s, "weight")} /></label>
-              <label className="field"><input type="number" min="0" step="1" inputMode="numeric" placeholder="—" aria-label={label + ", repeticiones"} value={e.reps ?? ""} onChange={set(s, "reps")} /></label>
-              <details className="setnote">
-                <summary>{e.note ? "Ver nota" : "＋ Nota"}</summary>
-                <input type="text" maxLength={160} placeholder="Anotación de esta serie" aria-label={"Nota " + label} value={e.note ?? ""} onChange={set(s, "note")} />
-              </details>
-              {old && (
-                <div className="prev">Última vez (semana {last!.week}): {describeSet(old)}{old.reps !== null && " reps"}</div>
-              )}
-            </div>
-          );
-        })}
+        {WARMUP_SETS.slice(0, warmups).map((s, i) => <SetRow key={s} exercise={x} set={s} label={"C" + (i + 1)} />)}
+        {range(x.sets).map((s) => (
+          <SetRow key={s} exercise={x} set={s} label={String(s)} old={last?.sets.find((r) => r.set === s)} oldWeek={last?.week} />
+        ))}
+        {warmups < WARMUP_SETS.length && (
+          <button type="button" className="add-warmup" onClick={() => setWarmups(warmups + 1)}>＋ Serie de calentamiento</button>
+        )}
       </div>
     </details>
   );

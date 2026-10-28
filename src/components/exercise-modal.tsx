@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { MUSCLE_NAMES, musclesFor, searchLibrary, type LibraryExercise } from "@/domain/exercise-library";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
+import type { Exercise } from "@/domain/types";
 import { BodyMap } from "./body-map";
 
 interface Draft {
@@ -11,39 +12,46 @@ interface Draft {
   sets: number;
   target: string;
   note: string;
+  superset: boolean;
 }
 
-const EMPTY: Draft = { name: "", sets: 3, target: "", note: "" };
+const EMPTY: Draft = { name: "", sets: 3, target: "", note: "", superset: false };
 
-// Añadir un ejercicio a un día de la rutina: buscándolo en la biblioteca (con el
-// mapa de músculos que trabaja) o escribiéndolo a mano.
-export function ExerciseModal({ day, onClose }: { day: number; onClose: () => void }) {
+// Añadir un ejercicio a un día de la rutina (buscándolo en la biblioteca, con el
+// mapa de músculos que trabaja, o escribiéndolo a mano) o editar uno existente.
+export function ExerciseModal({ day, exercise, onClose }: { day: number; exercise?: Exercise; onClose: () => void }) {
   const { actions } = useWorkout();
-  const [tab, setTab] = useState<"library" | "custom">("library");
+  const editing = !!exercise;
+  const [tab, setTab] = useState<"library" | "custom">(editing ? "custom" : "library");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<number | null>(day);
-  const [draft, setDraft] = useState<Draft>(EMPTY);
-  const results = searchLibrary(query, filter);
+  const [draft, setDraft] = useState<Draft>(exercise
+    ? { name: exercise.name, sets: exercise.sets, target: exercise.target === "Sin rango" ? "" : exercise.target, note: exercise.note, superset: !!exercise.superset }
+    : EMPTY);
+  // Al escribir se busca en todos los días; los botones de día filtran la lista sin búsqueda.
+  const searching = query.trim().length > 0;
+  const results = searchLibrary(query, searching ? null : filter);
   const muscles = musclesFor(draft.name);
 
   const pick = (x: LibraryExercise) => {
-    setDraft({ name: x.name, sets: x.sets, target: x.target, note: x.note });
+    setDraft({ ...draft, name: x.name, sets: x.sets, target: x.target, note: x.note });
     setTab("custom");
   };
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (actions.addExercise(day, { ...draft, sets: Number(draft.sets) })) onClose();
+    const data = { ...draft, sets: Number(draft.sets) };
+    if (exercise ? actions.updateExercise(exercise.id, data) : actions.addExercise(day, data)) onClose();
   };
 
   return (
     <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="exerciseModalTitle" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal exmodal">
         <div className="exmodal-head">
-          <h2 id="exerciseModalTitle">Añadir ejercicio</h2>
+          <h2 id="exerciseModalTitle">{editing ? "Editar ejercicio" : "Añadir ejercicio"}</h2>
           <span>Día {day} · {DAY_NAMES[day]}</span>
         </div>
-        <div className="segmented exmodal-tabs" role="tablist">
+        <div className="segmented exmodal-tabs" role="tablist" hidden={editing}>
           <button type="button" role="tab" aria-selected={tab === "library"} onClick={() => setTab("library")}>Biblioteca</button>
           <button type="button" role="tab" aria-selected={tab === "custom"} onClick={() => setTab("custom")}>{draft.name ? "Ajustar" : "A mano"}</button>
         </div>
@@ -54,11 +62,11 @@ export function ExerciseModal({ day, onClose }: { day: number; onClose: () => vo
               onChange={(e) => setQuery(e.target.value)} aria-label="Buscar ejercicio" autoFocus />
             <div className="daychips">
               {DAYS.map((d) => (
-                <button key={d} type="button" className={"daychip" + (filter === d ? " active" : "")} onClick={() => setFilter(d)}>
+                <button key={d} type="button" className={"daychip" + (!searching && filter === d ? " active" : "")} onClick={() => { setFilter(d); setQuery(""); }}>
                   <i className="swatch" style={{ background: "var(--day" + d + ")" }} />{DAY_NAMES[d]}
                 </button>
               ))}
-              <button type="button" className={"daychip" + (filter === null ? " active" : "")} onClick={() => setFilter(null)}>Todos</button>
+              <button type="button" className={"daychip" + (searching || filter === null ? " active" : "")} onClick={() => { setFilter(null); setQuery(""); }}>Todos</button>
             </div>
             <div className="liblist">
               {results.length === 0 && <div className="empty">No hay ejercicios con esa búsqueda. Puedes añadirlo «A mano».</div>}
@@ -105,9 +113,13 @@ export function ExerciseModal({ day, onClose }: { day: number; onClose: () => vo
             <label className="form-label">Detalle técnico (opcional)
               <textarea name="note" maxLength={240} placeholder="Indicaciones para este ejercicio" value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} />
             </label>
+            <label className="check-label">
+              <input type="checkbox" checked={draft.superset} onChange={(e) => setDraft({ ...draft, superset: e.target.checked })} />
+              <span><b>Superserie con el siguiente ejercicio</b><small>Se hacen seguidos, sin descanso entre ellos.</small></span>
+            </label>
             <div className="modal-actions">
               <button type="button" onClick={onClose}>Cancelar</button>
-              <button className="primary" type="submit">Añadir ejercicio</button>
+              <button className="primary" type="submit">{editing ? "Guardar cambios" : "Añadir ejercicio"}</button>
             </div>
           </form>
         )}

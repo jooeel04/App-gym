@@ -1,9 +1,16 @@
 import type { WorkoutRepository } from "@/repositories/workout-repository";
 import { isISODate, mondayOf } from "./calendar";
 import { blankSnapshot, DAY_NAMES, dayKey, DEFAULT_SCHEDULE, DEFAULT_WEEKS, entryKey, exerciseKey, isLogged, parseKey } from "./snapshot";
-import type { Exercise, NewExerciseInput, SetEntry, SetField, WeekSchedule, WorkoutChange, WorkoutSnapshot } from "./types";
+import type { BodyMetrics, Exercise, NewExerciseInput, SetEntry, SetField, WeekSchedule, WorkoutChange, WorkoutSnapshot } from "./types";
 
 type Listener = () => void;
+
+// Series (1–10) y repeticiones objetivo normalizadas, con su texto "3 × 8–12".
+function setsAndTarget(data: NewExerciseInput) {
+  const sets = Math.max(1, Math.min(10, Number(data.sets) || 3));
+  const target = data.target.trim() || "Sin rango";
+  return { sets, target, prescription: target === "Sin rango" ? sets + " · sin rango" : sets + " × " + target };
+}
 
 // Modelo de dominio: rutina, registros por serie, semanas y días completados.
 // Mantiene el estado en memoria, avisa a los suscriptores en cada cambio
@@ -99,17 +106,37 @@ export class WorkoutModel {
   }
 
   addExercise(day: number, data: NewExerciseInput): Exercise {
-    const sets = Math.max(1, Math.min(10, Number(data.sets) || 3));
-    const target = data.target || "Sin rango";
     const id = this.state.routine.reduce((max, x) => Math.max(max, Number(x.id) || 0), -1) + 1;
     const exercise: Exercise = {
       id, day, group: DAY_NAMES[day], name: data.name, note: data.note || "",
-      prescription: target === "Sin rango" ? sets + " · sin rango" : sets + " × " + target,
-      sets, target, optionalLast: false, custom: true,
+      ...setsAndTarget(data), optionalLast: false, custom: true, superset: !!data.superset,
     };
     this.state.routine = [...this.state.routine, exercise];
     this.commit({ type: "exerciseAdded", exercise, position: this.state.routine.length });
     return exercise;
+  }
+
+  // Cambia nombre, series, repeticiones, detalle o superserie. Sus registros se conservan.
+  updateExercise(id: number, data: NewExerciseInput) {
+    const current = this.findExercise(id);
+    if (!current) return;
+    const exercise: Exercise = { ...current, name: data.name, note: data.note || "", ...setsAndTarget(data), superset: !!data.superset };
+    this.state.routine = this.state.routine.map((x) => (x.id === id ? exercise : x));
+    this.commit({ type: "exerciseUpdated", exercise });
+  }
+
+  // Sube (-1) o baja (+1) un ejercicio dentro de su día.
+  moveExercise(id: number, direction: -1 | 1) {
+    const x = this.findExercise(id);
+    if (!x) return;
+    const sameDay = this.state.routine.filter((r) => r.day === x.day);
+    const other = sameDay[sameDay.indexOf(x) + direction];
+    if (!other) return;
+    const i = this.state.routine.indexOf(x), j = this.state.routine.indexOf(other);
+    const routine = [...this.state.routine];
+    [routine[i], routine[j]] = [routine[j], routine[i]];
+    this.state.routine = routine;
+    this.commit({ type: "routineOrder", ids: routine.map((r) => r.id) });
   }
 
   // Elimina el ejercicio y todos sus registros.
@@ -279,6 +306,27 @@ export class WorkoutModel {
     if (!isISODate(iso)) return;
     this.state.startDate = mondayOf(iso);
     this.commit({ type: "schedule", schedule: this.schedule, startDate: this.state.startDate });
+  }
+
+  // ---- Peso corporal y medidas ----
+
+  // Registros de cuerpo ordenados por fecha (del más antiguo al más reciente).
+  bodyLog(): { date: string; metrics: BodyMetrics }[] {
+    return Object.entries(this.state.body ?? {})
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .map(([date, metrics]) => ({ date, metrics }));
+  }
+
+  // Guarda las medidas de un día (null o vacías: las borra).
+  setBodyMetrics(date: string, metrics: BodyMetrics | null) {
+    if (!isISODate(date)) return;
+    const clean = metrics && Object.fromEntries(Object.entries(metrics).filter(([, v]) => typeof v === "number" && v > 0)) as BodyMetrics;
+    const empty = !clean || Object.keys(clean).length === 0;
+    const body = { ...this.state.body };
+    if (empty) delete body[date];
+    else body[date] = clean;
+    this.state.body = body;
+    this.commit({ type: "body", date, metrics: empty ? null : clean });
   }
 
   // ---- Copias ----
