@@ -696,3 +696,10 @@ body:has(.focus-mode) .restbar{bottom:calc(84px + env(safe-area-inset-bottom))}
 .focus-after b{color:var(--text)}
 body:has(.focus-mode) .toast{top:calc(84px + env(safe-area-inset-top));bottom:auto!important;transform:translate(-50%,-12px)}
 body:has(.focus-mode) .toast.show{transform:translate(-50%,0)}
+
+/* Resumen: cada ejercicio frente a la última vez */
+.summary-grid .delta{margin-top:4px;text-transform:none;letter-spacing:0;font-size:calc(11px * var(--fs))}
+.summary-vs{display:grid;gap:6px;margin-top:8px;padding:12px;border-radius:14px;background:var(--s0);border:1px solid var(--line);text-align:left;font-size:calc(12px * var(--fs))}
+.summary-vs>div{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding-top:6px;border-top:1px solid var(--hair)}
+.summary-vs>div>span:first-child{min-width:0;color:var(--soft)}
+.summary-vs .delta{flex:none;margin:0;font-size:calc(11px * var(--fs))}

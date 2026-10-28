@@ -12,7 +12,7 @@ import { TapLineChart } from "./tap-line-chart";
 export const fmt = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 2 });
 
 // Diferencia con la vez anterior: ▲ sube, ▼ baja.
-function Delta({ value, unit = "" }: { value: number; unit?: string }) {
+export function Delta({ value, unit = "" }: { value: number; unit?: string }) {
   if (value === 0) return <span className="delta same">= igual</span>;
   return <span className={"delta " + (value > 0 ? "up" : "down")}>{value > 0 ? "▲ +" : "▼ "}{fmt(value)}{unit}</span>;
 }
