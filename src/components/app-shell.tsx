@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { BrandIcon, ProgressIcon, RoutineIcon, TrainingIcon } from "./icons";
@@ -12,10 +13,18 @@ const NAV = [
   { href: "/progreso", label: "Progreso", Icon: ProgressIcon },
 ];
 
+const tabIndex = (path: string) => Math.max(0, NAV.findIndex((n) => n.href === path));
+
 // Estructura común: cabecera, contenido, navegación inferior y aviso flotante.
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { ready, toast } = useWorkout();
+  // Dirección del cambio de pestaña: la nueva entra por la derecha si está a la derecha
+  // en la barra inferior, y por la izquierda si está a la izquierda.
+  const [slide, setSlide] = useState({ path: pathname, from: "" });
+  if (slide.path !== pathname) {
+    setSlide({ path: pathname, from: tabIndex(pathname) > tabIndex(slide.path) ? "right" : "left" });
+  }
 
   return (
     <>
@@ -26,7 +35,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span><span className="brand-word">RUTINA</span><span className="brand-sub">SEGUIMIENTO</span></span>
           </Link>
         </header>
-        <main>{ready ? children : <div className="empty">Cargando tus datos…</div>}</main>
+        <main>
+          {ready
+            ? <div key={pathname} className={"page" + (slide.from ? " from-" + slide.from : "")}>{children}</div>
+            : <div className="empty">Cargando tus datos…</div>}
+        </main>
       </div>
       <nav className="nav" aria-label="Navegación">
         {NAV.map(({ href, label, Icon }) => (

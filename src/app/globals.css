@@ -39,6 +39,14 @@ main{padding-top:26px}.weekaction{min-height:30px;border:1px solid #333a47;borde
 .navbtn{flex:1;min-width:0;min-height:60px;flex-direction:column;gap:5px;padding:9px 4px;font-size:11px;border-radius:14px}
 .navbtn svg{width:22px;height:22px}
 .toast{bottom:calc(84px + env(safe-area-inset-bottom))}}@media(max-width:365px){.day{min-width:78px}.navbtn{min-width:0;flex:1}.sethead,.setrow{grid-template-columns:32px minmax(62px,1fr) minmax(62px,1fr);gap:5px}}
+/* Transición entre pestañas */
+main{overflow-x:clip}
+.page.from-right{animation:slide-from-right .32s cubic-bezier(.22,.61,.36,1)}
+.page.from-left{animation:slide-from-left .32s cubic-bezier(.22,.61,.36,1)}
+@keyframes slide-from-right{from{transform:translateX(18%);opacity:0}to{transform:none;opacity:1}}
+@keyframes slide-from-left{from{transform:translateX(-18%);opacity:0}to{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.page.from-right,.page.from-left{animation:none}}
+
 /* Next.js: navegación con <Link> */
 a.navbtn,a.brand{text-decoration:none}
 button:disabled,input:disabled{opacity:.6}
