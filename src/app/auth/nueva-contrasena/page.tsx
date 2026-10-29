@@ -4,7 +4,7 @@ import { updatePassword } from "@/app/login/actions";
 import { NewPasswordForm } from "@/app/login/login-form";
 import { getCurrentUser } from "@/lib/supabase/server";
 
-export const metadata = { title: "Contraseña nueva · RUTINA" };
+export const metadata = { title: "Contraseña nueva · FitGym" };
 
 // Se llega desde el enlace del correo de recuperación, que ya inicia la sesión.
 export default async function NewPasswordPage() {

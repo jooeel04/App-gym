@@ -40,7 +40,7 @@ export function ShareRoutineCard() {
   };
 
   const send = async () => {
-    if (navigator.share) await navigator.share({ title: "Mi rutina de gym", text: "Copia mi rutina en RUTINA con el código " + code, url: link }).catch(() => {});
+    if (navigator.share) await navigator.share({ title: "Mi rutina de gym", text: "copia mi rutina en FitGym con el código " + code, url: link }).catch(() => {});
     else await navigator.clipboard.writeText(link).catch(() => {});
   };
 

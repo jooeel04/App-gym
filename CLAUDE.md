@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# RUTINA · Seguimiento — guía para Claude
+# FitGym — guía para Claude
 
 App web (PWA) de seguimiento del gym. Next.js 16 (App Router) + Supabase. Varias
 personas la usan, cada una con su cuenta. El README tiene la arquitectura y la

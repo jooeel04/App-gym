@@ -173,3 +173,22 @@ export function searchLibrary(query: string, day: number | null): LibraryExercis
     return q.split(" ").every((word) => text.includes(word));
   });
 }
+
+// Grupos para dividir listas de ejercicios (p. ej. el ranking de quién levanta más),
+// según el músculo principal del ejercicio.
+export const EXERCISE_GROUPS = ["Pecho", "Espalda", "Pierna", "Hombro", "Brazos", "Abdomen", "Otros"] as const;
+export type ExerciseGroup = (typeof EXERCISE_GROUPS)[number];
+
+const GROUP_OF: Record<Muscle, ExerciseGroup> = {
+  chest: "Pecho",
+  lats: "Espalda", upperBack: "Espalda", lowerBack: "Espalda", traps: "Espalda",
+  quads: "Pierna", hamstrings: "Pierna", glutes: "Pierna", adductors: "Pierna", calves: "Pierna",
+  frontDelts: "Hombro", sideDelts: "Hombro", rearDelts: "Hombro",
+  biceps: "Brazos", triceps: "Brazos", forearms: "Brazos",
+  abs: "Abdomen", obliques: "Abdomen",
+};
+
+export function exerciseGroup(name: string): ExerciseGroup {
+  const main = musclesFor(name)?.primary[0];
+  return main ? GROUP_OF[main] : "Otros";
+}

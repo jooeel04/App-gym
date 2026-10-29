@@ -5,13 +5,13 @@ import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RUTINA · Seguimiento",
+  title: "FitGym",
   description: "Rutina y seguimiento de entrenamiento.",
-  applicationName: "RUTINA",
-  appleWebApp: { capable: true, title: "RUTINA", statusBarStyle: "black-translucent" },
+  applicationName: "FitGym",
+  appleWebApp: { capable: true, title: "FitGym", statusBarStyle: "black-translucent" },
   icons: {
-    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
-    apple: "/apple-touch-icon.png",
+    icon: [{ url: "/fitgym.svg", type: "image/svg+xml" }],
+    apple: "/fitgym-apple-180.png",
   },
 };
 

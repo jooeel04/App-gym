@@ -1,4 +1,4 @@
-# RUTINA · Seguimiento
+# FitGym
 
 App web progresiva, adaptada a móvil, creada a partir de las pestañas Resumen, Rutina y Registro del Excel. Las semanas se añaden solas según avanza el calendario.
 

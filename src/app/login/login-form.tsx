@@ -8,7 +8,7 @@ function Brand() {
   return (
     <div className="brand auth-brand">
       <span className="brand-icon"><BrandIcon /></span>
-      <span><span className="brand-word">RUTINA</span><span className="brand-sub">SEGUIMIENTO</span></span>
+      <span><span className="brand-word">FITGYM</span><span className="brand-sub">TU ENTRENO</span></span>
     </div>
   );
 }

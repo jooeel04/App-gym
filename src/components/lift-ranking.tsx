@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { EXERCISE_GROUPS, exerciseGroup, type ExerciseGroup } from "@/domain/exercise-library";
 import { ChevronIcon, MedalIcon } from "./icons";
 
 export interface LiftRow {
@@ -19,8 +20,11 @@ const mark = (r: LiftRow) => Number(r.weight).toLocaleString("es-ES", { maximumF
 // serie: más peso; con el mismo peso, más repeticiones) y, al lado, tu puesto y tu marca.
 // El mismo ejercicio se junta aunque cada uno lo haya escrito distinto. Primero los que
 // hacen más personas. Al tocar una fila se ve el ranking completo de ese ejercicio.
+// Los ejercicios van divididos por grupo muscular (Pecho, Espalda, Pierna…), y con los
+// botones de arriba se puede ver solo un grupo.
 export function LiftRanking({ rows }: { rows: LiftRow[] }) {
   const [open, setOpen] = useState<string | null>(null);
+  const [only, setOnly] = useState<ExerciseGroup | null>(null);
   const groups = new Map<string, { name: string; rows: LiftRow[] }>();
   for (const r of rows) {
     const k = key(r.exercise);
@@ -34,9 +38,37 @@ export function LiftRanking({ rows }: { rows: LiftRow[] }) {
     .sort((a, b) => b.rows.length - a.rows.length || a.name.localeCompare(b.name, "es"));
 
   if (!list.length) return <p className="body-hint">Cuando anotéis series con peso, aquí veréis quién levanta más en cada ejercicio.</p>;
+  const sections = EXERCISE_GROUPS
+    .map((group) => ({ group, items: list.filter((g) => exerciseGroup(g.name) === group) }))
+    .filter((s) => s.items.length);
+  const shown = sections.filter((s) => !only || s.group === only);
   return (
-    <ul className="lift-list" aria-label="Quién levanta más">
-      {list.map((g) => {
+    <div className="lift-groups">
+      {sections.length > 1 && (
+        <div className="daychips lift-chips" aria-label="Grupo muscular">
+          {[null, ...sections.map((s) => s.group)].map((group) => (
+            <button key={group ?? "todos"} type="button" className={"daychip" + (only === group ? " active" : "")} aria-pressed={only === group} onClick={() => setOnly(group)}>
+              {group ?? "Todos"}
+            </button>
+          ))}
+        </div>
+      )}
+      {shown.map((s) => (
+        <section key={s.group} className="lift-group">
+          <h3 className="lift-group-title">{s.group}</h3>
+          <LiftList items={s.items} label={s.group} open={open} setOpen={setOpen} />
+        </section>
+      ))}
+    </div>
+  );
+}
+
+type Item = { key: string; name: string; rows: LiftRow[] };
+
+function LiftList({ items, label, open, setOpen }: { items: Item[]; label: string; open: string | null; setOpen: (k: string | null) => void }) {
+  return (
+    <ul className="lift-list" aria-label={label}>
+      {items.map((g) => {
         const leader = g.rows[0];
         const me = g.rows.findIndex((r) => r.is_me);
         const isOpen = open === g.key;

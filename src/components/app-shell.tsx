@@ -60,7 +60,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (peek) setPeek(null);
   }
 
-  useEffect(() => { document.title = current.label + " · RUTINA"; }, [current]);
+  useEffect(() => { document.title = current.label + " · FitGym"; }, [current]);
   useEffect(syncThemeBar, []);
   // Los enlaces de rutina compartidos antes eran /rutina?codigo=…: ahora lo social está en Social.
   useEffect(() => {
@@ -182,7 +182,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <header className="topbar">
           <a className="brand" href="/entrenar" aria-label="Inicio" onClick={onNavClick(0)}>
             <span className="brand-icon"><BrandIcon /></span>
-            <span><span className="brand-word">RUTINA</span><span className="brand-sub">SEGUIMIENTO</span></span>
+            <span><span className="brand-word">FITGYM</span><span className="brand-sub">TU ENTRENO</span></span>
           </a>
           {(sync.offline || sync.pending > 0) && (
             <span className={"syncpill" + (sync.offline ? " offline" : "")} role="status">

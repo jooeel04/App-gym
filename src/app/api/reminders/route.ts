@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     const name = d.routine_day ? DAY_NAMES[d.routine_day] : null;
     const payload = JSON.stringify({
       title: name ? "Hoy toca " + name : "¿Entrenas hoy?",
-      body: name ? "Abre RUTINA y empieza tu entreno." : "Abre RUTINA y anota tu entreno de hoy.",
+      body: name ? "Abre FitGym y empieza tu entreno." : "Abre FitGym y anota tu entreno de hoy.",
       url: "/entrenar",
     });
     try {

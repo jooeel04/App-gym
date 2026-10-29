@@ -1117,3 +1117,8 @@ button[data-glass]:active{transform:scale(.97)}
 .stepper-plates svg{width:18px;height:18px}
 .stepper-plates b{padding:3px 9px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:calc(12px * var(--fs))}
 :root[data-theme="light"] .plates-open{box-shadow:inset 0 1px 0 #fff,0 6px 18px rgba(30,45,80,.1)}
+
+/* Quién levanta más, dividido por grupo muscular */
+.lift-chips{margin-bottom:6px}
+.lift-group+.lift-group{margin-top:14px}
+.lift-group-title{margin:0 0 8px 2px;color:var(--muted);font-size:calc(11px * var(--fs));font-weight:800;letter-spacing:.12em;text-transform:uppercase}

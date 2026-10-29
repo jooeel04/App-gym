@@ -76,7 +76,7 @@ export function SettingsView() {
               <button type="button" className="set-done" onClick={() => { void requestPermissions(); }}><BellIcon />Dar permisos</button>
             )}
             {permission === "denied" && (
-              <p className="perm-warn">Las notificaciones están bloqueadas. Para activarlas: abre los <b>Ajustes del móvil</b> → busca el navegador o la app <b>RUTINA</b> → <b>Notificaciones</b> → activa «Permitir». Después vuelve aquí.</p>
+              <p className="perm-warn">Las notificaciones están bloqueadas. Para activarlas: abre los <b>Ajustes del móvil</b> → busca el navegador o la app <b>FitGym</b> → <b>Notificaciones</b> → activa «Permitir». Después vuelve aquí.</p>
             )}
             {permission === "unsupported" && homeScreen && (
               <p className="perm-warn">En iPhone las notificaciones solo funcionan si la app está en la pantalla de inicio:<br />1. Abre la app en <b>Safari</b>.<br />2. Toca el botón <b>Compartir</b> (el cuadrado con la flecha).<br />3. Elige <b>«Añadir a pantalla de inicio»</b>.<br />4. Abre la app desde ese icono y vuelve aquí.</p>
@@ -181,7 +181,7 @@ export function SettingsView() {
           <Row icon={<TrashIcon />} label="Borrar registros" onClick={actions.clearData} tone="danger" />
         </Group>
 
-        <p className="settings-foot">RUTINA · Seguimiento</p>
+        <p className="settings-foot">FitGym · Tu entreno</p>
       </div>
     </section>
   );

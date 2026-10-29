@@ -11,13 +11,13 @@ const rows = [
   { exercise: "Curl", display_name: "Leo", weight: 20, reps: 10, is_me: false },
 ];
 
-const rowOf = (name: RegExp) => within(screen.getByRole("list", { name: "Quién levanta más" })).getAllByRole("listitem").find((li) => name.test(li.textContent ?? ""))!;
+const allRows = () => screen.getAllByRole("list").filter((l) => l.classList.contains("lift-list")).flatMap((l) => within(l).getAllByRole("listitem").filter((li) => li.parentElement === l));
+const rowOf = (name: RegExp) => allRows().find((li) => name.test(li.textContent ?? ""))!;
 
 describe("Social · quién levanta más, de un vistazo", () => {
   it("una fila por ejercicio con quién va primero (mismo ejercicio aunque esté escrito distinto)", () => {
     render(<LiftRanking rows={rows} />);
-    const items = within(screen.getByRole("list", { name: "Quién levanta más" })).getAllByRole("listitem");
-    expect(items).toHaveLength(3);
+    expect(allRows()).toHaveLength(3);
     expect(rowOf(/Press banca/)).toHaveTextContent("Bea");
     expect(rowOf(/Press banca/)).toHaveTextContent("90 kg × 6");
   });
@@ -28,11 +28,23 @@ describe("Social · quién levanta más, de un vistazo", () => {
     expect(rowOf(/Sentadilla/)).toHaveTextContent("¡Vas primero!");
   });
 
-  it("primero los ejercicios que hacéis más personas", () => {
+  it("los ejercicios van divididos por grupo muscular, cada uno con su título", () => {
+    render(<LiftRanking rows={[...rows, { exercise: "Prensa", display_name: "Bea", weight: 200, reps: 10, is_me: false }, { exercise: "Prensa", display_name: "Leo", weight: 180, reps: 10, is_me: false }, { exercise: "Prensa", display_name: "Joel", weight: 150, reps: 10, is_me: true }, { exercise: "Prensa", display_name: "Ana", weight: 100, reps: 10, is_me: false }]} />);
+    expect(screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual(["Pecho", "Pierna", "Brazos"]);
+    const pierna = screen.getByRole("list", { name: "Pierna" });
+    // Dentro de cada grupo, primero los que hacéis más personas.
+    expect(within(pierna).getAllByRole("listitem").filter((li) => li.parentElement === pierna).map((li) => li.querySelector(".lift-ex b")?.textContent)).toEqual(["Prensa", "Sentadilla"]);
+    expect(within(screen.getByRole("list", { name: "Brazos" })).getByText("Curl")).toBeInTheDocument();
+  });
+
+  it("con los botones de arriba se ve solo un grupo", () => {
     render(<LiftRanking rows={rows} />);
-    const items = within(screen.getByRole("list", { name: "Quién levanta más" })).getAllByRole("listitem");
-    expect(items[0]).toHaveTextContent("Press banca");
-    expect(items[2]).toHaveTextContent("Curl");
+    fireEvent.click(screen.getByRole("button", { name: "Pierna" }));
+    expect(screen.getByRole("button", { name: "Pierna" })).toHaveAttribute("aria-pressed", "true");
+    expect(allRows()).toHaveLength(1);
+    expect(rowOf(/Sentadilla/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Todos" }));
+    expect(allRows()).toHaveLength(3);
   });
 
   it("al tocar un ejercicio se ve el ranking completo", () => {

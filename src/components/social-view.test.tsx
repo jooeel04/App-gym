@@ -25,7 +25,7 @@ describe("Social · todo lo de amigos en un sitio", () => {
     renderWithWorkout(<SocialView />, historySnapshot(), "cloud");
     expect(screen.getByRole("heading", { level: 1, name: "Social" })).toBeInTheDocument();
     expect((await screen.findAllByText("Bea")).length).toBeGreaterThan(0);
-    const lifts = await screen.findByRole("list", { name: "Quién levanta más" });
+    const lifts = await screen.findByRole("list", { name: "Pecho" });
     expect(within(lifts).getByRole("listitem")).toHaveTextContent("90 kg × 6");
     expect(screen.getByRole("button", { name: "Compartir mi rutina" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Importar rutina" })).toBeInTheDocument();
@@ -47,7 +47,7 @@ describe("Social · todo lo de amigos en un sitio", () => {
 
   it("al tocar un ejercicio en quién levanta más se ve el ranking completo", async () => {
     renderWithWorkout(<SocialView />, historySnapshot(), "cloud");
-    const lifts = await screen.findByRole("list", { name: "Quién levanta más" });
+    const lifts = await screen.findByRole("list", { name: "Pecho" });
     fireEvent.click(within(lifts).getByRole("button"));
     expect(screen.getByRole("list", { name: "Ranking de Press banca" })).toBeInTheDocument();
   });
