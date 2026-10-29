@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
@@ -12,7 +13,7 @@ import { NicknamePrompt } from "./nickname-prompt";
 import { ReminderDeviceSync } from "./reminder-device-sync";
 import { TAB_SETTLED } from "./glass-surfaces";
 import { LoadProblem } from "./load-problem";
-import { BrandIcon, ClockIcon, ProgressIcon, RoutineIcon, SettingsIcon, StrongIcon, TrainingIcon, TrophyIcon, UsersIcon } from "./icons";
+import { ClockIcon, ProgressIcon, RoutineIcon, SettingsIcon, StrongIcon, TrainingIcon, TrophyIcon, UsersIcon } from "./icons";
 import { ProgressView } from "./progress-view";
 import { RestTimerBar } from "./rest-timer";
 import { RoutineView } from "./routine-view";
@@ -181,7 +182,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="app">
         <header className="topbar">
           <a className="brand" href="/entrenar" aria-label="Inicio" onClick={onNavClick(0)}>
-            <span className="brand-icon"><BrandIcon /></span>
+            <Image className="brand-icon brand-logo" src="/fitgym-mark.png" width={96} height={96} alt="" priority />
             <span><span className="brand-word">FITGYM</span><span className="brand-sub">TU ENTRENO</span></span>
           </a>
           {(sync.offline || sync.pending > 0) && (

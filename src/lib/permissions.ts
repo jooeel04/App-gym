@@ -49,7 +49,7 @@ export async function requestPermissions(): Promise<NotifyState> {
 export async function showNotification(title: string, body: string) {
   if (notifyState() !== "granted") return false;
   // `vibrate` y `renotify` funcionan en Android aunque no estén en los tipos de TypeScript.
-  const options = { body, tag: "rutina-rest", renotify: true, icon: "/fitgym-192.png", badge: "/fitgym-192.png", vibrate: [250, 120, 250, 120, 400] } as NotificationOptions;
+  const options = { body, tag: "rutina-rest", renotify: true, icon: "/fitgym-icon-192.png", badge: "/fitgym-icon-192.png", vibrate: [250, 120, 250, 120, 400] } as NotificationOptions;
   try {
     const reg = await navigator.serviceWorker?.getRegistration();
     if (reg) await reg.showNotification(title, options);

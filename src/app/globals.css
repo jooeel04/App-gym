@@ -1122,3 +1122,6 @@ button[data-glass]:active{transform:scale(.97)}
 .lift-chips{margin-bottom:6px}
 .lift-group+.lift-group{margin-top:14px}
 .lift-group-title{margin:0 0 8px 2px;color:var(--muted);font-size:calc(11px * var(--fs));font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+
+/* Logo de FitGym (imagen) en lugar del icono azul */
+.brand-icon.brand-logo{display:block;background:none;object-fit:cover;box-shadow:0 4px 14px rgba(0,0,0,.35);border-radius:10px}

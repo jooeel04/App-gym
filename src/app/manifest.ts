@@ -13,10 +13,8 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#000000",
     theme_color: "#000000",
     icons: [
-      { src: "/fitgym-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
-      { src: "/fitgym-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-      { src: "/fitgym-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "/fitgym-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/fitgym-icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/fitgym-icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
     ],
   };
 }

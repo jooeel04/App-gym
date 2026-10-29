@@ -1,13 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import { useActionState, useId, useState } from "react";
-import { BrandIcon, EyeIcon, EyeOffIcon } from "@/components/icons";
+import { EyeIcon, EyeOffIcon } from "@/components/icons";
 import { authenticate, requestPasswordReset, type AuthFormState } from "./actions";
 
 function Brand() {
   return (
     <div className="brand auth-brand">
-      <span className="brand-icon"><BrandIcon /></span>
+      <Image className="brand-icon brand-logo" src="/fitgym-mark.png" width={96} height={96} alt="" priority />
       <span><span className="brand-word">FITGYM</span><span className="brand-sub">TU ENTRENO</span></span>
     </div>
   );
