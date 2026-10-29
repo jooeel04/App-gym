@@ -18,7 +18,7 @@ export function ShareRoutineCard() {
   const [error, setError] = useState("");
   const [importing, setImporting] = useState<string | null>(null);
 
-  // Enlace compartido: /rutina?codigo=XXXXXX abre directamente la importación.
+  // Enlace compartido: /social?codigo=XXXXXX abre directamente la importación.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const shared = params.get("codigo");
@@ -28,7 +28,7 @@ export function ShareRoutineCard() {
   }, []);
 
   if (mode !== "cloud") return null;
-  const link = code ? window.location.origin + "/rutina?codigo=" + code : "";
+  const link = code ? window.location.origin + "/social?codigo=" + code : "";
 
   const share = async () => {
     setBusy(true);

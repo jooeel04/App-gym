@@ -10,7 +10,6 @@ import { BodyMap } from "./body-map";
 import { ExerciseModal } from "./exercise-modal";
 import { ChevronIcon } from "./icons";
 import { ScheduleCard } from "./schedule-card";
-import { ShareRoutineCard } from "./share-routine";
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -101,7 +100,6 @@ export function RoutineView() {
         })}
       </div>
       <ScheduleCard />
-      <ShareRoutineCard />
       {editing && <ExerciseModal day={editing.day} exercise={editing.exercise} onClose={() => setEditing(null)} />}
     </section>
   );

@@ -7,25 +7,41 @@ const rows = [
   { exercise: "press banca ", display_name: "Bea", weight: 90, reps: 6, is_me: false },
   { exercise: "Press banca", display_name: "Leo", weight: 85, reps: 8, is_me: false },
   { exercise: "Sentadilla", display_name: "Joel", weight: 120, reps: 5, is_me: true },
+  { exercise: "Sentadilla", display_name: "Bea", weight: 100, reps: 5, is_me: false },
+  { exercise: "Curl", display_name: "Leo", weight: 20, reps: 10, is_me: false },
 ];
 
-describe("Amigos · quién levanta más en cada ejercicio", () => {
-  it("junta el mismo ejercicio aunque esté escrito distinto y ordena por peso (y repeticiones)", () => {
+const rowOf = (name: RegExp) => within(screen.getByRole("list", { name: "Quién levanta más" })).getAllByRole("listitem").find((li) => name.test(li.textContent ?? ""))!;
+
+describe("Social · quién levanta más, de un vistazo", () => {
+  it("una fila por ejercicio con quién va primero (mismo ejercicio aunque esté escrito distinto)", () => {
     render(<LiftRanking rows={rows} />);
-    const list = screen.getByRole("list", { name: /Press banca/i });
-    expect(within(list).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
-      expect.stringContaining("Bea"), expect.stringContaining("Leo"), expect.stringContaining("Joel"),
-    ]);
-    expect(within(list).getAllByRole("listitem")[0]).toHaveTextContent("90 kg × 6");
-    expect(within(list).getAllByRole("listitem")[2]).toHaveTextContent("(tú)");
+    const items = within(screen.getByRole("list", { name: "Quién levanta más" })).getAllByRole("listitem");
+    expect(items).toHaveLength(3);
+    expect(rowOf(/Press banca/)).toHaveTextContent("Bea");
+    expect(rowOf(/Press banca/)).toHaveTextContent("90 kg × 6");
   });
 
-  it("primero salen los ejercicios que hacéis varios, y se puede elegir otro", () => {
+  it("al lado dice tu puesto y tu marca, o que vas primero", () => {
     render(<LiftRanking rows={rows} />);
-    const chips = screen.getAllByRole("tab");
-    expect(chips[0]).toHaveTextContent("Press banca");
-    fireEvent.click(screen.getByRole("tab", { name: /Sentadilla/ }));
-    expect(screen.getByRole("list", { name: /Sentadilla/ })).toHaveTextContent("120 kg × 5");
+    expect(rowOf(/Press banca/)).toHaveTextContent("Tú · 3º · 85 kg × 5");
+    expect(rowOf(/Sentadilla/)).toHaveTextContent("¡Vas primero!");
+  });
+
+  it("primero los ejercicios que hacéis más personas", () => {
+    render(<LiftRanking rows={rows} />);
+    const items = within(screen.getByRole("list", { name: "Quién levanta más" })).getAllByRole("listitem");
+    expect(items[0]).toHaveTextContent("Press banca");
+    expect(items[2]).toHaveTextContent("Curl");
+  });
+
+  it("al tocar un ejercicio se ve el ranking completo", () => {
+    render(<LiftRanking rows={rows} />);
+    fireEvent.click(within(rowOf(/Press banca/)).getByRole("button"));
+    const full = screen.getByRole("list", { name: "Ranking de Press banca" });
+    expect(within(full).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
+      expect.stringContaining("Bea"), expect.stringContaining("Leo"), expect.stringContaining("Joel"),
+    ]);
   });
 
   it("sin datos explica cómo se llena", () => {

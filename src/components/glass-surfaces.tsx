@@ -13,6 +13,7 @@ export const GLASS_SURFACES = [
   // Botones
   "button.primary", ".set-done", ".finish-workout", ".focus-check", ".tool-btn", ".settings-btn",
   ".quiet", ".daychip", ".set-chip", ".stepper-ctl button", ".modal-actions button", ".wizard-opt",
+  ".plates-open", ".stepper-plates",
 ].join(",");
 
 // Pone el cristal en todas las tarjetas y botones de la pantalla sin tocar cada

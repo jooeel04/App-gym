@@ -4,8 +4,8 @@
 //   Sin conexión, cualquier pestaña (Entrenar, Rutina, Progreso, Ajustes) se abre con la última
 //   página de la app guardada: la vista se elige en el navegador según la URL.
 // - Peticiones a Supabase y a otros orígenes: no se tocan (los datos siempre van a la red).
-const CACHE = "rutina-seguimiento-v9";
-const APP_PAGES = ["/entrenar", "/rutina", "/progreso", "/ajustes"];
+const CACHE = "rutina-seguimiento-v10";
+const APP_PAGES = ["/entrenar", "/rutina", "/progreso", "/social", "/ajustes"];
 const PRECACHE = ["/icon.svg", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {

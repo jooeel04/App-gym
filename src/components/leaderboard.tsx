@@ -6,7 +6,7 @@ import { createGroup, groupExerciseRecords, groupLeaderboard, joinGroup, leaveGr
 import { useWorkout } from "@/controllers/workout-controller";
 import { addDays, parseISODate, toISODate } from "@/domain/calendar";
 import { closeOnBackdrop } from "./backdrop";
-import { MedalIcon, UsersIcon } from "./icons";
+import { DumbbellIcon, MedalIcon, UsersIcon } from "./icons";
 import { LiftRanking } from "./lift-ranking";
 
 // Oro, plata y bronce para los tres primeros puestos.
@@ -20,8 +20,9 @@ function monthRange(today: string) {
   return { from, to, label: d.toLocaleDateString("es-ES", { month: "long" }) };
 }
 
-// Clasificación con amigos: grupos con un código, ranking de días entrenados este mes y
-// quién levanta más en cada ejercicio.
+// Lo de los grupos de amigos (pestaña Social), en tarjetas: clasificación de días
+// entrenados este mes, quién levanta más en cada ejercicio y el grupo (código, salir,
+// crear o unirse).
 export function LeaderboardCard() {
   const { mode, email, today, nickname } = useWorkout();
   const [groups, setGroups] = useState<GroupInfo[] | null>(null);
@@ -57,54 +58,69 @@ export function LeaderboardCard() {
   const month = monthRange(today).label;
 
   return (
-    <section className="chart">
-      <div className="charttitle"><h2><UsersIcon /> Clasificación con amigos</h2><span>Días entrenados en {month}</span></div>
+    <>
+      <section className="chart">
+        <div className="charttitle"><h2><UsersIcon /> Clasificación del mes</h2><span>Días entrenados en {month}</span></div>
 
-      {groups && groups.length > 1 && (
-        <div className="daychips">
-          {groups.map((g) => (
-            <button key={g.code} type="button" className={"daychip" + (g.code === active ? " active" : "")} onClick={() => setActive(g.code)}>{g.name}</button>
-          ))}
-        </div>
-      )}
-
-      {group ? (
-        <>
-          <ol className="leaders">
-            {(rows ?? []).map((r, i) => (
-              <li key={i} className={r.is_me ? "me" : ""}>
-                <span className={"medal " + (MEDALS[i] ?? "")} aria-label={"Puesto " + (i + 1)}>{MEDALS[i] ? <MedalIcon /> : i + 1}</span>
-                <b>{r.display_name}{r.is_me && <small> (tú)</small>}</b>
-                <span className="leader-days">{r.days} <small>{r.days === 1 ? "día" : "días"}</small></span>
-              </li>
+        {groups && groups.length > 1 && (
+          <div className="daychips">
+            {groups.map((g) => (
+              <button key={g.code} type="button" className={"daychip" + (g.code === active ? " active" : "")} onClick={() => setActive(g.code)}>{g.name}</button>
             ))}
-            {rows === null && <li className="empty">Cargando…</li>}
-          </ol>
-          <h3 className="lift-title">🏋️ Quién levanta más</h3>
-          {lifts === null ? <p className="body-hint">Cargando…</p> : liftError ? <p className="auth-msg error">{liftError}</p> : <LiftRanking key={active} rows={lifts} />}
-          <div className="group-foot">
-            <span>Código del grupo <b>{group.code}</b> · {group.members} {group.members === 1 ? "miembro" : "miembros"}</span>
-            <button type="button" className="auth-link" onClick={() => navigator.clipboard.writeText(group.code).catch(() => {})}>Copiar código</button>
-            <button type="button" className="auth-link danger-link" onClick={async () => {
-              if (!confirm("¿Salir del grupo «" + group.name + "»?")) return;
-              await leaveGroup(group.code).catch(() => null);
-              setRows(null);
-              void refresh();
-            }}>Salir</button>
           </div>
-        </>
-      ) : groups && (
-        <p className="body-hint">Crea un grupo y pasa el código a tus amigos, o únete al de alguien. Solo veréis vuestros nombres, cuántos días ha entrenado cada uno y vuestra mejor serie en cada ejercicio.</p>
+        )}
+
+        {group ? (
+          <>
+            <ol className="leaders">
+              {(rows ?? []).map((r, i) => (
+                <li key={i} className={r.is_me ? "me" : ""}>
+                  <span className={"medal " + (MEDALS[i] ?? "")} aria-label={"Puesto " + (i + 1)}>{MEDALS[i] ? <MedalIcon /> : i + 1}</span>
+                  <b>{r.display_name}{r.is_me && <small> (tú)</small>}</b>
+                  <span className="leader-days">{r.days} <small>{r.days === 1 ? "día" : "días"}</small></span>
+                </li>
+              ))}
+              {rows === null && <li className="empty">Cargando…</li>}
+            </ol>
+          </>
+        ) : groups && (
+          <p className="body-hint">Crea un grupo y pasa el código a tus amigos, o únete al de alguien. Solo veréis vuestros nombres, cuántos días ha entrenado cada uno y vuestra mejor serie en cada ejercicio.</p>
+        )}
+      </section>
+
+      {group && (
+        <section className="chart">
+          <div className="charttitle"><h2><DumbbellIcon /> Quién levanta más</h2><span>Mejor serie de cada uno</span></div>
+          {lifts === null ? <p className="body-hint">Cargando…</p> : liftError ? <p className="auth-msg error">{liftError}</p> : <LiftRanking key={active} rows={lifts} />}
+        </section>
       )}
 
-      {error && <p className="auth-msg error">{error}</p>}
-      <div className="modal-actions">
-        <button type="button" onClick={() => setForm("join")}>Unirme a un grupo</button>
-        <button className="primary" type="button" onClick={() => setForm("create")}>Crear grupo</button>
-      </div>
-      {form && <GroupForm kind={form} defaultName={nickname ?? (email ?? "").split("@")[0]} onClose={() => setForm(null)}
-        onDone={(code) => { setForm(null); setRows(null); void refresh(code); }} />}
-    </section>
+      <section className="chart">
+        <div className="charttitle"><h2>Tu grupo</h2></div>
+        {group && (
+          <>
+            <div className="group-foot">
+              <span>Código del grupo <b>{group.code}</b> · {group.members} {group.members === 1 ? "miembro" : "miembros"}</span>
+              <button type="button" className="auth-link" onClick={() => navigator.clipboard.writeText(group.code).catch(() => {})}>Copiar código</button>
+              <button type="button" className="auth-link danger-link" onClick={async () => {
+                if (!confirm("¿Salir del grupo «" + group.name + "»?")) return;
+                await leaveGroup(group.code).catch(() => null);
+                setRows(null);
+                void refresh();
+              }}>Salir</button>
+            </div>
+          </>
+        )}
+
+        {error && <p className="auth-msg error">{error}</p>}
+        <div className="modal-actions">
+          <button type="button" onClick={() => setForm("join")}>Unirme a un grupo</button>
+          <button className="primary" type="button" onClick={() => setForm("create")}>Crear grupo</button>
+        </div>
+        {form && <GroupForm kind={form} defaultName={nickname ?? (email ?? "").split("@")[0]} onClose={() => setForm(null)}
+          onDone={(code) => { setForm(null); setRows(null); void refresh(code); }} />}
+      </section>
+    </>
   );
 }
 

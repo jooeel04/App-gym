@@ -87,4 +87,16 @@ describe("GlassSurfaces · cristal líquido en tarjetas y botones de toda la app
     window.dispatchEvent(new Event("rutina-tab-settled"));
     await waitFor(() => expect(glassOf(screen.getByTestId("vecina"))).not.toBeNull());
   });
+
+  it("los botones de la calculadora de discos llevan cristal líquido", async () => {
+    render(
+      <>
+        <button type="button" className="plates-open">Calculadora de discos</button>
+        <button type="button" className="stepper-plates">Calcular discos para 60 kg</button>
+        <GlassSurfaces />
+      </>,
+    );
+    await waitFor(() => expect(glassOf(screen.getByRole("button", { name: "Calculadora de discos" }))).not.toBeNull());
+    expect(glassOf(screen.getByRole("button", { name: "Calcular discos para 60 kg" }))).not.toBeNull();
+  });
 });

@@ -568,7 +568,7 @@ body:has(.restbar) .toast{bottom:calc(166px + env(safe-area-inset-bottom))}
 @media(max-width:600px){.nav{--nav-gap:3px}}
 .navbtn{position:relative;z-index:1;flex:1;min-width:0}
 .navbtn.active{background:transparent;box-shadow:none}
-.nav-lens{position:absolute;z-index:0;top:5px;bottom:5px;left:5px;width:calc((100% - 10px - 3 * var(--nav-gap)) / 4);
+.nav-lens{position:absolute;z-index:0;top:5px;bottom:5px;left:5px;width:calc((100% - 10px - (var(--tabs, 4) - 1) * var(--nav-gap)) / var(--tabs, 4));
   border-radius:26px;background:rgba(46,139,255,.2);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 0 0 1px rgba(46,139,255,.38),0 4px 16px rgba(46,139,255,.22);
   pointer-events:none;will-change:transform}
@@ -1035,7 +1035,6 @@ button[data-glass]:active{transform:scale(.97)}
 .pending-badge{display:inline-block;margin-left:8px;padding:3px 8px;border-radius:999px;background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn-text);font-size:calc(11px * var(--fs));font-weight:850;vertical-align:middle}
 .pending-list{margin:2px 0 10px}
 .pending-title{margin:0 2px 8px;color:var(--muted);font-size:calc(11px * var(--fs));font-weight:850;letter-spacing:.08em;text-transform:uppercase}
-.stepper-plates{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:44px;padding:0 12px;border-radius:14px;border:1px dashed var(--line2);background:transparent;color:var(--accent);font-size:calc(13px * var(--fs));font-weight:800}
 
 /* ===== Cambio de pestaña sin destello ni golpecito ===== */
 /* El cristal aparece con un fundido: en Safari su primer fotograma sale más claro y,
@@ -1073,13 +1072,48 @@ button[data-glass]:active{transform:scale(.97)}
 .nickname-emoji{font-size:44px}
 
 /* Hoy: botón propio de la calculadora de discos, debajo de la lista */
-.plates-open{display:flex;align-items:center;gap:12px;width:100%;margin:4px 0 12px;padding:12px 14px;min-height:56px;border-radius:18px;border:1px solid var(--line2);background:var(--s1);color:var(--text);text-align:left}
-.plates-open>span:first-child{font-size:24px}
-.plates-open b{display:block;font-size:calc(14px * var(--fs))}
-.plates-open small{display:block;margin-top:2px;color:var(--muted);font-size:calc(11px * var(--fs))}
 
 /* ===== Progreso: «Tú» / «Amigos» y quién levanta más ===== */
 .progress-tabs{margin:0 0 14px}
 .progress-tabs button{min-height:44px}
 .lift-title{margin:18px 0 8px;font-size:calc(15px * var(--fs))}
 .lift-ranking .daychip small{color:var(--muted);font-weight:700}
+
+/* ===== Social ===== */
+.social-empty h2{margin:0 0 6px;font-size:calc(17px * var(--fs))}
+/* Quién levanta más: una fila por ejercicio, de un vistazo */
+.lift-list{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.lift-row{border-radius:18px;background:var(--glass);box-shadow:inset 0 0 0 1px var(--glass-line);overflow:hidden}
+.lift-row.winning{box-shadow:inset 0 0 0 1px color-mix(in srgb,#f5c542 55%,transparent)}
+.lift-head{display:flex;align-items:center;gap:10px;width:100%;min-height:58px;padding:10px 12px;border:0;background:transparent;color:var(--text);text-align:left;font:inherit}
+.lift-head .chev{flex:none;width:16px;color:var(--muted2);transition:transform .25s}
+.lift-row.open .lift-head .chev{transform:rotate(180deg)}
+.lift-ex{flex:1;min-width:0}
+.lift-ex b{display:block;font-size:calc(14px * var(--fs));overflow-wrap:anywhere}
+.lift-ex small{display:block;margin-top:2px;color:var(--muted);font-size:calc(11px * var(--fs))}
+.lift-leader{display:flex;align-items:center;gap:8px;flex:none;text-align:right}
+.lift-leader b{display:block;font-size:calc(13px * var(--fs))}
+.lift-leader small{display:block;color:var(--soft);font-size:calc(12px * var(--fs));font-weight:800;font-variant-numeric:tabular-nums}
+.lift-leader .medal{display:grid;place-items:center;width:28px;height:28px;color:#f5b301}.lift-leader .medal svg{width:22px;height:22px}
+.lift-me{margin:-4px 12px 10px;color:var(--muted);font-size:calc(12px * var(--fs));font-weight:700}
+.lift-me.first{color:#f5c542}
+.lift-full{margin:0 10px 10px}
+@media(prefers-reduced-motion:reduce){.lift-head .chev{transition:none}}
+
+/* ===== Calculadora de discos: botones con cristal líquido ===== */
+.plates-open{display:flex;align-items:center;gap:12px;width:100%;margin:4px 0 12px;padding:12px 14px;min-height:64px;border-radius:22px;
+  border:1px solid var(--glass-line);background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 16%,var(--glass)),var(--glass));
+  box-shadow:inset 0 1px 0 var(--glass-hi),0 8px 24px rgba(0,0,0,.18);color:var(--text);text-align:left}
+.plates-ico{flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:14px;background:var(--accent);color:var(--on-accent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 4px 12px color-mix(in srgb,var(--accent) 40%,transparent)}
+.plates-ico svg{width:24px;height:24px}
+.plates-text{flex:1;min-width:0}
+.plates-text b{display:block;font-size:calc(15px * var(--fs))}
+.plates-text small{display:block;margin-top:2px;color:var(--muted);font-size:calc(12px * var(--fs))}
+.plates-open .chev{flex:none;width:18px;color:var(--muted2);transform:rotate(-90deg)}
+.stepper-plates{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:46px;padding:0 14px;border-radius:999px;
+  border:1px solid var(--glass-line);background:color-mix(in srgb,var(--accent) 12%,var(--glass));box-shadow:inset 0 1px 0 var(--glass-hi);
+  color:var(--accent);font-size:calc(13px * var(--fs));font-weight:800}
+.stepper-plates svg{width:18px;height:18px}
+.stepper-plates b{padding:3px 9px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:calc(12px * var(--fs))}
+:root[data-theme="light"] .plates-open{box-shadow:inset 0 1px 0 #fff,0 6px 18px rgba(30,45,80,.1)}

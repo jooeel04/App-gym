@@ -19,11 +19,11 @@ describe("Barras flotantes con cristal líquido", () => {
   });
   afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
-  it("la barra de pestañas mantiene sus cuatro pestañas y lleva el cristal", async () => {
+  it("la barra de pestañas tiene sus cinco pestañas (con Social) y lleva el cristal", async () => {
     renderWithWorkout(<AppShell>{null}</AppShell>);
     const nav = screen.getByRole("navigation", { name: "Navegación" });
     const tabs = within(nav).getAllByRole("link");
-    expect(tabs.map((t) => t.textContent)).toEqual(["Hoy", "Rutina", "Progreso", "Ajustes"]);
+    expect(tabs.map((t) => t.textContent)).toEqual(["Hoy", "Rutina", "Progreso", "Social", "Ajustes"]);
     expect(within(nav).getByRole("link", { name: "Hoy" })).toHaveAttribute("aria-current", "page");
     await waitFor(() => expect(nav.querySelector(".glass-layer.on filter")).not.toBeNull());
   });

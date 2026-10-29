@@ -18,7 +18,7 @@ Varias personas, cada una con su cuenta (correo y contraseña) y sus propios dat
 - Al entrenar: peso y repeticiones propuestos en cada serie (de la serie anterior o de la última vez; con escribir solo las repeticiones basta) y botón "Igual que la última vez", temporizador de descanso, sugerencia de progresión (doble progresión), récords personales, series de calentamiento, superseries, calculadora de discos y resumen al completar el día (con la comparación de cada ejercicio frente a la última vez).
 - Entreno en curso: botón "Empezar entreno" (o empieza solo al anotar la primera serie) que abre una pantalla completa con un ejercicio cada vez (avanza solo al terminarlo, flechas y barra de pasos para moverse), barra flotante con el tiempo y los ejercicios hechos al minimizarla, la pantalla no se apaga y "Terminar" muestra el resumen.
 - Progreso: racha de semanas, fuerza (1RM estimado) y récord de cada ejercicio, peso corporal y medidas.
-- Amigos: compartir la rutina con un código (en Rutina) y clasificación de días entrenados por grupos (en Ajustes).
+- Social (pestaña propia): grupos de amigos con un código, clasificación de días entrenados del mes, quién levanta más en cada ejercicio (de un vistazo) y compartir o importar rutinas.
 - Recuperación de contraseña por correo.
 - Instalación en pantalla de inicio (PWA) y uso sin conexión: los cambios se guardan en el dispositivo y se envían a la cuenta al volver internet.
 

@@ -8,7 +8,7 @@ import type { Exercise, SetEntry } from "@/domain/types";
 import type { SetResult } from "@/domain/workout-stats";
 import { BodyMap } from "./body-map";
 import { PlateCalculator } from "./plate-calculator";
-import { BulbIcon, CheckIcon, TrendUpIcon } from "./icons";
+import { BulbIcon, CheckIcon, DumbbellIcon, TrendUpIcon } from "./icons";
 import { ExerciseDetail, range, suggestedWeight, supersetRole } from "./training-view";
 
 // Un ejercicio desplegado en la lista de Hoy: músculos que trabaja (dibujo), consejo y
@@ -172,8 +172,8 @@ function SetStepper({ exercise: x, set: s, old, draft, onSaved }: {
           </div>
         </div>
         {Number(kg) > 0 && (
-          <button type="button" className="stepper-plates" onClick={() => setPlates(true)}>
-            <span aria-hidden="true">🏋️</span>Calcular discos para {String(Number(kg)).replace(".", ",")} kg
+          <button type="button" className="stepper-plates" aria-label={"Calcular discos para " + String(Number(kg)).replace(".", ",") + " kg"} onClick={() => setPlates(true)}>
+            <DumbbellIcon /><span>Calcular discos</span><b>{String(Number(kg)).replace(".", ",")} kg</b>
           </button>
         )}
         {plates && <PlateCalculator initialTotal={kg} onClose={() => setPlates(false)} />}

@@ -12,11 +12,12 @@ import { NicknamePrompt } from "./nickname-prompt";
 import { ReminderDeviceSync } from "./reminder-device-sync";
 import { TAB_SETTLED } from "./glass-surfaces";
 import { LoadProblem } from "./load-problem";
-import { BrandIcon, ClockIcon, ProgressIcon, RoutineIcon, SettingsIcon, StrongIcon, TrainingIcon, TrophyIcon } from "./icons";
+import { BrandIcon, ClockIcon, ProgressIcon, RoutineIcon, SettingsIcon, StrongIcon, TrainingIcon, TrophyIcon, UsersIcon } from "./icons";
 import { ProgressView } from "./progress-view";
 import { RestTimerBar } from "./rest-timer";
 import { RoutineView } from "./routine-view";
 import { SettingsView } from "./settings-view";
+import { SocialView } from "./social-view";
 import { TrainingView } from "./training-view";
 import { SetupWizard } from "./setup-wizard";
 import { afterSlide, PEEK_GAP, useTabSwipe } from "./use-tab-swipe";
@@ -25,6 +26,7 @@ const NAV = [
   { href: "/entrenar", label: "Hoy", Icon: TrainingIcon, View: TrainingView },
   { href: "/rutina", label: "Rutina", Icon: RoutineIcon, View: RoutineView },
   { href: "/progreso", label: "Progreso", Icon: ProgressIcon, View: ProgressView },
+  { href: "/social", label: "Social", Icon: UsersIcon, View: SocialView },
   { href: "/ajustes", label: "Ajustes", Icon: SettingsIcon, View: SettingsView },
 ];
 
@@ -60,6 +62,12 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => { document.title = current.label + " · RUTINA"; }, [current]);
   useEffect(syncThemeBar, []);
+  // Los enlaces de rutina compartidos antes eran /rutina?codigo=…: ahora lo social está en Social.
+  useEffect(() => {
+    if (window.location.pathname === "/rutina" && new URLSearchParams(window.location.search).has("codigo")) {
+      window.history.replaceState(null, "", "/social" + window.location.search);
+    }
+  }, []);
   // Mientras hay un entreno a medias la pantalla no se apaga.
   useScreenAwake(!!active);
 
@@ -206,7 +214,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
-      <nav className="nav" aria-label="Navegación">
+      <nav className="nav" aria-label="Navegación" style={{ "--tabs": NAV.length } as React.CSSProperties}>
         <GlassLayer radius={32} />
         <span className="nav-lens" ref={lensRef} aria-hidden="true" />
         {NAV.map(({ href, label, Icon }, i) => (

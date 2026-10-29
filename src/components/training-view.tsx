@@ -13,7 +13,7 @@ import { describeSet } from "./exercise-progress";
 import { notifyState, requestPermissions, subscribePermission, type NotifyState } from "@/lib/permissions";
 import { ExerciseLogger } from "./exercise-logger";
 import { PlateCalculator } from "./plate-calculator";
-import { BellIcon, BulbIcon, ChevronIcon, FlameIcon, SleepIcon, TrendUpIcon, WarningIcon } from "./icons";
+import { BellIcon, BulbIcon, ChevronIcon, DumbbellIcon, FlameIcon, SleepIcon, TrendUpIcon, WarningIcon } from "./icons";
 
 export const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 
@@ -113,8 +113,9 @@ export function TrainingView() {
       )}
 
       <button type="button" className="plates-open" aria-label="Calculadora de discos" onClick={() => setPlates(true)}>
-        <span aria-hidden="true">🏋️</span>
-        <span><b>Calculadora de discos</b><small>Qué discos poner a cada lado de la barra</small></span>
+        <span className="plates-ico"><DumbbellIcon /></span>
+        <span className="plates-text"><b>Calculadora de discos</b><small>Qué discos poner a cada lado de la barra</small></span>
+        <ChevronIcon />
       </button>
       {plates && <PlateCalculator onClose={() => setPlates(false)} />}
       {editList && !resting && (
