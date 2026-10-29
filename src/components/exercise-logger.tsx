@@ -58,14 +58,16 @@ const UNDO_MS = 6000;
 
 // Fichas de las series (hechas, la actual y las que faltan) y la serie elegida para anotar.
 // Tras anotar una, durante unos segundos se puede deshacer (por si se tocó sin querer o
-// con otro número): vuelve a como estaba y, si empezó el descanso, lo para.
+// con otro número): vuelve a como estaba y, si empezó el descanso, lo para. La serie se
+// vuelve a abrir con los números que se acababan de poner, para corregir solo el que falle.
 function SetLogger({ exercise: x }: { exercise: Exercise }) {
   const { model, stats, week, day, actions } = useWorkout();
   const last = stats.lastBefore(x, week);
   const sets = range(x.sets);
   const pending = sets.find((s) => !hasReps(model.getEntry(week, day, x.id, s))) ?? null;
   const [pick, setPick] = useState<number | null>(null);
-  const [undo, setUndo] = useState<{ set: number; prev: SetEntry } | null>(null);
+  const [undo, setUndo] = useState<{ set: number; prev: SetEntry; saved: SetEntry } | null>(null);
+  const [draft, setDraft] = useState<{ set: number; entry: SetEntry } | null>(null);
   const current = pick ?? pending;
 
   useEffect(() => {
@@ -76,10 +78,11 @@ function SetLogger({ exercise: x }: { exercise: Exercise }) {
 
   const revert = () => {
     if (!undo) return;
-    const { set: s, prev } = undo;
+    const { set: s, prev, saved } = undo;
     actions.setEntry(week, day, x.id, s, "reps", prev.reps ?? "");
     actions.setEntry(week, day, x.id, s, "weight", prev.weight ?? "");
     if (!hasReps(prev)) actions.stopRest();
+    setDraft({ set: s, entry: saved });
     setPick(s);
     setUndo(null);
   };
@@ -100,8 +103,9 @@ function SetLogger({ exercise: x }: { exercise: Exercise }) {
         })}
       </div>
       {current
-        ? <SetStepper key={current} exercise={x} set={current} old={last?.sets.find((r) => r.set === current)}
-            onSaved={(prev) => { setPick(null); setUndo({ set: current, prev }); }} />
+        ? <SetStepper key={current + (draft?.set === current ? "-draft" : "")} exercise={x} set={current} old={last?.sets.find((r) => r.set === current)}
+            draft={draft?.set === current ? draft.entry : undefined}
+            onSaved={(prev, saved) => { setPick(null); setDraft(null); setUndo({ set: current, prev, saved }); }} />
         : <p className="set-alldone"><CheckIcon /> Todas las series anotadas. Toca una para cambiarla.</p>}
       {undo && (
         <p className="set-undo" role="status">
@@ -118,13 +122,16 @@ const bump = (v: string, d: number) => String(Math.max(0, Math.round(((Number(v)
 
 // Carga y repeticiones de una serie con botones grandes. Empieza con lo propuesto (peso
 // de la serie anterior o de la última vez; repeticiones de la última vez o el mínimo
-// del rango) y se guarda al pulsar "Serie hecha".
-function SetStepper({ exercise: x, set: s, old, onSaved }: { exercise: Exercise; set: number; old?: SetResult; onSaved: (prev: SetEntry) => void }) {
+// del rango; tras deshacer, lo que se acababa de poner) y se guarda al pulsar "Serie hecha".
+function SetStepper({ exercise: x, set: s, old, draft, onSaved }: {
+  exercise: Exercise; set: number; old?: SetResult; draft?: SetEntry; onSaved: (prev: SetEntry, saved: SetEntry) => void;
+}) {
   const { model, week, day, actions } = useWorkout();
   const e = model.getEntry(week, day, x.id, s);
   const saved = hasReps(e);
-  const [kg, setKg] = useState(() => e.weight ?? suggestedWeight(range(s - 1).map((p) => model.getEntry(week, day, x.id, p).weight), old));
-  const [reps, setReps] = useState(() => e.reps ?? (old?.reps != null ? String(old.reps) : String(parseRepRange(x.target)?.min ?? "")));
+  const filled = (v?: string | null) => (v?.trim() ? v : null);
+  const [kg, setKg] = useState(() => filled(draft?.weight) ?? filled(e.weight) ?? suggestedWeight(range(s - 1).map((p) => model.getEntry(week, day, x.id, p).weight), old));
+  const [reps, setReps] = useState(() => filled(draft?.reps) ?? filled(e.reps) ?? (old?.reps != null ? String(old.reps) : String(parseRepRange(x.target)?.min ?? "")));
   const name = x.name + ", serie " + s;
 
   const save = () => {
@@ -134,7 +141,7 @@ function SetStepper({ exercise: x, set: s, old, onSaved }: { exercise: Exercise;
     actions.setEntry(week, day, x.id, s, "reps", reps.trim());
     // Un toque de vibración confirma que se ha guardado (Android; iPhone no vibra desde la web).
     if ("vibrate" in navigator) navigator.vibrate(12);
-    onSaved(prev);
+    onSaved(prev, { weight: kg.trim(), reps: reps.trim() });
   };
 
   return (

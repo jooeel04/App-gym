@@ -42,6 +42,19 @@ describe("Hoy · anotar una serie se puede deshacer", () => {
     expect(screen.queryByText("Serie 1 anotada")).not.toBeInTheDocument();
   });
 
+  it("tras «Deshacer», la serie se reabre con los números que se acababan de poner", () => {
+    renderWithWorkout(<ExerciseLogger exercise={MILITAR} superset={null} />);
+    const kg = screen.getByRole("spinbutton", { name: /carga en kg/ });
+    const reps = screen.getByRole("spinbutton", { name: /repeticiones/ });
+    fireEvent.change(kg, { target: { value: "20" } });
+    fireEvent.change(reps, { target: { value: "8" } });
+    fireEvent.click(screen.getByRole("button", { name: /Serie hecha/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Deshacer" }));
+    expect(chip(1)).toHaveTextContent("ahora");
+    expect(screen.getByRole("spinbutton", { name: /carga en kg/ })).toHaveValue(20);
+    expect(screen.getByRole("spinbutton", { name: /repeticiones/ })).toHaveValue(8);
+  });
+
   it("el aviso para deshacer se va solo a los pocos segundos", () => {
     vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
     vi.setSystemTime(new Date(TODAY + "T10:00:00"));
