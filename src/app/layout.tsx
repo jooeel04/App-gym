@@ -10,8 +10,8 @@ export const metadata: Metadata = {
   applicationName: "FitGym",
   appleWebApp: { capable: true, title: "FitGym", statusBarStyle: "black-translucent" },
   icons: {
-    icon: [{ url: "/fitgym-icon-192.png", type: "image/png" }],
-    apple: "/fitgym-apple.png",
+    icon: [{ url: "/fitgym-azul-192.png", type: "image/png" }],
+    apple: "/fitgym-azul-apple.png",
   },
 };
 

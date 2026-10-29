@@ -8,7 +8,7 @@ import { authenticate, requestPasswordReset, type AuthFormState } from "./action
 function Brand() {
   return (
     <div className="brand auth-brand">
-      <Image className="brand-icon brand-logo" src="/fitgym-mark.png" width={96} height={96} alt="" priority />
+      <Image className="brand-icon brand-logo" src="/fitgym-azul-mark.png" width={96} height={96} alt="" priority />
       <span><span className="brand-word">FITGYM</span><span className="brand-sub">TU ENTRENO</span></span>
     </div>
   );

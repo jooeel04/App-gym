@@ -4,9 +4,9 @@
 //   Sin conexión, cualquier pestaña (Entrenar, Rutina, Progreso, Ajustes) se abre con la última
 //   página de la app guardada: la vista se elige en el navegador según la URL.
 // - Peticiones a Supabase y a otros orígenes: no se tocan (los datos siempre van a la red).
-const CACHE = "rutina-seguimiento-v12";
+const CACHE = "rutina-seguimiento-v13";
 const APP_PAGES = ["/entrenar", "/rutina", "/progreso", "/social", "/ajustes"];
-const PRECACHE = ["/fitgym-icon-192.png", "/fitgym-mark.png", "/fitgym-icon-512.png", "/fitgym-apple.png", "/manifest.webmanifest"];
+const PRECACHE = ["/fitgym-azul-192.png", "/fitgym-azul-mark.png", "/fitgym-azul-512.png", "/fitgym-azul-apple.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)));
@@ -76,8 +76,8 @@ self.addEventListener("push", (e) => {
   try { data = e.data ? e.data.json() : {}; } catch { data = { body: e.data ? e.data.text() : "" }; }
   e.waitUntil(self.registration.showNotification(data.title || "FitGym", {
     body: data.body || "Es hora de entrenar.",
-    icon: "/fitgym-icon-192.png",
-    badge: "/fitgym-icon-192.png",
+    icon: "/fitgym-azul-192.png",
+    badge: "/fitgym-azul-192.png",
     tag: "rutina-reminder",
     data: { url: data.url || "/entrenar" },
   }));
