@@ -7,6 +7,7 @@ import { MUSCLE_NAMES, musclesFor, searchLibrary, type LibraryExercise } from "@
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { Exercise } from "@/domain/types";
 import { BodyMap } from "./body-map";
+import { ExerciseDemo } from "./exercise-demo";
 import { closeOnBackdrop } from "./backdrop";
 
 interface Draft {
@@ -104,6 +105,7 @@ export function ExerciseModal({ day, exercise, onClose }: { day: number; exercis
                   <b>{muscles.primary.map((m) => MUSCLE_NAMES[m]).join(", ")}</b>
                   {muscles.secondary.length > 0 && <> · también {muscles.secondary.map((m) => MUSCLE_NAMES[m].toLowerCase()).join(", ")}</>}
                 </p>
+                <ExerciseDemo name={draft.name} />
               </div>
             )}
             <label className="form-label">Nombre del ejercicio

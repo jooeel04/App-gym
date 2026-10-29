@@ -7,6 +7,7 @@ import { parseRepRange, suggestNext } from "@/domain/progression";
 import type { Exercise, SetEntry } from "@/domain/types";
 import type { SetResult } from "@/domain/workout-stats";
 import { BodyMap } from "./body-map";
+import { ExerciseDemo } from "./exercise-demo";
 import { PlateCalculator } from "./plate-calculator";
 import { BulbIcon, CheckIcon, DumbbellIcon, TrendUpIcon } from "./icons";
 import { ExerciseDetail, range, suggestedWeight, supersetRole } from "./training-view";
@@ -33,6 +34,7 @@ export function ExerciseLogger({ exercise: x, superset }: { exercise: Exercise; 
             <b>{muscles.primary.map((m) => MUSCLE_NAMES[m]).join(", ")}</b>
             {muscles.secondary.length > 0 && <span>También: {muscles.secondary.map((m) => MUSCLE_NAMES[m].toLowerCase()).join(", ")}</span>}
           </div>
+          <ExerciseDemo name={x.name} />
         </div>
       )}
       {tip && <div className={"tip " + tip.kind}>{tip.kind === "increase" ? <TrendUpIcon /> : <BulbIcon />}{tip.text}</div>}

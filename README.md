@@ -36,6 +36,12 @@ En el SQL Editor del proyecto, ejecuta en orden los archivos de `supabase/migrat
 8. `20261104000000_daily_reminders.sql` (recordatorio diario; la clave privada VAPID se guarda aparte)
 9. `20261105000000_reliable_reminders.sql` (el aviso solo se marca como enviado si llega; si no, se reintenta)
 10. `20261106000000_nicknames_and_lift_ranking.sql` (apodo de cada persona y quién levanta más en cada ejercicio)
+11. `20261107000000_privacy_and_delete_account.sql` (ocultar tus pesos en Social y borrar la cuenta)
+12. `20261108000000_reminder_diagnostics.sql` (aviso de prueba y comprobación del recordatorio desde Ajustes)
+13. `20261109000000_rest_alerts.sql` (aviso del fin del descanso como notificación push, pg_cron cada 2 s)
+
+Las fotos de cómo se hace cada ejercicio (`public/ejercicios`) son de
+[Free Exercise DB](https://github.com/yuhonas/free-exercise-db), de dominio público (Unlicense).
 
 En Authentication → URL Configuration, añade `https://tu-dominio/auth/confirm` (y `http://localhost:3000/auth/confirm`) a las Redirect URLs: es el enlace del correo de confirmación de cuenta.
 

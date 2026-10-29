@@ -5,6 +5,14 @@ export const BUILD_DATE = process.env.NEXT_PUBLIC_BUILD_DATE || "";
 
 export const NOVEDADES: { date: string; items: string[] }[] = [
   {
+    date: "Versión 1.3",
+    items: [
+      "Cada ejercicio enseña cómo se hace: toca la foto animada para verla en grande.",
+      "El fin del descanso llega como notificación: suena y vibra aunque el móvil esté bloqueado.",
+      "El pitido del descanso vuelve a sonar después de tener la app en segundo plano.",
+    ],
+  },
+  {
     date: "Versión 1.2",
     items: [
       "Calculadora de discos nueva: peso grande con − y +, barra dibujada entera y discos agrupados.",

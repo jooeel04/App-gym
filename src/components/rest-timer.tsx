@@ -1,19 +1,46 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { cancelRestAlert, scheduleRestAlert } from "@/app/actions/rest-alerts";
 import { useWorkout } from "@/controllers/workout-controller";
-import { restFinishedAlert } from "@/lib/alerts";
-import { showNotification } from "@/lib/permissions";
+import { primeAudioOnTouch, restFinishedAlert } from "@/lib/alerts";
+import { notifyState, showNotification } from "@/lib/permissions";
 import { getRestPrefs } from "@/lib/preferences";
+import { subscribeThisDevice } from "@/lib/push";
 import { GlassLayer } from "./glass-layer";
 
 const clock = (s: number) => Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
 
+// Con cuenta y permiso de notificaciones, el aviso también lo manda el servidor como
+// notificación push a la hora exacta: en iPhone es lo único que suena y vibra con la app
+// en segundo plano o el móvil bloqueado (la web no puede vibrar y el temporizador se para).
+async function bookServerAlert(secondsLeft: number, before: number) {
+  try {
+    if (notifyState() !== "granted") return;
+    const device = await subscribeThisDevice();
+    if (device) await scheduleRestAlert(device, Math.round(secondsLeft * 10) / 10, before);
+  } catch {
+    // Sin conexión: queda el aviso de la app.
+  }
+}
+
 // Barra flotante con la cuenta atrás del descanso entre series. Vibra y pita (según
 // Ajustes: al terminar o unos segundos antes) y avisa de que toca la siguiente serie.
 export function RestTimerBar() {
-  const { rest, actions } = useWorkout();
+  const { rest, actions, mode } = useWorkout();
   const [now, setNow] = useState(() => Date.now());
+  const cloud = mode === "cloud";
+  useEffect(primeAudioOnTouch, []);
+
+  // Cada descanso nuevo (o con +15 s) apunta el aviso del servidor; sustituye al anterior.
+  useEffect(() => {
+    if (!rest || !cloud) return;
+    const { alert, before } = getRestPrefs();
+    if (alert === "off") return;
+    const early = before > 0 && before < rest.total ? before : 0;
+    const secondsLeft = (rest.endsAt - early * 1000 - Date.now()) / 1000;
+    if (secondsLeft >= 1) void bookServerAlert(secondsLeft, early);
+  }, [rest, cloud]);
 
   useEffect(() => {
     if (!rest) return;
@@ -52,7 +79,10 @@ export function RestTimerBar() {
       </svg>
       <div className="rest-text"><small>Descanso</small><strong>{clock(left)}</strong></div>
       <button type="button" onClick={() => actions.addRest(15)}>+15 s</button>
-      <button type="button" className="rest-skip" onClick={actions.stopRest}>Saltar</button>
+      <button type="button" className="rest-skip" onClick={() => {
+        actions.stopRest();
+        if (cloud) void cancelRestAlert().catch(() => {});
+      }}>Saltar</button>
     </div>
   );
 }

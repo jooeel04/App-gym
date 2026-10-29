@@ -125,9 +125,9 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
   ex("Pallof press", [1, 2, 3, 4, 5], ["obliques"], ["abs"], "10–12"),
 ];
 
-const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
+export const normalizeName = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
 
-const BY_NAME = new Map(EXERCISE_LIBRARY.map((x) => [normalize(x.name), x]));
+const BY_NAME = new Map(EXERCISE_LIBRARY.map((x) => [normalizeName(x.name), x]));
 
 // Para ejercicios escritos a mano: músculos deducidos de palabras clave del nombre.
 const KEYWORDS: [RegExp, Muscle[], Muscle[]][] = [
@@ -156,7 +156,7 @@ const KEYWORDS: [RegExp, Muscle[], Muscle[]][] = [
 
 // Músculos de un ejercicio por su nombre (de la biblioteca o por palabras clave).
 export function musclesFor(name: string): { primary: Muscle[]; secondary: Muscle[] } | null {
-  const key = normalize(name);
+  const key = normalizeName(name);
   const hit = BY_NAME.get(key);
   if (hit) return { primary: hit.primary, secondary: hit.secondary };
   const rule = KEYWORDS.find(([re]) => re.test(key));
@@ -165,11 +165,11 @@ export function musclesFor(name: string): { primary: Muscle[]; secondary: Muscle
 
 // Búsqueda en la biblioteca: por nombre o músculo, opcionalmente solo de un día de rutina.
 export function searchLibrary(query: string, day: number | null): LibraryExercise[] {
-  const q = normalize(query);
+  const q = normalizeName(query);
   return EXERCISE_LIBRARY.filter((x) => {
     if (day !== null && !x.days.includes(day)) return false;
     if (!q) return true;
-    const text = normalize(x.name + " " + [...x.primary, ...x.secondary].map((m) => MUSCLE_NAMES[m]).join(" "));
+    const text = normalizeName(x.name + " " + [...x.primary, ...x.secondary].map((m) => MUSCLE_NAMES[m]).join(" "));
     return q.split(" ").every((word) => text.includes(word));
   });
 }

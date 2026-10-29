@@ -15,10 +15,25 @@ export function unlockAudio() {
   }
 }
 
+// Cualquier toque vuelve a activar el audio: iOS lo para al pasar la app a segundo plano.
+let primed = false;
+export function primeAudioOnTouch() {
+  if (primed || typeof document === "undefined") return;
+  primed = true;
+  document.addEventListener("pointerdown", unlockAudio, { passive: true });
+}
+
 export function restFinishedAlert(mode: RestAlert = "both") {
   if (mode === "off") return;
   if (mode !== "sound" && "vibrate" in navigator) navigator.vibrate([250, 120, 250, 120, 400]);
   if (mode === "vibrate" || !audio) return;
+  // Parado ("suspended" o, en iPhone, "interrupted"): se reanuda y luego pita.
+  if (audio.state !== "running") void audio.resume().then(beep, () => {});
+  else beep();
+}
+
+function beep() {
+  if (!audio) return;
   [0, 0.25, 0.5].forEach((delay, i) => {
     const osc = audio!.createOscillator(), gain = audio!.createGain();
     const t = audio!.currentTime + delay;

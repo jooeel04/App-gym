@@ -1,10 +1,10 @@
 // Service worker: la app funciona sin conexión.
-// - Estáticos de Next (/_next/static, con hash): primero caché.
+// - Estáticos de Next (/_next/static, con hash) y fotos de los ejercicios: primero caché.
 // - Páginas y demás GET del propio origen: primero red, caché como respaldo.
 //   Sin conexión, cualquier pestaña (Entrenar, Rutina, Progreso, Ajustes) se abre con la última
 //   página de la app guardada: la vista se elige en el navegador según la URL.
 // - Peticiones a Supabase y a otros orígenes: no se tocan (los datos siempre van a la red).
-const CACHE = "rutina-seguimiento-v13";
+const CACHE = "rutina-seguimiento-v14";
 const APP_PAGES = ["/entrenar", "/rutina", "/progreso", "/social", "/ajustes"];
 const PRECACHE = ["/fitgym-azul-192.png", "/fitgym-azul-mark.png", "/fitgym-azul-512.png", "/fitgym-azul-apple.png", "/manifest.webmanifest"];
 
@@ -28,7 +28,7 @@ self.addEventListener("fetch", (e) => {
   // Las peticiones RSC dependen de la sesión: no se cachean.
   if (req.headers.get("RSC") || url.pathname.startsWith("/auth/")) return;
 
-  if (url.pathname.startsWith("/_next/static/")) {
+  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/ejercicios/")) {
     e.respondWith(caches.match(req).then((hit) => hit || fetchAndCache(req)));
     return;
   }
@@ -70,7 +70,9 @@ self.addEventListener("notificationclick", (e) => {
   );
 });
 
-// Recordatorio diario (llega del servidor aunque la app esté cerrada).
+// Avisos del servidor (llegan aunque la app esté cerrada o el móvil bloqueado): el
+// recordatorio diario y el fin del descanso (tag "rutina-rest", que sustituye al aviso
+// de la propia app y vuelve a sonar y vibrar).
 self.addEventListener("push", (e) => {
   let data = {};
   try { data = e.data ? e.data.json() : {}; } catch { data = { body: e.data ? e.data.text() : "" }; }
@@ -78,7 +80,9 @@ self.addEventListener("push", (e) => {
     body: data.body || "Es hora de entrenar.",
     icon: "/fitgym-azul-192.png",
     badge: "/fitgym-azul-192.png",
-    tag: "rutina-reminder",
+    tag: data.tag || "rutina-reminder",
+    renotify: true,
+    vibrate: [250, 120, 250, 120, 400],
     data: { url: data.url || "/entrenar" },
   }));
 });

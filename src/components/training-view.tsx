@@ -9,6 +9,7 @@ import { DAY_NAMES, DAYS, WARMUP_SETS } from "@/domain/snapshot";
 import type { Exercise, SetField } from "@/domain/types";
 import type { SetResult } from "@/domain/workout-stats";
 import { BodyMap } from "./body-map";
+import { ExerciseDemo } from "./exercise-demo";
 import { describeSet } from "./exercise-progress";
 import { notifyState, requestPermissions, subscribePermission, type NotifyState } from "@/lib/permissions";
 import { ExerciseLogger } from "./exercise-logger";
@@ -376,6 +377,7 @@ export function ExerciseDetail({ exercise: x, superset, bare = false }: { exerci
         <div className="exmuscles">
           <BodyMap primary={muscles.primary} secondary={muscles.secondary} size="sm" />
           <span><b>{muscles.primary.map((m) => MUSCLE_NAMES[m]).join(", ")}</b>{muscles.secondary.length > 0 && <small>También: {muscles.secondary.map((m) => MUSCLE_NAMES[m].toLowerCase()).join(", ")}</small>}</span>
+          <ExerciseDemo name={x.name} />
         </div>
       )}
       {tip && !bare && <div className={"tip " + tip.kind}>{tip.kind === "increase" ? <TrendUpIcon /> : <BulbIcon />}{tip.text}</div>}

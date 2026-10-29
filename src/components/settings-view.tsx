@@ -117,6 +117,7 @@ export function SettingsView() {
             open={open === "alert"} onClick={toggle("alert")}>
             {!rest.enabled && <p className="set-hint">Activa el temporizador automático en «Descanso entre series» para recibir el aviso.</p>}
             <div className="set-sub">Cómo te avisa</div>
+            {cloud && <p className="set-hint">En iPhone, la vibración y el sonido llegan con una notificación (aunque tengas el móvil bloqueado): da permiso en «Permisos». Con el móvil en silencio solo vibra.</p>}
             <div className="choice-list" role="radiogroup" aria-label="Cómo te avisa">
               {ALERT_OPTIONS.map((o) => (
                 <button key={o.value} type="button" role="radio" aria-checked={rest.alert === o.value}
