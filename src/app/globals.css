@@ -1060,3 +1060,14 @@ button[data-glass]:active{transform:scale(.97)}
   .stepper-val{width:74px}
   .stepper-val input{font-size:calc(26px * var(--fs))}
 }
+
+/* ===== Rutina · «Tu semana»: cada día del color de su rutina, sin abreviaturas ===== */
+.week-strip .wk-day{min-height:64px;align-items:center;justify-content:center;gap:2px;padding:8px 2px}
+.week-strip .wk-day>b{font-size:calc(17px * var(--fs));font-weight:900;color:var(--muted)}
+.week-strip .wk-day.train{border-color:transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
+.week-strip .wk-day.train>b{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.week-strip .wk-day.today{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
+.week-strip .wk-rest{margin:0}
+.wk-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:14px 0 0;padding:0;list-style:none;color:var(--soft);font-size:calc(12px * var(--fs));font-weight:700}
+.wk-legend li{display:flex;align-items:center;gap:6px}
+.wk-legend i{width:12px;height:12px;border-radius:4px;flex:none}

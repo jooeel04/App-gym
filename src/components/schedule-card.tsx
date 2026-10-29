@@ -22,13 +22,18 @@ const PRESETS: { label: string; schedule: WeekSchedule }[] = [
   { label: "3 días", schedule: { 1: 1, 2: 3, 3: 5, 4: 0, 5: 0 } },
 ];
 
-// Abreviatura de cada rutina en "Tu semana" (el nombre entero no cabe a un tamaño legible
-// en una columna de un día; el botón lo lleva completo para el lector de pantalla).
-const SHORT_NAMES: Record<number, string> = { 1: "Tor", 2: "Pie", 3: "Emp", 4: "Tir", 5: "Hom" };
+// Fondo de un día de la semana: el color de su rutina (repartido si hay varias).
+function dayColor(routines: number[]) {
+  if (routines.length === 1) return "var(--day" + routines[0] + ")";
+  const step = 100 / routines.length;
+  return "linear-gradient(180deg," + routines.map((d, i) => "var(--day" + d + ") " + i * step + "% " + (i + 1) * step + "%").join(",") + ")";
+}
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-// "Tu semana": qué rutina toca cada día de la semana. Los planes rápidos y la semana
-// del ciclo (se configuran una vez) están en la ventana "Cambiar mis días".
+// "Tu semana": qué rutina toca cada día de la semana. Cada día va del color de su
+// rutina (sin abreviaturas, que no se entendían) y la leyenda de debajo dice qué rutina
+// es cada color. Los planes rápidos y la semana del ciclo (se configuran una vez) están
+// en la ventana "Cambiar mis días".
 export function ScheduleCard() {
   const { model, today } = useWorkout();
   const [picking, setPicking] = useState<number | null>(null);
@@ -51,16 +56,18 @@ export function ScheduleCard() {
           return (
             <button key={wd} type="button" className={"wk-day" + (routines.length ? " train" : " rest") + (isToday ? " today" : "")}
               aria-label={capitalize(WEEKDAY_NAMES[wd]) + ": " + (routines.length ? routines.map((d) => DAY_NAMES[d]).join(" y ") : "descanso")}
+              style={routines.length ? { background: dayColor(routines) } : undefined}
               onClick={() => setPicking(wd)}>
-              <small>{WEEKDAY_SHORT[wd]}</small>
-              {routines.length
-                ? routines.map((d) => <span key={d} className="wk-pill" style={{ background: "var(--day" + d + ")" }}>{SHORT_NAMES[d]}</span>)
-                : <span className="wk-rest"><SleepIcon /></span>}
+              <b aria-hidden="true">{WEEKDAY_SHORT[wd]}</b>
+              {!routines.length && <span className="wk-rest" aria-hidden="true"><SleepIcon /></span>}
               {isToday && <i className="wk-today">hoy</i>}
             </button>
           );
         })}
       </div>
+      <ul className="wk-legend" aria-label="Qué rutina es cada color">
+        {DAYS.map((d) => <li key={d}><i style={{ background: "var(--day" + d + ")" }} aria-hidden="true" />{DAY_NAMES[d]}</li>)}
+      </ul>
       {unscheduled.length > 0 && (
         <p className="schedule-note">Sin día fijo: {unscheduled.map((d) => DAY_NAMES[d]).join(", ")}. Puedes hacerlos cuando quieras desde Hoy.</p>
       )}
