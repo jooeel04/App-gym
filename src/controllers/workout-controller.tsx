@@ -15,6 +15,8 @@ import { WorkoutModel } from "@/domain/workout-model";
 import { WorkoutStats } from "@/domain/workout-stats";
 import { getActiveWorkout, setActiveWorkout, subscribeActiveWorkout, type ActiveWorkout } from "@/lib/active-workout";
 import { unlockAudio } from "@/lib/alerts";
+import { cleanNickname, nicknamePending, readNickname, setNicknamePending, storeNickname, subscribeNickname } from "@/lib/nickname";
+import { getNickname, saveNickname } from "@/app/actions/profile";
 import { getRestPrefs } from "@/lib/preferences";
 import type { StorageMode } from "@/lib/workout-data";
 import { LocalWorkoutRepository } from "@/repositories/local-workout-repository";
@@ -68,6 +70,10 @@ interface WorkoutContextValue {
   summary: DaySummaryInfo | null;
   // Entreno en curso en este dispositivo (null si no hay ninguno).
   active: ActiveWorkout | null;
+  // Nombre o apodo con el que la app se dirige a la persona (null = aún no lo ha dicho).
+  nickname: string | null;
+  // Ya se sabe si tiene apodo (con cuenta, tras preguntarlo al servidor): si no, se pregunta.
+  nicknameReady: boolean;
   actions: ReturnType<typeof createActions>;
 }
 
@@ -117,6 +123,25 @@ export function WorkoutProvider({ mode, initialSnapshot, email, children }: Prov
   const version = useSyncExternalStore(model.subscribe, model.getVersion, model.getVersion);
   const today = useSyncExternalStore(subscribeToDayChange, todayISO, () => null);
   const active = useSyncExternalStore(subscribeActiveWorkout, getActiveWorkout, () => null);
+  const nickname = useSyncExternalStore(subscribeNickname, () => readNickname(email), () => null);
+  const [nicknameSynced, setNicknameSynced] = useState(mode !== "cloud");
+  // Con cuenta, el apodo vive también en ella: el de la cuenta manda (pudo cambiarse en
+  // otro dispositivo), salvo que aquí haya un cambio sin subir o la cuenta no tenga.
+  useEffect(() => {
+    if (mode !== "cloud") return;
+    let alive = true;
+    getNickname()
+      .then((res) => {
+        if (!alive || !res.ok) return;
+        const local = readNickname(email);
+        if (local && (nicknamePending(email) || !res.data)) {
+          saveNickname(local).then((saved) => { if (saved.ok) setNicknamePending(email, false); }).catch(() => {});
+        } else if (res.data && res.data !== local) storeNickname(email, res.data);
+      })
+      .catch(() => {})
+      .finally(() => { if (alive) setNicknameSynced(true); });
+    return () => { alive = false; };
+  }, [mode, email]);
   const syncStatus = useSyncExternalStore(sync?.subscribe ?? noSubscribe, sync?.getStatus ?? idle, idle);
   const calendar = useMemo(() => new WorkoutCalendar(model), [model]);
   const diary = useMemo(() => new WorkoutDiary(model, calendar), [model, calendar]);
@@ -175,14 +200,15 @@ export function WorkoutProvider({ mode, initialSnapshot, email, children }: Prov
     () => createActions({
       model, stats, sync, showToast, setWeek, setDay, goTo: navigateTab, setRest, setSummary,
       addRecord: (hit: RecordHit) => setRecords((list) => [...list, hit]),
+      account: email, cloud: mode === "cloud",
     }),
-    [model, stats, sync, showToast],
+    [model, stats, sync, showToast, email, mode],
   );
 
   const focus = today ? calendar.focusFor(today) : null;
   const week = Math.min(selectedWeek ?? focus?.week ?? 1, model.weeksCount);
   const day = selectedDay ?? focus?.day ?? 1;
-  const value: WorkoutContextValue = { model, stats, calendar, diary, mode, email, sync: syncStatus, today, ready, loadFailed, version, week, day, picked: selectedDay !== null || selectedWeek !== null, toast, rest, records, summary, active, actions };
+  const value: WorkoutContextValue = { model, stats, calendar, diary, mode, email, sync: syncStatus, today, ready, loadFailed, version, week, day, picked: selectedDay !== null || selectedWeek !== null, toast, rest, records, summary, active, nickname, nicknameReady: nicknameSynced || !!nickname, actions };
   return <WorkoutContext value={value}>{children}</WorkoutContext>;
 }
 
@@ -197,9 +223,11 @@ interface ActionDeps {
   setRest: (rest: RestTimer | null | ((r: RestTimer | null) => RestTimer | null)) => void;
   setSummary: (summary: DaySummaryInfo | null) => void;
   addRecord: (hit: RecordHit) => void;
+  account: string | null;
+  cloud: boolean;
 }
 
-function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, setRest, setSummary, addRecord }: ActionDeps) {
+function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, setRest, setSummary, addRecord, account, cloud }: ActionDeps) {
   const backup = new BackupService(model);
   const recordTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const celebrated = new Set<string>();
@@ -270,6 +298,23 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
 
   return {
     selectDay: setDay,
+
+    // Guarda el nombre o apodo (en el dispositivo y, con cuenta, en ella y en sus grupos).
+    setNickname(name: string) {
+      const nickname = cleanNickname(name);
+      if (!nickname) return false;
+      storeNickname(account, nickname);
+      if (cloud) {
+        setNicknamePending(account, true);
+        saveNickname(nickname)
+          .then((res) => {
+            if (res.ok) setNicknamePending(account, false);
+            else showToast("No se pudo guardar tu nombre en la cuenta");
+          })
+          .catch(() => showToast("Sin conexión: tu nombre se guardará en la cuenta más tarde"));
+      }
+      return true;
+    },
 
     startDay(d: number) {
       setDay(d);

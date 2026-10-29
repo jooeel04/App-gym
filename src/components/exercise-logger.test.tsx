@@ -73,7 +73,7 @@ describe("Hoy · calculadora de discos desde la serie", () => {
   it("«Discos» abre la calculadora con el peso que se está poniendo", () => {
     renderWithWorkout(<ExerciseLogger exercise={MILITAR} superset={null} />);
     fireEvent.change(screen.getByRole("spinbutton", { name: /carga en kg/ }), { target: { value: "62.5" } });
-    fireEvent.click(screen.getByRole("button", { name: /Discos/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Calcular discos para 62,5 kg" }));
     const dialog = screen.getByRole("dialog", { name: "Calculadora de discos" });
     expect(within(dialog).getByRole("spinbutton")).toHaveValue(62.5);
   });

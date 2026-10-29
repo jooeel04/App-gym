@@ -33,6 +33,9 @@ En el SQL Editor del proyecto, ejecuta en orden los archivos de `supabase/migrat
 5. `20261101000000_multi_user_accounts.sql`
 6. `20261102000000_allow_exercise_check_rows.sql`
 7. `20261103000000_gym_features.sql`
+8. `20261104000000_daily_reminders.sql` (recordatorio diario; la clave privada VAPID se guarda aparte)
+9. `20261105000000_reliable_reminders.sql` (el aviso solo se marca como enviado si llega; si no, se reintenta)
+10. `20261106000000_nicknames_and_lift_ranking.sql` (apodo de cada persona y quién levanta más en cada ejercicio)
 
 En Authentication → URL Configuration, añade `https://tu-dominio/auth/confirm` (y `http://localhost:3000/auth/confirm`) a las Redirect URLs: es el enlace del correo de confirmación de cuenta.
 

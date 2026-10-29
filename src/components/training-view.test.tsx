@@ -70,9 +70,11 @@ describe("Hoy · calculadora de discos", () => {
   beforeEach(freezeToday);
   afterEach(() => vi.useRealTimers());
 
-  it("se abre desde el botón «Discos» de arriba", () => {
+  it("tiene su propio botón «Calculadora de discos» (no arriba junto a la racha)", () => {
     renderWithWorkout(<TrainingView />);
-    fireEvent.click(screen.getByRole("button", { name: /Discos/ }));
+    const button = screen.getByRole("button", { name: "Calculadora de discos" });
+    expect(button.closest(".pagehead")).toBeNull();
+    fireEvent.click(button);
     expect(screen.getByRole("dialog", { name: "Calculadora de discos" })).toBeInTheDocument();
   });
 });

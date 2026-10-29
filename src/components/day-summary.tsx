@@ -12,7 +12,7 @@ const fmt = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 1 
 // Resumen al completar un día o terminar el entreno en curso: duración, series, carga
 // movida, récords batidos y cómo fue cada ejercicio frente a la última vez.
 export function DaySummary() {
-  const { summary, model, stats, records, today, actions } = useWorkout();
+  const { summary, model, stats, records, today, nickname, actions } = useWorkout();
   if (!summary) return null;
   const { week, day, minutes } = summary;
   const tally = stats.day(week, day);
@@ -40,7 +40,7 @@ export function DaySummary() {
     <div className="backdrop open summary-backdrop" role="dialog" aria-modal="true" aria-labelledby="summaryTitle" {...closeOnBackdrop(actions.closeSummary)}>
       <div className="modal summary">
         <div className="summary-emoji" aria-hidden="true">{complete ? <PartyIcon /> : <StrongIcon />}</div>
-        <h2 id="summaryTitle">{complete ? "¡Día completado!" : "Entreno terminado"}</h2>
+        <h2 id="summaryTitle">{complete ? "¡Día completado" + (nickname ? ", " + nickname : "") + "!" : "Entreno terminado" + (nickname ? ", " + nickname : "")}</h2>
         <p>{DAY_NAMES[day]}{today && " · " + formatLongDate(today).toLowerCase()}</p>
         <div className="summary-grid">
           <div><strong>{minutes ? minutes + " min" : "—"}</strong><span>Duración</span></div>

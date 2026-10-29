@@ -6,8 +6,8 @@ import { restFinishedAlert } from "@/lib/alerts";
 import { needsHomeScreen, notifyState, requestPermissions, showNotification, subscribePermission, type NotifyState } from "@/lib/permissions";
 import { ALERT_OPTIONS, BEFORE_OPTIONS, DEFAULT_REST, formatRest, getRestPrefs, REST_OPTIONS, setRestPrefs, subscribePrefs } from "@/lib/preferences";
 import { currentTheme, setTheme, subscribeTheme, type Theme } from "@/lib/theme";
-import { BellIcon, CheckIcon, ClockIcon, DownloadIcon, LogoutIcon, MoonIcon, TableIcon, TrashIcon, UploadIcon, UsersIcon } from "./icons";
-import { LeaderboardCard } from "./leaderboard";
+import { BellIcon, CheckIcon, ClockIcon, DownloadIcon, LogoutIcon, MoonIcon, TableIcon, TrashIcon, UploadIcon, UserIcon } from "./icons";
+import { cleanNickname } from "@/lib/nickname";
 import { ReminderRow } from "./reminder-settings";
 import { Group, Row } from "./settings-rows";
 
@@ -26,7 +26,7 @@ const THEMES: { value: Theme; label: string; hint: string }[] = [
 // Vista "Ajustes": lista agrupada (entreno, app, datos y cuenta). Las filas con
 // opciones se despliegan en el sitio.
 export function SettingsView() {
-  const { mode, email, sync, actions } = useWorkout();
+  const { mode, email, sync, nickname, actions } = useWorkout();
   const theme = useSyncExternalStore(subscribeTheme, currentTheme, () => "dark" as Theme);
   const rest = useSyncExternalStore(subscribePrefs, getRestPrefs, () => DEFAULT_REST);
   const permission = useSyncExternalStore(subscribePermission, notifyState, () => "default" as NotifyState);
@@ -60,6 +60,12 @@ export function SettingsView() {
             </div>
           </div>
         )}
+
+        <Group title="Tú">
+          <Row icon={<UserIcon />} label="Tu nombre" value={nickname ?? "Sin poner"} open={open === "name"} onClick={toggle("name")}>
+            <NicknameEditor key={nickname ?? ""} onSaved={() => setOpen(null)} />
+          </Row>
+        </Group>
 
         <Group title="Entreno">
           {cloud && <ReminderRow open={open === "reminder"} onToggle={toggle("reminder")} />}
@@ -150,11 +156,6 @@ export function SettingsView() {
               ))}
             </div>
           </Row>
-          {cloud && (
-            <Row icon={<UsersIcon />} label="Amigos y clasificación" open={open === "friends"} onClick={toggle("friends")}>
-              <LeaderboardCard />
-            </Row>
-          )}
         </Group>
 
         <Group title="Tus datos">
@@ -183,5 +184,21 @@ export function SettingsView() {
         <p className="settings-foot">RUTINA · Seguimiento</p>
       </div>
     </section>
+  );
+}
+
+// Cambiar el nombre o apodo con el que la app se dirige a la persona.
+function NicknameEditor({ onSaved }: { onSaved: () => void }) {
+  const { nickname, actions } = useWorkout();
+  const [value, setValue] = useState(nickname ?? "");
+  const ok = cleanNickname(value).length > 0 && cleanNickname(value) !== nickname;
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); if (ok && actions.setNickname(value)) onSaved(); }}>
+      <p className="set-hint">Así te llama la app y así te ven tus amigos en la clasificación.</p>
+      <label className="form-label">Tu nombre o apodo
+        <input name="nickname" maxLength={30} autoComplete="nickname" value={value} onChange={(e) => setValue(e.target.value)} />
+      </label>
+      <button type="submit" className="set-done" disabled={!ok}>Guardar nombre</button>
+    </form>
   );
 }

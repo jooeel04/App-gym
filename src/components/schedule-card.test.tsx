@@ -1,6 +1,5 @@
-import { screen, within } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import { freezeToday, renderWithWorkout } from "../../tests/workout-fixture";
 import { ScheduleCard } from "./schedule-card";
 
@@ -20,9 +19,8 @@ describe("Rutina · «Tu semana» se lee sin abreviaturas", () => {
     expect(screen.getByRole("button", { name: "Sábado: descanso" })).toBeInTheDocument();
   });
 
-  it("una leyenda dice qué rutina es cada color, con el nombre completo", () => {
+  it("no lleva leyenda debajo: con los colores ya se entiende", () => {
     renderWithWorkout(<ScheduleCard />);
-    const legend = screen.getByRole("list", { name: "Qué rutina es cada color" });
-    expect(within(legend).getAllByRole("listitem").map((li) => li.textContent)).toEqual(DAYS.map((d) => DAY_NAMES[d]));
+    expect(screen.queryByRole("list", { name: "Qué rutina es cada color" })).not.toBeInTheDocument();
   });
 });

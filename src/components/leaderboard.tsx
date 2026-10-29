@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { createGroup, groupLeaderboard, joinGroup, leaveGroup, myGroups, type GroupInfo, type LeaderRow } from "@/app/actions/social";
+import { createGroup, groupExerciseRecords, groupLeaderboard, joinGroup, leaveGroup, myGroups, type GroupInfo, type LeaderRow, type LiftRecordRow } from "@/app/actions/social";
 import { useWorkout } from "@/controllers/workout-controller";
 import { addDays, parseISODate, toISODate } from "@/domain/calendar";
 import { closeOnBackdrop } from "./backdrop";
 import { MedalIcon, UsersIcon } from "./icons";
+import { LiftRanking } from "./lift-ranking";
 
 // Oro, plata y bronce para los tres primeros puestos.
 const MEDALS = ["gold", "silver", "bronze"];
@@ -19,12 +20,15 @@ function monthRange(today: string) {
   return { from, to, label: d.toLocaleDateString("es-ES", { month: "long" }) };
 }
 
-// Clasificación con amigos: grupos con un código y ranking de días entrenados este mes.
+// Clasificación con amigos: grupos con un código, ranking de días entrenados este mes y
+// quién levanta más en cada ejercicio.
 export function LeaderboardCard() {
-  const { mode, email, today } = useWorkout();
+  const { mode, email, today, nickname } = useWorkout();
   const [groups, setGroups] = useState<GroupInfo[] | null>(null);
   const [active, setActive] = useState<string | null>(null);
   const [rows, setRows] = useState<LeaderRow[] | null>(null);
+  const [lifts, setLifts] = useState<LiftRecordRow[] | null>(null);
+  const [liftError, setLiftError] = useState("");
   const [form, setForm] = useState<"create" | "join" | null>(null);
   const [error, setError] = useState("");
 
@@ -43,6 +47,9 @@ export function LeaderboardCard() {
     if (!active || !today) return;
     const { from, to } = monthRange(today);
     groupLeaderboard(active, from, to).then((res) => setRows(res.ok ? res.data ?? [] : [])).catch(() => setRows([]));
+    groupExerciseRecords(active)
+      .then((res) => { setLifts(res.ok ? res.data ?? [] : []); setLiftError(res.ok ? "" : res.error ?? ""); })
+      .catch(() => { setLifts([]); setLiftError("No se pudo cargar quién levanta más (¿sin conexión?)."); });
   }, [active, today]);
 
   if (mode !== "cloud" || !today) return null;
@@ -73,6 +80,8 @@ export function LeaderboardCard() {
             ))}
             {rows === null && <li className="empty">Cargando…</li>}
           </ol>
+          <h3 className="lift-title">🏋️ Quién levanta más</h3>
+          {lifts === null ? <p className="body-hint">Cargando…</p> : liftError ? <p className="auth-msg error">{liftError}</p> : <LiftRanking key={active} rows={lifts} />}
           <div className="group-foot">
             <span>Código del grupo <b>{group.code}</b> · {group.members} {group.members === 1 ? "miembro" : "miembros"}</span>
             <button type="button" className="auth-link" onClick={() => navigator.clipboard.writeText(group.code).catch(() => {})}>Copiar código</button>
@@ -85,7 +94,7 @@ export function LeaderboardCard() {
           </div>
         </>
       ) : groups && (
-        <p className="body-hint">Crea un grupo y pasa el código a tus amigos, o únete al de alguien. Solo veréis vuestros nombres y cuántos días ha entrenado cada uno.</p>
+        <p className="body-hint">Crea un grupo y pasa el código a tus amigos, o únete al de alguien. Solo veréis vuestros nombres, cuántos días ha entrenado cada uno y vuestra mejor serie en cada ejercicio.</p>
       )}
 
       {error && <p className="auth-msg error">{error}</p>}
@@ -93,7 +102,7 @@ export function LeaderboardCard() {
         <button type="button" onClick={() => setForm("join")}>Unirme a un grupo</button>
         <button className="primary" type="button" onClick={() => setForm("create")}>Crear grupo</button>
       </div>
-      {form && <GroupForm kind={form} defaultName={(email ?? "").split("@")[0]} onClose={() => setForm(null)}
+      {form && <GroupForm kind={form} defaultName={nickname ?? (email ?? "").split("@")[0]} onClose={() => setForm(null)}
         onDone={(code) => { setForm(null); setRows(null); void refresh(code); }} />}
     </section>
   );

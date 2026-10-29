@@ -53,6 +53,6 @@ export function freshSnapshot(): WorkoutSnapshot {
   return snap;
 }
 
-export function renderWithWorkout(ui: ReactNode, snapshot: WorkoutSnapshot = historySnapshot()) {
-  return render(<WorkoutProvider mode="local" initialSnapshot={snapshot} email={null}>{ui}</WorkoutProvider>);
+export function renderWithWorkout(ui: ReactNode, snapshot: WorkoutSnapshot = historySnapshot(), mode: "local" | "cloud" = "local") {
+  return render(<WorkoutProvider mode={mode} initialSnapshot={snapshot} email={mode === "cloud" ? "demo@rutina.local" : null}>{ui}</WorkoutProvider>);
 }

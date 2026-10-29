@@ -1032,14 +1032,10 @@ button[data-glass]:active{transform:scale(.97)}
 @media(prefers-reduced-motion:reduce){.set-undo{animation:none}}
 
 /* ===== Hoy: Discos arriba, pendientes dentro de "Hacer otro día" ===== */
-.pagehead-tools{display:flex;align-items:center;gap:8px;flex:none}
-.pagehead-tools .tool-btn{min-height:44px}
 .pending-badge{display:inline-block;margin-left:8px;padding:3px 8px;border-radius:999px;background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn-text);font-size:calc(11px * var(--fs));font-weight:850;vertical-align:middle}
 .pending-list{margin:2px 0 10px}
 .pending-title{margin:0 2px 8px;color:var(--muted);font-size:calc(11px * var(--fs));font-weight:850;letter-spacing:.08em;text-transform:uppercase}
-.stepper-card .stepper-title{display:flex;align-items:center;justify-content:space-between;gap:8px}
-@media(max-width:360px){.pagehead-tools{flex-direction:column;align-items:flex-end;gap:6px}}
-.stepper-plates{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--line2);background:var(--s1);color:var(--soft);font-size:calc(12px * var(--fs));font-weight:800;text-transform:none;letter-spacing:0}
+.stepper-plates{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:44px;padding:0 12px;border-radius:14px;border:1px dashed var(--line2);background:transparent;color:var(--accent);font-size:calc(13px * var(--fs));font-weight:800}
 
 /* ===== Cambio de pestaña sin destello ni golpecito ===== */
 /* El cristal aparece con un fundido: en Safari su primer fotograma sale más claro y,
@@ -1068,6 +1064,22 @@ button[data-glass]:active{transform:scale(.97)}
 .week-strip .wk-day.train>b{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.35)}
 .week-strip .wk-day.today{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
 .week-strip .wk-rest{margin:0}
-.wk-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:14px 0 0;padding:0;list-style:none;color:var(--soft);font-size:calc(12px * var(--fs));font-weight:700}
-.wk-legend li{display:flex;align-items:center;gap:6px}
-.wk-legend i{width:12px;height:12px;border-radius:4px;flex:none}
+
+/* ===== Apodo: «¿Cómo te llamamos?» (encima del asistente de cuentas nuevas) ===== */
+.nickname-backdrop{z-index:80;align-items:center}
+.nickname-modal{text-align:center;width:min(420px,100%)}
+.nickname-modal .form-label{text-align:left}
+.nickname-modal input{font-size:16px}
+.nickname-emoji{font-size:44px}
+
+/* Hoy: botón propio de la calculadora de discos, debajo de la lista */
+.plates-open{display:flex;align-items:center;gap:12px;width:100%;margin:4px 0 12px;padding:12px 14px;min-height:56px;border-radius:18px;border:1px solid var(--line2);background:var(--s1);color:var(--text);text-align:left}
+.plates-open>span:first-child{font-size:24px}
+.plates-open b{display:block;font-size:calc(14px * var(--fs))}
+.plates-open small{display:block;margin-top:2px;color:var(--muted);font-size:calc(11px * var(--fs))}
+
+/* ===== Progreso: «Tú» / «Amigos» y quién levanta más ===== */
+.progress-tabs{margin:0 0 14px}
+.progress-tabs button{min-height:44px}
+.lift-title{margin:18px 0 8px;font-size:calc(15px * var(--fs))}
+.lift-ranking .daychip small{color:var(--muted);font-weight:700}

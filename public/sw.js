@@ -82,3 +82,11 @@ self.addEventListener("push", (e) => {
     data: { url: data.url || "/entrenar" },
   }));
 });
+
+// El navegador cambió la suscripción a los avisos (caducó): se pide otra con las mismas
+// opciones. La app la envía a la cuenta la próxima vez que se abre (ReminderDeviceSync).
+self.addEventListener("pushsubscriptionchange", (e) => {
+  const options = e.oldSubscription && e.oldSubscription.options;
+  if (!options) return;
+  e.waitUntil(self.registration.pushManager.subscribe(options).catch(() => {}));
+});

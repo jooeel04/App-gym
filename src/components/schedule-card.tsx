@@ -31,8 +31,8 @@ function dayColor(routines: number[]) {
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // "Tu semana": qué rutina toca cada día de la semana. Cada día va del color de su
-// rutina (sin abreviaturas, que no se entendían) y la leyenda de debajo dice qué rutina
-// es cada color. Los planes rápidos y la semana del ciclo (se configuran una vez) están
+// rutina (sin abreviaturas, que no se entendían): los mismos colores que los días de
+// arriba, así no hace falta leyenda. Los planes rápidos y la semana del ciclo (se configuran una vez) están
 // en la ventana "Cambiar mis días".
 export function ScheduleCard() {
   const { model, today } = useWorkout();
@@ -65,9 +65,6 @@ export function ScheduleCard() {
           );
         })}
       </div>
-      <ul className="wk-legend" aria-label="Qué rutina es cada color">
-        {DAYS.map((d) => <li key={d}><i style={{ background: "var(--day" + d + ")" }} aria-hidden="true" />{DAY_NAMES[d]}</li>)}
-      </ul>
       {unscheduled.length > 0 && (
         <p className="schedule-note">Sin día fijo: {unscheduled.map((d) => DAY_NAMES[d]).join(", ")}. Puedes hacerlos cuando quieras desde Hoy.</p>
       )}

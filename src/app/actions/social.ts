@@ -104,6 +104,23 @@ export async function leaveGroup(code: unknown): Promise<Result<null>> {
   return error ? fail("No se pudo salir del grupo.") : { ok: true, data: null };
 }
 
+// Mejor serie (más peso) de cada miembro del grupo en cada ejercicio: quién levanta más.
+export interface LiftRecordRow {
+  exercise: string;
+  display_name: string;
+  weight: number;
+  reps: number | null;
+  is_me: boolean;
+}
+
+export async function groupExerciseRecords(code: unknown): Promise<Result<LiftRecordRow[]>> {
+  if (!isCode(code)) return fail("Código no válido.");
+  const db = await session();
+  const { data, error } = await db.rpc("group_exercise_records", { p_code: code.trim().toUpperCase() });
+  if (error) return fail(error.code === "PGRST202" ? "Falta preparar la base de datos para comparar pesos." : "No se pudo cargar quién levanta más.");
+  return { ok: true, data: ((data ?? []) as LiftRecordRow[]).map((r) => ({ ...r, weight: Number(r.weight) })) };
+}
+
 export async function groupLeaderboard(code: unknown, from: unknown, to: unknown): Promise<Result<LeaderRow[]>> {
   if (!isCode(code) || !isISODate(from) || !isISODate(to)) return fail("Datos no válidos.");
   const db = await session();

@@ -22,7 +22,7 @@ export const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 // pendiente está dentro de "Hacer otro día" (que avisa de cuántos hay), para que la
 // pantalla quede limpia. "Corregir series" abre la lista editable para cambiar algo después.
 export function TrainingView() {
-  const { model, stats, calendar, diary, today, week, day, picked, active, actions } = useWorkout();
+  const { model, stats, calendar, diary, today, week, day, picked, active, nickname, actions } = useWorkout();
   const [otherDay, setOtherDay] = useState(false);
   const [editList, setEditList] = useState(false);
   const [plates, setPlates] = useState(false);
@@ -45,8 +45,11 @@ export function TrainingView() {
   const lastDate = diary.days().find((d) => d.date < today && d.sessions.some((s) => s.day === day))?.date;
   const totalSets = list.reduce((n, x) => n + x.sets, 0);
   const exDone = list.filter((x) => model.isExerciseDone(week, day, x)).length;
-  const label = live ? "Entreno en curso" : done ? "¡Hecho!" : planned && planned < today ? "Para hacer hoy · era el " + formatShortDate(planned)
-    : picked && planned !== today ? "Vas a hacer" : "Hoy toca";
+  // Con apodo, la app se dirige a la persona: "Joel, hoy toca".
+  const you = (text: string) => (nickname ? nickname + ", " + text.charAt(0).toLowerCase() + text.slice(1) : text);
+  const label = live ? you("Entreno en curso") : done ? (nickname ? "¡Hecho, " + nickname + "!" : "¡Hecho!")
+    : planned && planned < today ? you("Para hacer hoy · era el " + formatShortDate(planned))
+    : picked && planned !== today ? you("Vas a hacer") : you("Hoy toca");
 
   return (
     <section className="view active">
@@ -55,10 +58,7 @@ export function TrainingView() {
           <div className="eyebrow">{formatLongDate(today)}</div>
           <h1>Hoy</h1>
         </div>
-        <div className="pagehead-tools">
-          {model.startDate && <StreakPill today={today} />}
-          <button type="button" className="tool-btn" onClick={() => setPlates(true)} aria-label="Discos: calculadora de la barra">🏋️ Discos</button>
-        </div>
+        {model.startDate && <StreakPill today={today} />}
       </div>
 
       <PermissionCard />
@@ -112,6 +112,10 @@ export function TrainingView() {
         </div>
       )}
 
+      <button type="button" className="plates-open" aria-label="Calculadora de discos" onClick={() => setPlates(true)}>
+        <span aria-hidden="true">🏋️</span>
+        <span><b>Calculadora de discos</b><small>Qué discos poner a cada lado de la barra</small></span>
+      </button>
       {plates && <PlateCalculator onClose={() => setPlates(false)} />}
       {editList && !resting && (
         <div className="list" key={day} ref={listRef} {...editingHandlers}>
@@ -233,7 +237,7 @@ function StreakPill({ today }: { today: string }) {
 
 // Día de descanso: cuántos días llevas esta semana y qué toca la próxima vez.
 function RestCard() {
-  const { calendar, today } = useWorkout();
+  const { calendar, today, nickname } = useWorkout();
   if (!today) return null;
   const { weekDone, weekTotal } = calendar.streak(today);
   let nextUp: { date: string; day: number } | null = null;
@@ -245,7 +249,7 @@ function RestCard() {
   return (
     <section className="chart rest-card">
       <div className="rest-emoji" aria-hidden="true"><SleepIcon /></div>
-      <h2>Hoy descansas</h2>
+      <h2>Hoy descansas{nickname ? ", " + nickname : ""}</h2>
       {weekTotal > 0 && <p>Llevas {weekDone} de {weekTotal} días esta semana{weekDone > 0 && <> <FlameIcon className="flame" /></>}</p>}
       {nextUp && (
         <div className="rest-next"><i style={{ background: "var(--day" + nextUp.day + ")" }} /><div><b>{when}: {DAY_NAMES[nextUp.day]}</b><span>{formatShortDate(nextUp.date)}</span></div></div>

@@ -8,6 +8,8 @@ import { useScreenAwake } from "@/lib/screen-awake";
 import { syncThemeBar } from "@/lib/theme";
 import { DaySummary } from "./day-summary";
 import { GlassLayer } from "./glass-layer";
+import { NicknamePrompt } from "./nickname-prompt";
+import { ReminderDeviceSync } from "./reminder-device-sync";
 import { TAB_SETTLED } from "./glass-surfaces";
 import { LoadProblem } from "./load-problem";
 import { BrandIcon, ClockIcon, ProgressIcon, RoutineIcon, SettingsIcon, StrongIcon, TrainingIcon, TrophyIcon } from "./icons";
@@ -39,7 +41,7 @@ const EASE = "cubic-bezier(.32,.72,0,1)"; // curva tipo muelle de iOS
 // las páginas de cada ruta solo aportan el título y permiten abrir la URL directamente.
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { ready, loadFailed, toast, sync, active } = useWorkout();
+  const { ready, loadFailed, toast, sync, active, mode } = useWorkout();
   const index = tabIndex(pathname);
   const current = NAV[index];
   // Al deslizar con el dedo asoma la pestaña vecina (`peek`); si se suelta en ella,
@@ -215,6 +217,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       </nav>
       {ready && <RestTimerBar />}
       {ready && <DaySummary />}
+      {ready && mode === "cloud" && <ReminderDeviceSync />}
+      {ready && <NicknamePrompt />}
       {ready && <SetupWizard />}
       <div className={"toast" + (toast.visible ? " show" : "")} role="status" aria-live="polite">
         {toast.icon === "trophy" && <TrophyIcon />}

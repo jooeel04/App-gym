@@ -49,6 +49,22 @@ export async function getReminder(): Promise<Result<ReminderSettings>> {
   };
 }
 
+// Guarda (o renueva) el dispositivo que recibe el aviso. Lo llama la app al abrirse,
+// porque el navegador cambia la suscripción de vez en cuando.
+export async function registerDevice(subscription: unknown): Promise<Result<null>> {
+  if (!isSubscription(subscription)) return fail("El dispositivo no es válido.");
+  const { user, db } = await session();
+  return storeDevice(db, user.id, subscription);
+}
+
+type Db = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+async function storeDevice(db: Db, userId: string, subscription: PushSubscriptionData): Promise<Result<null>> {
+  // Un mismo dispositivo puede haber estado en otra cuenta: se borra y se vuelve a crear.
+  await db.from("push_subscriptions").delete().eq("endpoint", subscription.endpoint);
+  const { error } = await db.from("push_subscriptions").upsert({ endpoint: subscription.endpoint, p256dh: subscription.p256dh, auth: subscription.auth, user_id: userId });
+  return error ? fail("No se pudo activar el aviso en este móvil (puede que esté guardado en otra cuenta).") : { ok: true, data: null };
+}
+
 // Guarda la configuración; si llega `subscription`, también este dispositivo.
 export async function saveReminder(settings: unknown, timezone: unknown, subscription?: unknown): Promise<Result<null>> {
   const s = settings as ReminderSettings;
@@ -62,10 +78,8 @@ export async function saveReminder(settings: unknown, timezone: unknown, subscri
 
   const { user, db } = await session();
   if (subscription) {
-    // Un mismo dispositivo puede haber estado en otra cuenta: se borra y se vuelve a crear.
-    await db.from("push_subscriptions").delete().eq("endpoint", subscription.endpoint);
-    const { error } = await db.from("push_subscriptions").upsert({ endpoint: subscription.endpoint, p256dh: subscription.p256dh, auth: subscription.auth, user_id: user.id });
-    if (error) return fail("No se pudo activar el aviso en este móvil (puede que esté guardado en otra cuenta).");
+    const stored = await storeDevice(db, user.id, subscription);
+    if (!stored.ok) return stored;
   }
   const { error } = await db.from("reminders").upsert({
     user_id: user.id,

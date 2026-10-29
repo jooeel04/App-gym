@@ -149,10 +149,7 @@ function SetStepper({ exercise: x, set: s, old, draft, onSaved }: {
   return (
     <>
       <div className="stepper-card">
-        <div className="stepper-title">
-          <span>Serie {s}{saved && <span> · anotada</span>}</span>
-          <button type="button" className="stepper-plates" onClick={() => setPlates(true)} aria-label="Discos: qué poner en la barra">🏋️ Discos</button>
-        </div>
+        <div className="stepper-title">Serie {s}{saved && <span> · anotada</span>}</div>
         <div className="stepper">
           <span>Carga</span>
           <div className="stepper-ctl">
@@ -174,6 +171,11 @@ function SetStepper({ exercise: x, set: s, old, draft, onSaved }: {
             <button type="button" aria-label="Una repetición más" onClick={() => setReps(bump(reps, 1))}>+</button>
           </div>
         </div>
+        {Number(kg) > 0 && (
+          <button type="button" className="stepper-plates" onClick={() => setPlates(true)}>
+            <span aria-hidden="true">🏋️</span>Calcular discos para {String(Number(kg)).replace(".", ",")} kg
+          </button>
+        )}
         {plates && <PlateCalculator initialTotal={kg} onClose={() => setPlates(false)} />}
         {old && <p className="stepper-prev">La última vez: {old.weight != null ? String(old.weight).replace(".", ",") + " kg × " : "× "}{old.reps ?? "—"}</p>}
       </div>
