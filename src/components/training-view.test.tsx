@@ -40,3 +40,39 @@ describe("Hoy · aviso para activar los permisos", () => {
     expect(screen.getByText("Lo que vas a hacer")).toBeInTheDocument();
   });
 });
+
+// En los datos de prueba solo se hizo Torso: en las dos últimas semanas quedan días sin hacer.
+describe("Hoy · los días pendientes no ocupan la pantalla principal", () => {
+  beforeEach(freezeToday);
+  afterEach(() => vi.useRealTimers());
+
+  it("no se ven de entrada: «Hacer otro día» avisa de cuántos hay", () => {
+    renderWithWorkout(<TrainingView />);
+    expect(screen.queryByText(/Te quedó pendiente/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Hacer otro día/ })).toHaveTextContent(/\d+ pendientes/);
+  });
+
+  it("al abrir «Hacer otro día» aparecen los pendientes con «Hacer hoy»", () => {
+    renderWithWorkout(<TrainingView />);
+    fireEvent.click(screen.getByRole("button", { name: /Hacer otro día/ }));
+    expect(screen.getByText("Pendientes")).toBeInTheDocument();
+    const count = Number(/(\d+) pendientes/.exec(screen.getByRole("button", { name: /Hacer otro día/ }).textContent ?? "")?.[1]);
+    const buttons = screen.getAllByRole("button", { name: /^Hacer hoy / });
+    expect(buttons).toHaveLength(count);
+    const name = buttons[0].getAttribute("aria-label")!.replace("Hacer hoy ", "");
+    fireEvent.click(buttons[0]);
+    expect(screen.getByRole("heading", { level: 2, name })).toBeInTheDocument();
+    expect(screen.queryByText("Pendientes")).not.toBeInTheDocument();
+  });
+});
+
+describe("Hoy · calculadora de discos", () => {
+  beforeEach(freezeToday);
+  afterEach(() => vi.useRealTimers());
+
+  it("se abre desde el botón «Discos» de arriba", () => {
+    renderWithWorkout(<TrainingView />);
+    fireEvent.click(screen.getByRole("button", { name: /Discos/ }));
+    expect(screen.getByRole("dialog", { name: "Calculadora de discos" })).toBeInTheDocument();
+  });
+});

@@ -71,4 +71,20 @@ describe("GlassSurfaces · cristal líquido en tarjetas y botones de toda la app
     await new Promise((r) => setTimeout(r, 80));
     expect(document.querySelectorAll(".glass-slot")).toHaveLength(0);
   });
+
+  it("no pone el cristal en la pestaña que asoma al deslizar, hasta que se queda quieta", async () => {
+    render(
+      <>
+        <div className="page"><section className="chart" data-testid="actual"><h2>Hoy</h2></section></div>
+        <div className="page peek" data-testid="pagina"><section className="chart" data-testid="vecina"><h2>Rutina</h2></section></div>
+        <GlassSurfaces />
+      </>,
+    );
+    await waitFor(() => expect(glassOf(screen.getByTestId("actual"))).not.toBeNull());
+    expect(screen.getByTestId("vecina").querySelector(".glass-slot")).toBeNull();
+    // Termina el cambio de pestaña: la vecina pasa a ser la actual.
+    screen.getByTestId("pagina").classList.remove("peek");
+    window.dispatchEvent(new Event("rutina-tab-settled"));
+    await waitFor(() => expect(glassOf(screen.getByTestId("vecina"))).not.toBeNull());
+  });
 });

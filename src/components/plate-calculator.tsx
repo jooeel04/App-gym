@@ -28,9 +28,10 @@ export function platesFor(total: number, bar: number) {
   return { plates, rest: Math.round(side * 100) / 100 };
 }
 
-// Calculadora de discos: qué poner a cada lado de la barra.
-export function PlateCalculator({ onClose }: { onClose: () => void }) {
-  const [total, setTotal] = useState("60");
+// Calculadora de discos: qué poner a cada lado de la barra. `initialTotal`: el peso con
+// el que se abre (p. ej. el de la serie que se está anotando).
+export function PlateCalculator({ onClose, initialTotal }: { onClose: () => void; initialTotal?: string }) {
+  const [total, setTotal] = useState(() => (Number(initialTotal) > 0 ? String(initialTotal) : "60"));
   const [bar, setBar] = useState(20);
   const kg = Number(total.replace(",", "."));
   const { plates, rest } = platesFor(kg, bar);

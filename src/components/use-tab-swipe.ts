@@ -7,6 +7,24 @@ const MIN_VELOCITY = 0.45; // px/ms: un gesto rápido cambia aunque sea corto
 const EDGE_RESISTANCE = 0.25; // sin pestaña hacia ese lado, el arrastre se frena
 export const PEEK_GAP = 16; // separación entre la pestaña actual y la que asoma
 
+// Llama a `done` cuando el deslizamiento de `el` termina de verdad (fin de su transición
+// de transform). No basta con esperar `ms`: si el móvil va cargado la animación empieza
+// tarde y, al darla por acabada antes, la pestaña saltaba los últimos píxeles. Por si el
+// navegador no avisa (pestaña en segundo plano), hay un tope de seguridad.
+export function afterSlide(el: HTMLElement, ms: number, done: () => void) {
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    el.removeEventListener("transitionend", onEnd);
+    clearTimeout(timer);
+    done();
+  };
+  const onEnd = (e: TransitionEvent) => { if (e.target === el && e.propertyName === "transform") finish(); };
+  el.addEventListener("transitionend", onEnd);
+  const timer = setTimeout(finish, ms + 400);
+}
+
 // No se interpreta como cambio de pestaña si el dedo empieza en un campo, una
 // ventana emergente o una zona que ya se desplaza en horizontal (chips de días…).
 function ignoreTarget(target: EventTarget | null, root: HTMLElement) {
@@ -44,7 +62,7 @@ export function useTabSwipe(rootRef: RefObject<HTMLElement | null>, pagerRef: Re
       if (!pager) return;
       pager.style.transition = ms ? `transform ${ms}ms cubic-bezier(.2,.8,.25,1)` : "";
       pager.style.transform = x ? `translate3d(${x}px,0,0)` : "";
-      if (done) setTimeout(done, ms + 20);
+      if (done) afterSlide(pager, ms, done);
     };
 
     const onStart = (e: TouchEvent) => {

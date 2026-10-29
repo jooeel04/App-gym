@@ -19,6 +19,10 @@ export const GLASS_SURFACES = [
 // componente: a cada uno le añade al final un hueco (`.glass-slot`, fuera del flujo y
 // detrás del contenido) donde pinta GlassLayer. Si React vacía el elemento al cambiar
 // su texto, el hueco se vuelve a poner; si el elemento desaparece, se quita.
+// La pestaña que asoma al cambiar de pestaña (`.page.peek`) no lleva cristal mientras se
+// desliza (montar muchos cristales a la vez atasca el movimiento): se le pone cuando se
+// queda quieta (evento TAB_SETTLED, que lanza AppShell).
+export const TAB_SETTLED = "rutina-tab-settled";
 export function GlassSurfaces() {
   const [slots, setSlots] = useState<[Element, HTMLElement][]>([]);
 
@@ -30,7 +34,7 @@ export function GlassSurfaces() {
       pending = 0;
       let changed = false;
       for (const host of document.querySelectorAll(GLASS_SURFACES)) {
-        if (host.closest(".glass-layer")) continue;
+        if (host.closest(".glass-layer, .page.peek")) continue;
         let slot = map.get(host);
         if (!slot) {
           slot = document.createElement("span");
@@ -53,8 +57,10 @@ export function GlassSurfaces() {
     scan();
     const mo = new MutationObserver(() => { if (!pending) pending = window.setTimeout(scan, 16); });
     mo.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener(TAB_SETTLED, scan);
     return () => {
       mo.disconnect();
+      window.removeEventListener(TAB_SETTLED, scan);
       clearTimeout(pending);
       for (const slot of map.values()) slot.remove();
     };

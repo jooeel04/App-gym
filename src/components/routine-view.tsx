@@ -19,11 +19,11 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 // para hacerlo hoy. Con "Editar" aparecen las acciones para añadir, editar, reordenar
 // y eliminar ejercicios.
 export function RoutineView() {
-  const { model, calendar, today, actions } = useWorkout();
+  const { model, actions } = useWorkout();
   const [editing, setEditing] = useState<{ day: number; exercise?: Exercise } | null>(null);
   const [edit, setEdit] = useState(false);
-  // Abierto al entrar: el día que toca hoy (si hay alguno).
-  const [open, setOpen] = useState<number | null>(() => (today ? calendar.sessionsOn(today)[0]?.day ?? null : null));
+  // Al entrar están todos cerrados: se abre el que se toque.
+  const [open, setOpen] = useState<number | null>(null);
   // Los días sin día fijo van al final.
   const order = [...DAYS].sort((a, b) => (model.weekdayFor(a) || 8) - (model.weekdayFor(b) || 8));
 

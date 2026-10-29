@@ -675,8 +675,8 @@ body:has(.restbar) .toast{bottom:calc(166px + env(safe-area-inset-bottom))}
 .pending-card span{display:block;margin-top:2px;color:var(--muted);font-size:calc(11px * var(--fs))}
 .pending-card button{flex:none;border:0;border-radius:12px;padding:10px 12px;background:var(--warn-text);color:#1a1200;font-size:calc(12px * var(--fs));font-weight:850}
 :root[data-theme="light"] .pending-card button{color:#fff}
-.peek{margin-top:2px}
-.peek h3{margin:0 0 6px;font-size:calc(14px * var(--fs))}
+.chart.peek{margin-top:2px}
+.chart.peek h3{margin:0 0 6px;font-size:calc(14px * var(--fs))}
 .peek-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--hair)}
 .peek-row .n{flex:none;width:26px;height:26px;border-radius:9px;display:grid;place-items:center;background:var(--accent-bg);color:var(--accent);font-size:calc(11px * var(--fs));font-weight:900}
 .peek-row.done .n{background:var(--day3);color:#fff}
@@ -1030,3 +1030,33 @@ button[data-glass]:active{transform:scale(.97)}
 .set-undo{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 0;padding:4px 4px 4px 14px;border-radius:14px;background:var(--glass);border:1px solid var(--glass-line);color:var(--soft);font-size:calc(13px * var(--fs));font-weight:700;animation:fade-up .2s ease-out}
 .set-undo button{min-height:44px;padding:0 14px;border:0;border-radius:11px;background:transparent;color:var(--accent);font-size:calc(14px * var(--fs));font-weight:850}
 @media(prefers-reduced-motion:reduce){.set-undo{animation:none}}
+
+/* ===== Hoy: Discos arriba, pendientes dentro de "Hacer otro día" ===== */
+.pagehead-tools{display:flex;align-items:center;gap:8px;flex:none}
+.pagehead-tools .tool-btn{min-height:44px}
+.pending-badge{display:inline-block;margin-left:8px;padding:3px 8px;border-radius:999px;background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn-text);font-size:calc(11px * var(--fs));font-weight:850;vertical-align:middle}
+.pending-list{margin:2px 0 10px}
+.pending-title{margin:0 2px 8px;color:var(--muted);font-size:calc(11px * var(--fs));font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+.stepper-card .stepper-title{display:flex;align-items:center;justify-content:space-between;gap:8px}
+@media(max-width:360px){.pagehead-tools{flex-direction:column;align-items:flex-end;gap:6px}}
+.stepper-plates{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--line2);background:var(--s1);color:var(--soft);font-size:calc(12px * var(--fs));font-weight:800;text-transform:none;letter-spacing:0}
+
+/* ===== Cambio de pestaña sin destello ni golpecito ===== */
+/* El cristal aparece con un fundido: en Safari su primer fotograma sale más claro y,
+   si se enciende de golpe, todas las tarjetas dan un destello al cambiar de pestaña. */
+@keyframes glass-in{from{opacity:0}}
+.glass-layer.on{animation:glass-in .45s ease-out .05s both}
+/* Los márgenes no "se salen" de la pestaña: así la que asoma al deslizar está a la misma
+   altura que cuando se queda (antes bajaba 8 px de golpe al final del movimiento). */
+.page{display:flow-root}
+@media(prefers-reduced-motion:reduce){.glass-layer.on{animation:none}}
+/* Móviles estrechos (iPhone SE 1ª gen.): los + / − de la serie caben sin salirse */
+.stepper-card{grid-template-columns:minmax(0,1fr)}
+@media(max-width:360px){
+  .stepper{gap:6px;flex-wrap:wrap}
+  .stepper-ctl{margin-left:auto}
+  .stepper-ctl{gap:6px}
+  .stepper-ctl button{width:44px;height:44px}
+  .stepper-val{width:74px}
+  .stepper-val input{font-size:calc(26px * var(--fs))}
+}

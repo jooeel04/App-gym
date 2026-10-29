@@ -7,6 +7,7 @@ import { parseRepRange, suggestNext } from "@/domain/progression";
 import type { Exercise, SetEntry } from "@/domain/types";
 import type { SetResult } from "@/domain/workout-stats";
 import { BodyMap } from "./body-map";
+import { PlateCalculator } from "./plate-calculator";
 import { BulbIcon, CheckIcon, TrendUpIcon } from "./icons";
 import { ExerciseDetail, range, suggestedWeight, supersetRole } from "./training-view";
 
@@ -131,6 +132,7 @@ function SetStepper({ exercise: x, set: s, old, draft, onSaved }: {
   const saved = hasReps(e);
   const filled = (v?: string | null) => (v?.trim() ? v : null);
   const [kg, setKg] = useState(() => filled(draft?.weight) ?? filled(e.weight) ?? suggestedWeight(range(s - 1).map((p) => model.getEntry(week, day, x.id, p).weight), old));
+  const [plates, setPlates] = useState(false);
   const [reps, setReps] = useState(() => filled(draft?.reps) ?? filled(e.reps) ?? (old?.reps != null ? String(old.reps) : String(parseRepRange(x.target)?.min ?? "")));
   const name = x.name + ", serie " + s;
 
@@ -147,7 +149,10 @@ function SetStepper({ exercise: x, set: s, old, draft, onSaved }: {
   return (
     <>
       <div className="stepper-card">
-        <div className="stepper-title">Serie {s}{saved && <span> · anotada</span>}</div>
+        <div className="stepper-title">
+          <span>Serie {s}{saved && <span> · anotada</span>}</span>
+          <button type="button" className="stepper-plates" onClick={() => setPlates(true)} aria-label="Discos: qué poner en la barra">🏋️ Discos</button>
+        </div>
         <div className="stepper">
           <span>Carga</span>
           <div className="stepper-ctl">
@@ -169,6 +174,7 @@ function SetStepper({ exercise: x, set: s, old, draft, onSaved }: {
             <button type="button" aria-label="Una repetición más" onClick={() => setReps(bump(reps, 1))}>+</button>
           </div>
         </div>
+        {plates && <PlateCalculator initialTotal={kg} onClose={() => setPlates(false)} />}
         {old && <p className="stepper-prev">La última vez: {old.weight != null ? String(old.weight).replace(".", ",") + " kg × " : "× "}{old.reps ?? "—"}</p>}
       </div>
       <button type="button" className="set-done" disabled={!reps.trim()} onClick={save}>

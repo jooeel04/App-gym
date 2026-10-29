@@ -65,3 +65,16 @@ describe("Hoy · anotar una serie se puede deshacer", () => {
     expect(chip(1)).toHaveTextContent("× 6");
   });
 });
+
+describe("Hoy · calculadora de discos desde la serie", () => {
+  beforeEach(freezeToday);
+  afterEach(() => vi.useRealTimers());
+
+  it("«Discos» abre la calculadora con el peso que se está poniendo", () => {
+    renderWithWorkout(<ExerciseLogger exercise={MILITAR} superset={null} />);
+    fireEvent.change(screen.getByRole("spinbutton", { name: /carga en kg/ }), { target: { value: "62.5" } });
+    fireEvent.click(screen.getByRole("button", { name: /Discos/ }));
+    const dialog = screen.getByRole("dialog", { name: "Calculadora de discos" });
+    expect(within(dialog).getByRole("spinbutton")).toHaveValue(62.5);
+  });
+});

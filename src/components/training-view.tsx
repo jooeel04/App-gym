@@ -12,17 +12,20 @@ import { BodyMap } from "./body-map";
 import { describeSet } from "./exercise-progress";
 import { notifyState, requestPermissions, subscribePermission, type NotifyState } from "@/lib/permissions";
 import { ExerciseLogger } from "./exercise-logger";
+import { PlateCalculator } from "./plate-calculator";
 import { BellIcon, BulbIcon, ChevronIcon, FlameIcon, SleepIcon, TrendUpIcon, WarningIcon } from "./icons";
 
 export const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 
-// Vista "Hoy": qué toca hoy en grande (con lo que llevas hecho), lo que quedó pendiente
-// y la lista de ejercicios: al tocar uno se despliega para anotar sus series con
-// botones + / −. "Corregir series" abre la lista editable para cambiar algo después.
+// Vista "Hoy": qué toca hoy en grande (con lo que llevas hecho) y la lista de ejercicios:
+// al tocar uno se despliega para anotar sus series con botones + / −. Lo que quedó
+// pendiente está dentro de "Hacer otro día" (que avisa de cuántos hay), para que la
+// pantalla quede limpia. "Corregir series" abre la lista editable para cambiar algo después.
 export function TrainingView() {
   const { model, stats, calendar, diary, today, week, day, picked, active, actions } = useWorkout();
   const [otherDay, setOtherDay] = useState(false);
   const [editList, setEditList] = useState(false);
+  const [plates, setPlates] = useState(false);
   const done = model.isDayCompleted(week, day);
   const planned = calendar.plannedDate(week, day);
   const list = model.exercisesOfDay(day);
@@ -52,7 +55,10 @@ export function TrainingView() {
           <div className="eyebrow">{formatLongDate(today)}</div>
           <h1>Hoy</h1>
         </div>
-        {model.startDate && <StreakPill today={today} />}
+        <div className="pagehead-tools">
+          {model.startDate && <StreakPill today={today} />}
+          <button type="button" className="tool-btn" onClick={() => setPlates(true)} aria-label="Discos: calculadora de la barra">🏋️ Discos</button>
+        </div>
       </div>
 
       <PermissionCard />
@@ -74,21 +80,28 @@ export function TrainingView() {
       )}
       {picked && <button type="button" className="other-day" onClick={actions.goToToday}>‹ Volver a hoy</button>}
 
-      {missed.map((s) => (
-        <div className="pending-card" key={s.week + "|" + s.day}>
-          <div><b><WarningIcon /> Te quedó pendiente: {DAY_NAMES[s.day]}</b><span>Era el {formatLongDate(s.date).toLowerCase()}</span></div>
-          <button type="button" onClick={() => actions.recoverSession(s)}>Hacer hoy</button>
-        </div>
-      ))}
 
       {!resting && list.length > 0 && !editList && <TodayList key={week + "-" + day} done={done} />}
 
       <div className="hoy-links">
-        <button type="button" className="other-day" onClick={() => setOtherDay(!otherDay)}>Hacer otro día {otherDay ? "⌃" : "›"}</button>
+        <button type="button" className="other-day" aria-expanded={otherDay} onClick={() => setOtherDay(!otherDay)}>
+          Hacer otro día{missed.length > 0 && <span className="pending-badge">{missed.length} {missed.length === 1 ? "pendiente" : "pendientes"}</span>} {otherDay ? "⌃" : "›"}
+        </button>
         {!resting && list.length > 0 && (
           <button type="button" className="other-day" onClick={() => setEditList(!editList)}>{editList ? "✓ Listo" : "✎ Corregir series"}</button>
         )}
       </div>
+      {otherDay && missed.length > 0 && (
+        <div className="pending-list">
+          <div className="pending-title">Pendientes</div>
+          {missed.map((s) => (
+            <div className="pending-card" key={s.week + "|" + s.day}>
+              <div><b><WarningIcon /> {DAY_NAMES[s.day]}</b><span>Era el {formatLongDate(s.date).toLowerCase()}</span></div>
+              <button type="button" aria-label={"Hacer hoy " + DAY_NAMES[s.day]} onClick={() => { actions.recoverSession(s); setOtherDay(false); }}>Hacer hoy</button>
+            </div>
+          ))}
+        </div>
+      )}
       {otherDay && (
         <div className="days">
           {DAYS.map((d) => (
@@ -99,6 +112,7 @@ export function TrainingView() {
         </div>
       )}
 
+      {plates && <PlateCalculator onClose={() => setPlates(false)} />}
       {editList && !resting && (
         <div className="list" key={day} ref={listRef} {...editingHandlers}>
           {list.map((x, i) => (

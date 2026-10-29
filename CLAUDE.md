@@ -99,6 +99,13 @@ localStorage), lo que permite probar la interfaz: `npx next start -p 3100`.
   Reglas: nada dentro del cristal con `mix-blend-mode` (anula el desenfoque); el elemento
   no debe tener su propio `backdrop-filter`; las capas son `span`, así que las reglas
   tipo `.tarjeta span{…}` las alcanzan (por eso se les quita el margen en el CSS).
+  La pestaña que asoma al cambiar de pestaña (`.page.peek`) no lleva cristal mientras se
+  desliza (atasca el movimiento): se le pone al quedarse quieta (evento `TAB_SETTLED`,
+  que lanza `AppShell`), con un fundido (`.glass-layer.on`) para que no dé un destello.
+- **Cambio de pestaña**: se da por terminado al acabar de verdad la transición del
+  `.pager` (`afterSlide` en `use-tab-swipe.ts`), no a tiempo fijo. No uses la clase
+  `peek` sola en CSS (`.peek{…}`): también la lleva la pestaña que asoma y la deforma
+  durante el deslizamiento (la lista de Hoy usa `.chart.peek`).
 - Comentarios, textos de la interfaz y mensajes de commit en **español**.
 - Los archivos pueden tener finales de línea CRLF (Windows); normalízalos antes de
   hacer ediciones de varias líneas con scripts.

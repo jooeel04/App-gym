@@ -8,6 +8,7 @@ import { useScreenAwake } from "@/lib/screen-awake";
 import { syncThemeBar } from "@/lib/theme";
 import { DaySummary } from "./day-summary";
 import { GlassLayer } from "./glass-layer";
+import { TAB_SETTLED } from "./glass-surfaces";
 import { LoadProblem } from "./load-problem";
 import { BrandIcon, ClockIcon, ProgressIcon, RoutineIcon, SettingsIcon, StrongIcon, TrainingIcon, TrophyIcon } from "./icons";
 import { ProgressView } from "./progress-view";
@@ -16,7 +17,7 @@ import { RoutineView } from "./routine-view";
 import { SettingsView } from "./settings-view";
 import { TrainingView } from "./training-view";
 import { SetupWizard } from "./setup-wizard";
-import { PEEK_GAP, useTabSwipe } from "./use-tab-swipe";
+import { afterSlide, PEEK_GAP, useTabSwipe } from "./use-tab-swipe";
 
 const NAV = [
   { href: "/entrenar", label: "Hoy", Icon: TrainingIcon, View: TrainingView },
@@ -130,7 +131,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         pager.style.transition = `transform ${SLIDE_MS}ms ${EASE}`;
         pager.style.transform = `translate3d(${dir * width}px,0,0)`;
       }
-      setTimeout(() => { animating.current = false; onCommit(i); }, SLIDE_MS);
+      const done = () => { animating.current = false; onCommit(i); };
+      if (pager) afterSlide(pager, SLIDE_MS, done);
+      else done();
     }));
   }, [onCommit, setLens, peekAt]);
   useEffect(() => {
@@ -157,6 +160,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       pager.style.transform = "";
     }
     window.scrollTo({ top: scrolls.current[pathname] ?? 0, behavior: "instant" });
+    // Ya quieta: la pestaña nueva recibe su cristal (con un fundido suave).
+    requestAnimationFrame(() => window.dispatchEvent(new Event(TAB_SETTLED)));
   }, [pathname]);
 
   const pages = peek ? [index, peek.index] : [index];
