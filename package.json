@@ -1,6 +1,6 @@
 {
-  "name": "rutina-seguimiento",
-  "version": "1.0.0",
+  "name": "fitgym",
+  "version": "1.1.0",
   "private": true,
   "description": "Rutina y seguimiento de entrenamiento. Next.js + Supabase.",
   "scripts": {

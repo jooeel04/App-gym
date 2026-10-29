@@ -5,10 +5,11 @@ import { useWorkout } from "@/controllers/workout-controller";
 import { restFinishedAlert } from "@/lib/alerts";
 import { needsHomeScreen, notifyState, requestPermissions, showNotification, subscribePermission, type NotifyState } from "@/lib/permissions";
 import { ALERT_OPTIONS, BEFORE_OPTIONS, DEFAULT_REST, formatRest, getRestPrefs, REST_OPTIONS, setRestPrefs, subscribePrefs } from "@/lib/preferences";
-import { currentTheme, setTheme, subscribeTheme, type Theme } from "@/lib/theme";
+import { getThemePref, setTheme, subscribeTheme, type ThemePref } from "@/lib/theme";
 import { BellIcon, CheckIcon, ClockIcon, DownloadIcon, LogoutIcon, MoonIcon, TableIcon, TrashIcon, UploadIcon, UserIcon } from "./icons";
 import { cleanNickname } from "@/lib/nickname";
 import { ReminderRow } from "./reminder-settings";
+import { DeleteAccountRow, EmailRow, PasswordRow, PlatesRow, PrivacyRow, TextSizeRow, VersionRow } from "./settings-extra";
 import { Group, Row } from "./settings-rows";
 
 const PERMISSION_LABEL: Record<NotifyState, string> = {
@@ -18,7 +19,8 @@ const PERMISSION_LABEL: Record<NotifyState, string> = {
   unsupported: "No disponibles",
 };
 
-const THEMES: { value: Theme; label: string; hint: string }[] = [
+const THEMES: { value: ThemePref; label: string; hint: string }[] = [
+  { value: "auto", label: "Automático", hint: "Como tu móvil" },
   { value: "dark", label: "Oscuro", hint: "Fondo negro" },
   { value: "light", label: "Claro", hint: "Fondo blanco" },
 ];
@@ -27,7 +29,7 @@ const THEMES: { value: Theme; label: string; hint: string }[] = [
 // opciones se despliegan en el sitio.
 export function SettingsView() {
   const { mode, email, sync, nickname, actions } = useWorkout();
-  const theme = useSyncExternalStore(subscribeTheme, currentTheme, () => "dark" as Theme);
+  const theme = useSyncExternalStore(subscribeTheme, getThemePref, () => "auto" as ThemePref);
   const rest = useSyncExternalStore(subscribePrefs, getRestPrefs, () => DEFAULT_REST);
   const permission = useSyncExternalStore(subscribePermission, notifyState, () => "default" as NotifyState);
   const homeScreen = useSyncExternalStore(subscribePermission, needsHomeScreen, () => false);
@@ -65,6 +67,7 @@ export function SettingsView() {
           <Row icon={<UserIcon />} label="Tu nombre" value={nickname ?? "Sin poner"} open={open === "name"} onClick={toggle("name")}>
             <NicknameEditor key={nickname ?? ""} onSaved={() => setOpen(null)} />
           </Row>
+          {cloud && <PrivacyRow open={open === "privacy"} onToggle={toggle("privacy")} />}
         </Group>
 
         <Group title="Entreno">
@@ -139,6 +142,7 @@ export function SettingsView() {
               </>
             )}
           </Row>
+          <PlatesRow open={open === "plates"} onToggle={toggle("plates")} />
         </Group>
 
         <Group title="App">
@@ -156,6 +160,8 @@ export function SettingsView() {
               ))}
             </div>
           </Row>
+          <TextSizeRow open={open === "text"} onToggle={toggle("text")} />
+          <VersionRow open={open === "version"} onToggle={toggle("version")} />
         </Group>
 
         <Group title="Tus datos">
@@ -177,8 +183,11 @@ export function SettingsView() {
         <p className="set-note">{cloud ? "La copia es un archivo con todos tus registros, por si quieres guardarla aparte." : "Tus datos están solo en este navegador: descarga una copia para no perderlos."}</p>
 
         <Group title="Cuenta">
+          {cloud && <PasswordRow open={open === "password"} onToggle={toggle("password")} />}
+          {cloud && <EmailRow open={open === "email"} onToggle={toggle("email")} />}
           {cloud && <Row icon={<LogoutIcon />} label="Cerrar sesión" onClick={actions.signOut} />}
           <Row icon={<TrashIcon />} label="Borrar registros" onClick={actions.clearData} tone="danger" />
+          {cloud && <DeleteAccountRow open={open === "delete"} onToggle={toggle("delete")} />}
         </Group>
 
         <p className="settings-foot">FitGym · Tu entreno</p>

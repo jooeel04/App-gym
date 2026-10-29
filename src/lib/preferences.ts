@@ -53,3 +53,38 @@ export function subscribePrefs(onChange: () => void) {
 
 // 90 → "1:30"; 30 → "30 s".
 export const formatRest = (s: number) => (s < 60 ? s + " s" : Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"));
+
+// Calculadora de discos: la barra y los discos que hay en tu gym.
+export interface PlatePrefs {
+  bar: number;
+  plates: number[];
+}
+
+const PLATES_KEY = "rutina:discos";
+export const ALL_PLATES = [25, 20, 15, 10, 5, 2.5, 1.25];
+export const BAR_OPTIONS = [20, 15, 10, 0];
+export const DEFAULT_PLATES: PlatePrefs = { bar: 20, plates: ALL_PLATES };
+
+let cachedPlates: PlatePrefs | null = null;
+
+export function getPlatePrefs(): PlatePrefs {
+  if (cachedPlates) return cachedPlates;
+  try {
+    const saved = JSON.parse(localStorage.getItem(PLATES_KEY) ?? "null") as Partial<PlatePrefs> | null;
+    const plates = Array.isArray(saved?.plates) ? ALL_PLATES.filter((p) => saved.plates!.includes(p)) : ALL_PLATES;
+    cachedPlates = { bar: BAR_OPTIONS.includes(Number(saved?.bar)) ? Number(saved?.bar) : DEFAULT_PLATES.bar, plates: plates.length ? plates : ALL_PLATES };
+  } catch {
+    cachedPlates = DEFAULT_PLATES;
+  }
+  return cachedPlates;
+}
+
+export function setPlatePrefs(prefs: PlatePrefs) {
+  cachedPlates = { bar: prefs.bar, plates: ALL_PLATES.filter((p) => prefs.plates.includes(p)) };
+  try {
+    localStorage.setItem(PLATES_KEY, JSON.stringify(cachedPlates));
+  } catch {
+    // Sin almacenamiento la preferencia dura hasta cerrar la app.
+  }
+  window.dispatchEvent(new Event(PREFS_EVENT));
+}

@@ -37,8 +37,16 @@ export async function authenticate(_prev: AuthFormState, formData: FormData): Pr
       password,
       options: { emailRedirectTo: origin + "/auth/confirm" },
     });
-    if (error) return { error: authMessage(error) };
-    if (!data.session) return { message: "Cuenta creada. Revisa tu correo para confirmarla y después inicia sesión." };
+    // El correo ya tiene cuenta (Supabase lo dice con un error o con una cuenta sin
+    // identidades): se intenta entrar con esos datos en vez de dar error.
+    const exists = error?.code === "user_already_exists" || (!error && data.user?.identities?.length === 0);
+    if (exists) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) return { error: signInError.code === "invalid_credentials" ? "Ya tienes cuenta con ese correo, pero la contraseña no es esa. Pulsa «Entrar» o «¿Olvidaste tu contraseña?»." : authMessage(signInError) };
+    } else {
+      if (error) return { error: authMessage(error) };
+      if (!data.session) return { message: "Cuenta creada. Revisa tu correo para confirmarla y después inicia sesión." };
+    }
   } else {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: authMessage(error) };

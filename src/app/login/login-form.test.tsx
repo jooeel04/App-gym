@@ -43,4 +43,10 @@ describe("Acceso a la cuenta", () => {
     expect(screen.getByLabelText("Repite la contraseña")).toHaveAttribute("type", "text");
     expect(screen.getByLabelText("Contraseña nueva")).toHaveAttribute("type", "password");
   });
+
+  it("el botón Ir del teclado entra (no crea cuenta): «Entrar» es el primer botón de enviar", () => {
+    render(<LoginForm confirmationFailed={false} />);
+    const form = screen.getByRole("button", { name: "Entrar" }).closest("form")!;
+    expect(form.querySelector<HTMLButtonElement>('button[type="submit"]')?.value).toBe("signin");
+  });
 });

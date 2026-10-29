@@ -531,6 +531,13 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       await signOutAction();
     },
 
+    // La cuenta ya se ha borrado (y la sesión cerrado): limpia este dispositivo y vuelve al inicio.
+    accountDeleted() {
+      if ("caches" in window) void caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))).catch(() => {});
+      sync?.clearLocal();
+      window.location.replace("/login");
+    },
+
     showToast,
   };
 }

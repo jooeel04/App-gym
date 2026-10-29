@@ -6,7 +6,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import type { MouseEvent, ReactNode } from "react";
 import { registerTabAnimator, switchTab, useWorkout } from "@/controllers/workout-controller";
 import { useScreenAwake } from "@/lib/screen-awake";
-import { syncThemeBar } from "@/lib/theme";
+import { syncThemeBar, watchSystemTheme } from "@/lib/theme";
 import { DaySummary } from "./day-summary";
 import { GlassLayer } from "./glass-layer";
 import { NicknamePrompt } from "./nickname-prompt";
@@ -62,7 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => { document.title = current.label + " · FitGym"; }, [current]);
-  useEffect(syncThemeBar, []);
+  useEffect(() => { syncThemeBar(); return watchSystemTheme(); }, []);
   // Los enlaces de rutina compartidos antes eran /rutina?codigo=…: ahora lo social está en Social.
   useEffect(() => {
     if (window.location.pathname === "/rutina" && new URLSearchParams(window.location.search).has("codigo")) {

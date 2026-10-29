@@ -79,9 +79,10 @@ export function LoginForm({ confirmationFailed }: { confirmationFailed: boolean 
               <label className="form-label">Correo electrónico<input name="email" type="email" autoComplete="email" required disabled={pending} /></label>
               <PasswordField label="Contraseña" name="password" autoComplete="current-password" disabled={pending} />
               <Messages state={state} />
-              <div className="modal-actions">
-                <button type="submit" name="intent" value="signup" disabled={pending}>Crear cuenta</button>
+              {/* «Entrar» va primero en el código: es el que usa el botón Ir del teclado. Se ve a la derecha. */}
+              <div className="modal-actions auth-actions">
                 <button className="primary" type="submit" name="intent" value="signin" disabled={pending}>{pending ? "Entrando…" : "Entrar"}</button>
+                <button type="submit" name="intent" value="signup" disabled={pending}>Crear cuenta</button>
               </div>
             </form>
             <button type="button" className="auth-link" onClick={() => setForgot(true)}>¿Olvidaste tu contraseña?</button>
