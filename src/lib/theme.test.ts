@@ -54,6 +54,9 @@ describe("Tamaño de letra", () => {
     setTextSize("grande");
     expect(document.documentElement.dataset.text).toBe("grande");
     expect(getTextSize()).toBe("grande");
+    setTextSize("pequena");
+    expect(document.documentElement.dataset.text).toBe("pequena");
+    expect(getTextSize()).toBe("pequena");
     setTextSize("normal");
     expect(document.documentElement.dataset.text).toBeUndefined();
   });

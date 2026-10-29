@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getReminder, saveReminder } from "@/app/actions/reminders";
+import { useEffect, useRef, useState } from "react";
+import { getReminder, getReminderStatus, requestTestReminder, saveReminder, type ReminderStatus } from "@/app/actions/reminders";
 import { WEEKDAY_NAMES, WEEKDAY_SHORT, WEEKDAYS } from "@/domain/calendar";
-import { requestPermissions } from "@/lib/permissions";
-import { DEFAULT_REMINDER, subscribeThisDevice, type ReminderMode, type ReminderSettings } from "@/lib/push";
+import { notifyState, requestPermissions } from "@/lib/permissions";
+import { currentEndpoint, DEFAULT_REMINDER, subscribeThisDevice, type ReminderMode, type ReminderSettings } from "@/lib/push";
 import { AlarmIcon } from "./icons";
 import { Row } from "./settings-rows";
 
@@ -108,6 +108,108 @@ export function ReminderRow({ open, onToggle }: { open: boolean; onToggle: () =>
         {busy ? "Guardando…" : "Guardar"}
       </button>
       {message && <p className={message.ok ? "perm-ok" : "perm-warn"}>{message.text}</p>}
+      {saved?.enabled && <ReminderCheck />}
     </Row>
+  );
+}
+
+const ago = (iso: string) => {
+  const min = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  return min < 1 ? "hace un momento" : min < 60 ? "hace " + min + " min" : min < 1440 ? "hace " + Math.round(min / 60) + " h" : "hace " + Math.round(min / 1440) + " días";
+};
+
+type Check = { ok: boolean; label: string; text: string };
+
+// Cada paso del camino del aviso: el móvil da permiso → está apuntado en la cuenta →
+// Supabase revisa cada 5 minutos → la app lo manda al servicio de notificaciones del móvil.
+function checksFor(s: ReminderStatus): Check[] {
+  const permission = notifyState();
+  const cronAge = s.cron?.last_run ? (Date.now() - new Date(s.cron.last_run).getTime()) / 60000 : Infinity;
+  const httpOk = s.http?.status === 200;
+  return [
+    {
+      ok: permission === "granted", label: "Permiso en este móvil",
+      text: permission === "granted" ? "Este móvil deja que FitGym te avise."
+        : permission === "denied" ? "Bloqueado. Ajustes del móvil → Notificaciones → FitGym → Permitir."
+          : "Sin permiso todavía: mira «Permisos» más abajo.",
+    },
+    {
+      ok: s.this_device, label: "Este móvil está apuntado",
+      text: s.this_device ? "Tu cuenta sabe que tiene que avisar a este móvil."
+        : "Este móvil no está apuntado para recibir avisos. Pulsa «Guardar» arriba para apuntarlo.",
+    },
+    {
+      ok: !!s.cron?.active && s.keys_ok && cronAge < 15, label: "Servidor de avisos",
+      text: !s.cron ? "La tarea que revisa los avisos no existe en Supabase (falta la migración de recordatorios)."
+        : !s.keys_ok ? "Faltan las claves de los avisos en Supabase."
+          : !s.cron.active ? "La tarea de Supabase que revisa los avisos está desactivada."
+            : cronAge >= 15 ? "Supabase no revisa los avisos desde " + (s.cron.last_run ? ago(s.cron.last_run) : "nunca") + "."
+              : "Supabase revisa los avisos cada 5 minutos (última vez " + ago(s.cron.last_run!) + ").",
+    },
+    {
+      ok: httpOk && !s.last_error, label: "Envío al móvil",
+      text: s.last_error ? "El servicio de notificaciones del móvil rechazó el aviso: " + s.last_error + "."
+        : !s.http ? "La app aún no ha recibido ninguna llamada de Supabase."
+          : !httpOk ? "La app no respondió bien a Supabase (" + (s.http.timed_out ? "tardó demasiado" : s.http.status ?? s.http.error ?? "sin respuesta") + ")."
+            : s.last_attempt ? "Último aviso enviado " + ago(s.last_attempt) + "." : "La app responde bien. Aún no se ha enviado ningún aviso.",
+    },
+  ];
+}
+
+// «¿No te llega?»: comprueba el camino del aviso y manda uno de prueba de verdad.
+function ReminderCheck() {
+  const [checks, setChecks] = useState<Check[] | null>(null);
+  const [busy, setBusy] = useState<"check" | "test" | null>(null);
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const check = async () => {
+    setBusy("check");
+    try {
+      const res = await getReminderStatus(await currentEndpoint());
+      if (res.ok && res.data) setChecks(checksFor(res.data));
+      else setNote({ ok: false, text: res.error ?? "No se pudo comprobar." });
+    } catch {
+      setNote({ ok: false, text: "No se pudo comprobar (¿sin conexión?)." });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const test = async () => {
+    setBusy("test");
+    setNote(null);
+    try {
+      const res = await requestTestReminder();
+      setNote(res.ok ? { ok: true, text: "Te llegará en unos segundos. Puedes salir de la app para verlo." } : { ok: false, text: res.error ?? "No se pudo pedir la prueba." });
+      // Al rato se comprueba solo cómo fue el envío.
+      if (res.ok) timer.current = setTimeout(() => { void check(); }, 20000);
+    } catch {
+      setNote({ ok: false, text: "No se pudo pedir la prueba (¿sin conexión?)." });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="reminder-check">
+      <div className="set-sub">¿No te llega?</div>
+      <div className="reminder-check-actions">
+        <button type="button" className="settings-btn" disabled={!!busy} onClick={() => { void test(); }}>{busy === "test" ? "Enviando…" : "Enviarme una prueba"}</button>
+        <button type="button" className="settings-btn" disabled={!!busy} onClick={() => { void check(); }}>{busy === "check" ? "Comprobando…" : "Comprobar"}</button>
+      </div>
+      {note && <p className={note.ok ? "perm-ok" : "perm-warn"} role="status">{note.text}</p>}
+      {checks && (
+        <ul className="check-list" aria-label="Estado del recordatorio">
+          {checks.map((c) => (
+            <li key={c.label} className={c.ok ? "ok" : "bad"}>
+              <span className="check-mark" aria-hidden="true">{c.ok ? "✓" : "!"}</span>
+              <span><b>{c.label}</b><small>{c.text}</small></span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

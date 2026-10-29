@@ -22,6 +22,7 @@ interface Due {
   auth: string;
   routine_day: number | null;
   vapid_private: string | null;
+  is_test?: boolean; // aviso de prueba pedido desde Ajustes
 }
 
 export async function POST(request: Request) {
@@ -36,15 +37,20 @@ export async function POST(request: Request) {
 
   const due = (res.data ?? []) as Due[];
   const delivered = new Set<string>();
+  // Resultado de cada envío, para ver en Ajustes por qué no llega (null = salió bien).
+  // Con varios móviles, basta con que llegue a uno.
+  const log = new Map<string, string | null>();
   let sent = 0;
   for (const d of due) {
     if (!d.vapid_private) return Response.json({ sent, error: "Falta la clave privada VAPID en private.settings" }, { status: 500 });
     const name = d.routine_day ? DAY_NAMES[d.routine_day] : null;
-    const payload = JSON.stringify({
-      title: name ? "Hoy toca " + name : "¿Entrenas hoy?",
-      body: name ? "Abre FitGym y empieza tu entreno." : "Abre FitGym y anota tu entreno de hoy.",
-      url: "/entrenar",
-    });
+    const payload = JSON.stringify(d.is_test
+      ? { title: "Prueba de FitGym", body: "¡Funciona! Así te llegará el recordatorio para entrenar.", url: "/ajustes" }
+      : {
+          title: name ? "Hoy toca " + name : "¿Entrenas hoy?",
+          body: name ? "Abre FitGym y empieza tu entreno." : "Abre FitGym y anota tu entreno de hoy.",
+          url: "/entrenar",
+        });
     try {
       await webpush.sendNotification({ endpoint: d.endpoint, keys: { p256dh: d.p256dh, auth: d.auth } }, payload, {
         vapidDetails: { subject: "https://app-gym-swart.vercel.app", publicKey: VAPID_PUBLIC_KEY, privateKey: d.vapid_private },
@@ -53,14 +59,17 @@ export async function POST(request: Request) {
         urgency: "high",
       });
       sent++;
-      if (d.user_id) delivered.add(d.user_id);
+      if (d.user_id) { delivered.add(d.user_id); log.set(d.user_id, null); }
     } catch (e) {
       // El móvil ya no acepta avisos (se desinstaló la app, se quitó el permiso o caducó su
       // suscripción): se borra. La app lo vuelve a registrar al abrirse.
-      const status = (e as { statusCode?: number }).statusCode;
+      const { statusCode: status, body, message } = e as { statusCode?: number; body?: string; message?: string };
+      if (d.user_id && !delivered.has(d.user_id)) log.set(d.user_id, (status ? status + " " + (body ?? "").trim() : message ?? "Error").trim().slice(0, 300));
       if (status === 404 || status === 410) await db.rpc("drop_push_subscription", { p_secret: secret, p_endpoint: d.endpoint });
     }
   }
   if (!legacy && delivered.size) await db.rpc("mark_reminders_sent", { p_secret: secret, p_users: [...delivered] });
+  // Sin la migración 20261108 no existe: no pasa nada.
+  if (!legacy && log.size) await db.rpc("log_reminder_attempts", { p_secret: secret, p_log: [...log].map(([user_id, error]) => ({ user_id, error })) });
   return Response.json({ sent });
 }

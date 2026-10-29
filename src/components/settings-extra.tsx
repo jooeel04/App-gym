@@ -22,6 +22,7 @@ function Feedback({ message }: { message: Message }) {
 // ---- App ----
 
 const TEXT_SIZES: { value: TextSize; label: string }[] = [
+  { value: "pequena", label: "Pequeña" },
   { value: "normal", label: "Normal" },
   { value: "grande", label: "Grande" },
   { value: "muy-grande", label: "Muy grande" },

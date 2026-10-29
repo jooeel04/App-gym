@@ -55,4 +55,24 @@ describe("/api/reminders · los avisos se marcan como enviados solo si llegan", 
     const res = await POST(new Request("https://app/api/reminders", { method: "POST", headers: { authorization: "Bearer " + "b".repeat(64) } }));
     expect(res.status).toBe(403);
   });
+
+  it("el aviso de prueba lo dice en el título", async () => {
+    rpc.mockImplementation(async (fn: string) => (fn === "pending_reminders" ? { data: [{ ...device("u1", "https://push/1"), is_test: true }], error: null } : { data: null, error: null }));
+    await call();
+    expect(JSON.parse(sendNotification.mock.calls[0][1]).title).toMatch(/prueba/i);
+  });
+
+  it("apunta el resultado de cada envío (para verlo en Ajustes si falla)", async () => {
+    rpc.mockImplementation(async (fn: string) => (fn === "pending_reminders"
+      ? { data: [device("u1", "https://push/1"), device("u2", "https://push/2")], error: null }
+      : { data: null, error: null }));
+    sendNotification.mockImplementation(async (sub: { endpoint: string }) => {
+      if (sub.endpoint === "https://push/2") throw Object.assign(new Error("Received unexpected response code"), { statusCode: 403, body: "BadJwtToken" });
+    });
+    await call();
+    expect(rpc).toHaveBeenCalledWith("log_reminder_attempts", { p_secret: SECRET, p_log: [
+      { user_id: "u1", error: null },
+      { user_id: "u2", error: "403 BadJwtToken" },
+    ] });
+  });
 });

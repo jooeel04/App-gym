@@ -29,11 +29,13 @@ describe("Ajustes · apariencia", () => {
     expect(document.documentElement.dataset.theme).toBe("light");
   });
 
-  it("tamaño de letra: grande", () => {
+  it("tamaño de letra: pequeña o grande", () => {
     renderWithWorkout(<SettingsView />);
     open(/Tamaño de letra/);
     fireEvent.click(screen.getByRole("radio", { name: /^Grande/ }));
     expect(document.documentElement.dataset.text).toBe("grande");
+    fireEvent.click(screen.getByRole("radio", { name: /^Pequeña/ }));
+    expect(document.documentElement.dataset.text).toBe("pequena");
   });
 
   it("muestra la versión de la app y las novedades", () => {
@@ -52,7 +54,8 @@ describe("Ajustes · calculadora de discos", () => {
     renderWithWorkout(<PlateCalculator initialTotal="115" onClose={() => {}} />);
     expect(screen.getAllByRole("button", { name: "15 kg" }).at(-1)).toHaveAttribute("aria-pressed", "true");
     // 115 con barra de 15 = 50 por lado, sin discos de 25: 20 + 20 + 10.
-    expect(screen.getByText(/cada lado/).parentElement).toHaveTextContent("20 + 20 + 10 kg");
+    const side = within(screen.getByRole("list", { name: "Discos en cada lado" })).getAllByRole("listitem").map((li) => li.textContent);
+    expect(side).toEqual(["2 × 20 kg", "1 × 10 kg"]);
   });
 });
 

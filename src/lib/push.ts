@@ -38,3 +38,14 @@ export async function subscribeThisDevice(): Promise<PushSubscriptionData | null
   if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) return null;
   return { endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth };
 }
+
+// Suscripción que ya tiene este dispositivo (sin crear una nueva), para el diagnóstico.
+export async function currentEndpoint(): Promise<string | null> {
+  try {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
+    const reg = await navigator.serviceWorker.getRegistration();
+    return (await reg?.pushManager.getSubscription())?.endpoint ?? null;
+  } catch {
+    return null;
+  }
+}

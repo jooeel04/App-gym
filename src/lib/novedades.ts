@@ -5,6 +5,15 @@ export const BUILD_DATE = process.env.NEXT_PUBLIC_BUILD_DATE || "";
 
 export const NOVEDADES: { date: string; items: string[] }[] = [
   {
+    date: "Versión 1.2",
+    items: [
+      "Calculadora de discos nueva: peso grande con − y +, barra dibujada entera y discos agrupados.",
+      "Recordatorio: botón para enviarte una prueba y comprobar por qué no llega.",
+      "Si este móvil pierde el permiso de avisos, la app te lo dice y lo activas con un toque.",
+      "Letra pequeña en «Tamaño de letra».",
+    ],
+  },
+  {
     date: "Versión 1.1 (finales de octubre de 2026)",
     items: [
       "La app se llama FitGym y estrena logo.",

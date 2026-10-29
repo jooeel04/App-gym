@@ -93,3 +93,36 @@ export async function saveReminder(settings: unknown, timezone: unknown, subscri
   if (error) return fail(error.code === "42P01" || error.code === "PGRST205" ? "Falta preparar la base de datos para los recordatorios." : "No se pudo guardar el recordatorio.");
   return { ok: true, data: null };
 }
+
+// ---- ¿No te llega? Diagnóstico y aviso de prueba ----
+
+export interface ReminderStatus {
+  enabled?: boolean;
+  time?: string;
+  devices: number;
+  this_device: boolean;
+  keys_ok: boolean;
+  last_attempt?: string | null;
+  last_error?: string | null;
+  cron: { active: boolean; last_run: string | null; last_status: string | null; last_message?: string | null } | null;
+  http: { at?: string; status: number | null; body: string | null; error: string | null; timed_out: boolean | null } | null;
+}
+
+const NO_DIAGNOSTICS = "Falta preparar la base de datos para comprobar los avisos (migración nueva en Supabase).";
+
+export async function getReminderStatus(endpoint: unknown): Promise<Result<ReminderStatus>> {
+  const p_endpoint = typeof endpoint === "string" && endpoint.startsWith("https://") && endpoint.length <= 1000 ? endpoint : null;
+  const { db } = await session();
+  const { data, error } = await db.rpc("reminder_status", { p_endpoint });
+  if (error) return fail(error.code === "PGRST202" ? NO_DIAGNOSTICS : "No se pudo comprobar.");
+  return { ok: true, data: data as ReminderStatus };
+}
+
+// Manda un aviso de verdad a los móviles de la cuenta, por el mismo camino que el diario.
+export async function requestTestReminder(): Promise<Result<null>> {
+  const { db } = await session();
+  const { error } = await db.rpc("request_test_reminder");
+  if (!error) return { ok: true, data: null };
+  if (error.code === "PGRST202") return fail(NO_DIAGNOSTICS);
+  return fail(error.message?.includes("Activa") ? "Activa y guarda antes el recordatorio." : "No se pudo pedir la prueba.");
+}

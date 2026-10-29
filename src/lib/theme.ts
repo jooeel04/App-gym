@@ -3,7 +3,7 @@
 
 export type Theme = "dark" | "light";
 export type ThemePref = "auto" | Theme;
-export type TextSize = "normal" | "grande" | "muy-grande";
+export type TextSize = "pequena" | "normal" | "grande" | "muy-grande";
 
 // Clave nueva (antes "rutina:theme"): así todos empiezan en automático.
 const THEME_KEY = "rutina:tema";
@@ -16,7 +16,7 @@ const BAR_COLOR: Record<Theme, string> = { dark: "#000000", light: "#f3f5f9" };
 export const THEME_SCRIPT =
   `try{var d=document.documentElement,p=localStorage.getItem("${THEME_KEY}")||"auto";` +
   `if(p==="light"||(p==="auto"&&matchMedia("${LIGHT_QUERY}").matches))d.dataset.theme="light";` +
-  `var t=localStorage.getItem("${TEXT_KEY}");if(t==="grande"||t==="muy-grande")d.dataset.text=t}catch(e){}`;
+  `var t=localStorage.getItem("${TEXT_KEY}");if(t==="pequena"||t==="grande"||t==="muy-grande")d.dataset.text=t}catch(e){}`;
 
 function read(key: string) {
   try {
@@ -79,7 +79,7 @@ export function watchSystemTheme() {
 
 export function getTextSize(): TextSize {
   const saved = read(TEXT_KEY);
-  return saved === "grande" || saved === "muy-grande" ? saved : "normal";
+  return saved === "pequena" || saved === "grande" || saved === "muy-grande" ? saved : "normal";
 }
 
 export function setTextSize(size: TextSize) {
