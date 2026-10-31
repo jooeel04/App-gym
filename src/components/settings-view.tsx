@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { restFinishedAlert } from "@/lib/alerts";
 import { needsHomeScreen, notifyState, requestPermissions, showNotification, subscribePermission, type NotifyState } from "@/lib/permissions";
 import { ALERT_OPTIONS, BEFORE_OPTIONS, DEFAULT_REST, formatRest, getRestPrefs, REST_OPTIONS, setRestPrefs, subscribePrefs } from "@/lib/preferences";
 import { getThemePref, setTheme, subscribeTheme, type ThemePref } from "@/lib/theme";
-import { BellIcon, CheckIcon, ClockIcon, DownloadIcon, LogoutIcon, MoonIcon, TableIcon, TrashIcon, UploadIcon, UserIcon } from "./icons";
+import { BellIcon, CheckIcon, ClockIcon, DownloadIcon, GoogleIcon, LogoutIcon, MoonIcon, TableIcon, TrashIcon, UploadIcon, UserIcon } from "./icons";
+import { GoogleRow } from "./google-row";
 import { cleanNickname } from "@/lib/nickname";
 import { ReminderRow } from "./reminder-settings";
 import { DeleteAccountRow, EmailRow, PasswordRow, PlatesRow, PrivacyRow, TextSizeRow, VersionRow } from "./settings-extra";
@@ -34,6 +35,10 @@ export function SettingsView() {
   const permission = useSyncExternalStore(subscribePermission, notifyState, () => "default" as NotifyState);
   const homeScreen = useSyncExternalStore(subscribePermission, needsHomeScreen, () => false);
   const [open, setOpen] = useState<string | null>(null);
+  // Al volver de conectar Google, su fila se abre para enseñar cómo fue.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("google")) queueMicrotask(() => setOpen("google"));
+  }, []);
   const fileInput = useRef<HTMLInputElement>(null);
   const cloud = mode === "cloud";
   const toggle = (id: string) => () => setOpen(open === id ? null : id);
@@ -46,10 +51,7 @@ export function SettingsView() {
   return (
     <section className="view active">
       <div className="pagehead">
-        <div>
-          <div className="eyebrow">Tu app</div>
-          <h1>Ajustes</h1>
-        </div>
+        <h1>Ajustes</h1>
       </div>
 
       <div className="settings">
@@ -122,7 +124,7 @@ export function SettingsView() {
               {ALERT_OPTIONS.map((o) => (
                 <button key={o.value} type="button" role="radio" aria-checked={rest.alert === o.value}
                   className={"choice" + (rest.alert === o.value ? " active" : "")} onClick={() => setRestPrefs({ ...rest, alert: o.value })}>
-                  {o.label}<span className="choice-check" aria-hidden="true">✓</span>
+                  {o.label}<span className="choice-check" aria-hidden="true"><CheckIcon /></span>
                 </button>
               ))}
             </div>
@@ -156,7 +158,7 @@ export function SettingsView() {
                     <i className="tp-bar" /><i className="tp-card" /><i className="tp-card short" /><i className="tp-dot" />
                   </span>
                   <span className="theme-label"><strong>{t.label}</strong><small>{t.hint}</small></span>
-                  <span className="theme-check" aria-hidden="true">✓</span>
+                  <span className="theme-check" aria-hidden="true"><CheckIcon /></span>
                 </button>
               ))}
             </div>
@@ -186,6 +188,11 @@ export function SettingsView() {
         <Group title="Cuenta">
           {cloud && <PasswordRow open={open === "password"} onToggle={toggle("password")} />}
           {cloud && <EmailRow open={open === "email"} onToggle={toggle("email")} />}
+          {cloud && (
+            <Row icon={<GoogleIcon />} label="Entrar con Google" open={open === "google"} onClick={toggle("google")}>
+              <GoogleRow />
+            </Row>
+          )}
           {cloud && <Row icon={<LogoutIcon />} label="Cerrar sesión" onClick={actions.signOut} />}
           <Row icon={<TrashIcon />} label="Borrar registros" onClick={actions.clearData} tone="danger" />
           {cloud && <DeleteAccountRow open={open === "delete"} onToggle={toggle("delete")} />}

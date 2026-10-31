@@ -7,7 +7,7 @@ import { addDays, formatShortDate, mondayOf, WEEKDAY_NAMES, WEEKDAY_SHORT, WEEKD
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { WeekSchedule } from "@/domain/types";
 import { closeOnBackdrop } from "./backdrop";
-import { SettingsIcon, SleepIcon } from "./icons";
+import { CheckIcon, MinusIcon, PlusIcon, SettingsIcon, SleepIcon } from "./icons";
 
 // Planes rápidos: día de rutina (1-5) → día de la semana (0 = sin día fijo).
 const PRESETS: { label: string; schedule: WeekSchedule }[] = [
@@ -125,9 +125,9 @@ function CycleWeek() {
     <div className="planner-section">
       <b>¿En qué semana vas?</b>
       <div className="cycle-week">
-        <button type="button" aria-label="Semana anterior" onClick={() => setWeek(current - 1)} disabled={current <= 1}>−</button>
+        <button type="button" aria-label="Semana anterior" onClick={() => setWeek(current - 1)} disabled={current <= 1}><MinusIcon /></button>
         <div><strong>Semana {Math.max(current, 1)}</strong><small>esta semana · empezó el {formatShortDate(model.startDate)}</small></div>
-        <button type="button" aria-label="Semana siguiente" onClick={() => setWeek(current + 1)}>＋</button>
+        <button type="button" aria-label="Semana siguiente" onClick={() => setWeek(current + 1)}><PlusIcon /></button>
       </div>
       <p className="planner-hint">Los registros se guardan por semana: cambia esto solo si la app se ha desfasado (por ejemplo, tras unas vacaciones).</p>
       {custom ? (
@@ -162,7 +162,7 @@ function DaySheet({ weekday, onClose }: { weekday: number; onClose: () => void }
               <button key={d} type="button" role="checkbox" aria-checked={on} className={"settings-row routine-pick" + (on ? " on" : "")} onClick={() => toggle(d)}>
                 <span className="row-icon" style={{ background: "var(--day" + d + ")", color: "#fff" }}>{d}</span>
                 <span className="row-text"><strong>{DAY_NAMES[d]}</strong>{elsewhere && <small>{elsewhere}{schedule[d] ? " · se moverá aquí" : ""}</small>}</span>
-                <span className="pick-check" aria-hidden="true">{on ? "✓" : ""}</span>
+                <span className="pick-check" aria-hidden="true">{on && <CheckIcon />}</span>
               </button>
             );
           })}

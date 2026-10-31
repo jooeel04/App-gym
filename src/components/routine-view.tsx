@@ -8,7 +8,7 @@ import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { Exercise } from "@/domain/types";
 import { BodyMap } from "./body-map";
 import { ExerciseModal } from "./exercise-modal";
-import { ChevronIcon } from "./icons";
+import { ArrowIcon, ChevronIcon, PlusIcon } from "./icons";
 import { ScheduleCard } from "./schedule-card";
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -29,10 +29,7 @@ export function RoutineView() {
   return (
     <section className="view active">
       <div className="pagehead">
-        <div>
-          <div className="eyebrow">Tu plan · {DAYS.length} días</div>
-          <h1>Rutina</h1>
-        </div>
+        <h1>Rutina</h1>
         <button type="button" className={"tool-btn" + (edit ? " active" : "")} aria-pressed={edit} onClick={() => setEdit(!edit)}>
           {edit ? "Listo" : "Editar"}
         </button>
@@ -78,8 +75,8 @@ export function RoutineView() {
                             {x.superset && i < list.length - 1 && <span className="ss-tag">Superserie con el siguiente</span>}
                           </div>
                           <div className="ex-order">
-                            <button type="button" aria-label={"Subir " + x.name} disabled={i === 0} onClick={() => actions.moveExercise(x.id, -1)}>↑</button>
-                            <button type="button" aria-label={"Bajar " + x.name} disabled={i === list.length - 1} onClick={() => actions.moveExercise(x.id, 1)}>↓</button>
+                            <button type="button" aria-label={"Subir " + x.name} disabled={i === 0} onClick={() => actions.moveExercise(x.id, -1)}><ArrowIcon dir="up" /></button>
+                            <button type="button" aria-label={"Bajar " + x.name} disabled={i === list.length - 1} onClick={() => actions.moveExercise(x.id, 1)}><ArrowIcon dir="down" /></button>
                           </div>
                         </div>
                         {x.note && <p>{x.note}</p>}
@@ -91,7 +88,7 @@ export function RoutineView() {
                     );
                   })}
                   {edit
-                    ? <button className="add-ex" type="button" onClick={() => setEditing({ day: d })}>＋ Añadir ejercicio</button>
+                    ? <button className="add-ex" type="button" onClick={() => setEditing({ day: d })}><PlusIcon />Añadir ejercicio</button>
                     : list.length > 0 && <button className="routine-go" type="button" onClick={() => actions.startDay(d)}>Hacer {DAY_NAMES[d]} hoy</button>}
                 </div>
               )}

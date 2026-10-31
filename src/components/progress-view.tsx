@@ -11,10 +11,7 @@ export function ProgressView() {
   return (
     <section className="view active">
       <div className="pagehead">
-        <div>
-          <div className="eyebrow">Tu avance</div>
-          <h1>Progreso</h1>
-        </div>
+        <h1>Progreso</h1>
       </div>
 
       <ProgressStats />

@@ -8,5 +8,5 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   // En modo local no hay cuentas.
   if (!isSupabaseConfigured) redirect("/entrenar");
   const { error } = await searchParams;
-  return <LoginForm confirmationFailed={error === "confirmacion"} />;
+  return <LoginForm confirmationFailed={error === "confirmacion"} googleFailed={error === "google"} />;
 }

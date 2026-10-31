@@ -3,42 +3,30 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { addDays, formatLongDate, formatShortDate, WEEKDAY_NAMES, weekdayOf } from "@/domain/calendar";
-import { MUSCLE_NAMES, musclesFor } from "@/domain/exercise-library";
-import { suggestNext } from "@/domain/progression";
-import { DAY_NAMES, DAYS, WARMUP_SETS } from "@/domain/snapshot";
-import type { Exercise, SetField } from "@/domain/types";
+import { DAY_NAMES, DAYS } from "@/domain/snapshot";
+import type { Exercise } from "@/domain/types";
 import type { SetResult } from "@/domain/workout-stats";
-import { BodyMap } from "./body-map";
-import { ExerciseDemo } from "./exercise-demo";
 import { describeSet } from "./exercise-progress";
 import { notifyState, requestPermissions, subscribePermission, type NotifyState } from "@/lib/permissions";
 import { ExerciseLogger } from "./exercise-logger";
 import { PlateCalculator } from "./plate-calculator";
-import { BellIcon, BulbIcon, ChevronIcon, DumbbellIcon, FlameIcon, SleepIcon, TrendUpIcon, WarningIcon } from "./icons";
+import { ArrowIcon, BellIcon, CheckIcon, ChevronIcon, DumbbellIcon, FlameIcon, SleepIcon, WarningIcon } from "./icons";
 
 export const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 
 // Vista "Hoy": qué toca hoy en grande (con lo que llevas hecho) y la lista de ejercicios:
 // al tocar uno se despliega para anotar sus series con botones + / −. Lo que quedó
 // pendiente está dentro de "Hacer otro día" (que avisa de cuántos hay), para que la
-// pantalla quede limpia. "Corregir series" abre la lista editable para cambiar algo después.
+// pantalla quede limpia. Es la única forma de anotar: para corregir se toca la serie.
 export function TrainingView() {
   const { model, stats, calendar, diary, today, week, day, picked, active, nickname, actions } = useWorkout();
   const [otherDay, setOtherDay] = useState(false);
-  const [editList, setEditList] = useState(false);
   const [plates, setPlates] = useState(false);
   const done = model.isDayCompleted(week, day);
   const planned = calendar.plannedDate(week, day);
   const list = model.exercisesOfDay(day);
-  // Entreno en curso en este día: en la lista editable se abre el siguiente ejercicio.
+  // Entreno en curso en este día.
   const live = !!active && active.week === week && active.day === day;
-  const { next, editingHandlers } = useNextExercise(live && editList);
-  const listRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (next < 0) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    listRef.current?.querySelector(".exercise.next")?.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
-  }, [next]);
   if (!today) return null;
 
   const resting = !picked && calendar.sessionsOn(today).length === 0;
@@ -79,18 +67,15 @@ export function TrainingView() {
           {live && !done && <button type="button" className="finish-workout" onClick={actions.finishWorkout}>Terminar entreno</button>}
         </section>
       )}
-      {picked && <button type="button" className="other-day" onClick={actions.goToToday}>‹ Volver a hoy</button>}
+      {picked && <button type="button" className="other-day" onClick={actions.goToToday}><ArrowIcon dir="left" />Volver a hoy</button>}
 
 
-      {!resting && list.length > 0 && !editList && <TodayList key={week + "-" + day} done={done} />}
+      {!resting && list.length > 0 && <TodayList key={week + "-" + day} done={done} />}
 
       <div className="hoy-links">
         <button type="button" className="other-day" aria-expanded={otherDay} onClick={() => setOtherDay(!otherDay)}>
-          Hacer otro día{missed.length > 0 && <span className="pending-badge">{missed.length} {missed.length === 1 ? "pendiente" : "pendientes"}</span>} {otherDay ? "⌃" : "›"}
+          Hacer otro día{missed.length > 0 && <span className="pending-badge">{missed.length} {missed.length === 1 ? "pendiente" : "pendientes"}</span>} <ArrowIcon dir={otherDay ? "up" : "down"} />
         </button>
-        {!resting && list.length > 0 && (
-          <button type="button" className="other-day" onClick={() => setEditList(!editList)}>{editList ? "✓ Listo" : "✎ Corregir series"}</button>
-        )}
       </div>
       {otherDay && missed.length > 0 && (
         <div className="pending-list">
@@ -119,14 +104,6 @@ export function TrainingView() {
         <ChevronIcon />
       </button>
       {plates && <PlateCalculator onClose={() => setPlates(false)} />}
-      {editList && !resting && (
-        <div className="list" key={day} ref={listRef} {...editingHandlers}>
-          {list.map((x, i) => (
-            <ExerciseCard key={x.id + "-" + week + "-" + day} exercise={x} index={i} open={live ? i === next : i === 0} next={live && i === next}
-              superset={supersetRole(list, i)} />
-          ))}
-        </div>
-      )}
     </section>
   );
 }
@@ -172,7 +149,7 @@ function TodayList({ done }: { done: boolean }) {
         return (
           <div className={"peek-item" + (open ? " open" : "")} key={x.id}>
             <button type="button" className={"peek-row" + (hecho ? " done" : "")} aria-expanded={open} onClick={() => toggle(x.id)}>
-              <span className="n">{hecho ? "✓" : i + 1}</span>
+              <span className="n">{hecho ? <CheckIcon /> : i + 1}</span>
               <div><b>{x.name}</b><small>{x.prescription}</small></div>
               <em>{best ? describeSet(best) : "—"}{best && <small>{now ? "hoy" : "última vez"}</small>}</em>
               <ChevronIcon />
@@ -266,139 +243,10 @@ type SupersetRole = "first" | "second" | null;
 export const supersetRole = (list: Exercise[], i: number): SupersetRole =>
   list[i].superset && i < list.length - 1 ? "first" : list[i - 1]?.superset ? "second" : null;
 
-// Siguiente ejercicio por hacer del día en pantalla (-1 si no hay o `live` es false).
-// Mientras se escribe en un ejercicio no se salta al siguiente (al poner el peso de la
-// última serie ya cuenta como anotada, pero faltan las repeticiones): se avanza al
-// cerrar el teclado o tocar fuera. `editingHandlers` va en el contenedor de las series.
-export function useNextExercise(live: boolean) {
-  const { model, week, day } = useWorkout();
-  const pending = live ? model.exercisesOfDay(day).findIndex((x) => !model.isExerciseDone(week, day, x)) : -1;
-  const [editing, setEditing] = useState(false);
-  const [next, setNext] = useState(pending);
-  if (!editing && next !== pending) setNext(pending);
-  const editingHandlers = {
-    onFocus: (e: React.FocusEvent<HTMLElement>) => setEditing(e.target instanceof HTMLInputElement),
-    onBlur: (e: React.FocusEvent<HTMLElement>) => {
-      if (!(e.relatedTarget instanceof HTMLInputElement && e.currentTarget.contains(e.relatedTarget))) setEditing(false);
-    },
-  };
-  return { next, editingHandlers };
-}
-
 // Peso que se propone para una serie de trabajo vacía: el de la serie anterior de hoy
 // o, si no hay, el de esa serie la última vez.
 export function suggestedWeight(prevWeights: (string | undefined)[], old?: SetResult) {
   const today = [...prevWeights].reverse().find((w) => !!w?.trim());
   if (today) return today;
   return old?.weight != null ? String(old.weight) : "";
-}
-
-// Fila de una serie: carga, repeticiones, nota y lo que se hizo la última vez. En gris
-// se ve lo propuesto (peso de la serie anterior o de la última vez); si solo se
-// escriben las repeticiones, ese peso se guarda también.
-function SetRow({ exercise: x, set: s, label, old, oldWhen }: { exercise: Exercise; set: number; label: string; old?: SetResult; oldWhen?: string }) {
-  const { model, week, day, actions } = useWorkout();
-  const e = model.getEntry(week, day, x.id, s);
-  const warmup = s > x.sets;
-  const aria = x.name + (warmup ? ", calentamiento " : ", serie ") + label;
-  const prevWeights = warmup ? [] : range(s - 1).map((p) => model.getEntry(week, day, x.id, p).weight);
-  const weightTip = warmup || e.weight ? "" : suggestedWeight(prevWeights, old);
-  const repsTip = warmup || e.reps || old?.reps == null ? "" : String(old.reps);
-  const set = (field: SetField) => (ev: React.ChangeEvent<HTMLInputElement>) => {
-    if (field === "reps" && weightTip && ev.target.value.trim()) actions.setEntry(week, day, x.id, s, "weight", weightTip);
-    actions.setEntry(week, day, x.id, s, field, ev.target.value);
-  };
-  return (
-    <div className={"setrow" + (warmup ? " warmup" : "")}>
-      <div className="setnum">{label}{x.optionalLast && s === x.sets && <span className="optional">Opcional</span>}</div>
-      <label className="field"><input type="number" min="0" step="0.5" inputMode="decimal" placeholder={weightTip ? weightTip.replace(".", ",") + " kg" : "— kg"} className={weightTip ? "suggested" : undefined} aria-label={aria + ", carga" + (weightTip ? " (propuesto " + weightTip + " kg)" : "")} value={e.weight ?? ""} onChange={set("weight")} /></label>
-      <label className="field"><input type="number" min="0" step="1" inputMode="numeric" placeholder={repsTip || "—"} className={repsTip ? "suggested" : undefined} aria-label={aria + ", repeticiones"} value={e.reps ?? ""} onChange={set("reps")} /></label>
-      <details className="setnote">
-        <summary>{e.note ? "Ver nota" : "＋ Nota"}</summary>
-        <input type="text" maxLength={160} placeholder="Anotación de esta serie" aria-label={"Nota " + aria} value={e.note ?? ""} onChange={set("note")} />
-      </details>
-      {old && <div className="prev">La última vez ({oldWhen}): {describeSet(old)}{old.reps !== null && " reps"}</div>}
-    </div>
-  );
-}
-
-function ExerciseCard({ exercise: x, index, open, next, superset }: { exercise: Exercise; index: number; open: boolean; next: boolean; superset: SupersetRole }) {
-  const { model, week, day, actions } = useWorkout();
-  const n = model.loggedSets(week, day, x), done = model.isExerciseDone(week, day, x);
-  // Con todas las series anotadas el tick ya está puesto y no se puede quitar a mano.
-  const filled = done && !model.isExerciseChecked(week, day, x.id);
-
-  return (
-    <details className={"exercise" + (superset ? " superset " + superset : "") + (next ? " next" : "")} open={open}>
-      <summary>
-        <span className="idx">{String(index + 1).padStart(2, "0")}</span>
-        <span className="exmain">
-          <span className="exname">{x.name}</span>
-          <span className="pres">{x.prescription}{superset && <span className="ss-tag">Superserie</span>}{next && <span className="next-tag">Ahora</span>}</span>
-        </span>
-        <span className="exprogress">{n}/{x.sets}</span>
-        <button
-          type="button"
-          className={"excheck" + (done ? " done" : "")}
-          role="checkbox"
-          aria-checked={done}
-          aria-disabled={filled}
-          aria-label={x.name + (done ? ", hecho" : ", marcar como hecho")}
-          title={filled ? "Hecho: todas las series anotadas" : done ? "Quitar marca" : "Marcar como hecho"}
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (!filled) actions.toggleExerciseChecked(week, day, x.id); }}
-        >
-          {done && "✓"}
-        </button>
-        <ChevronIcon />
-      </summary>
-      <div className="exbody"><ExerciseDetail exercise={x} superset={superset} /></div>
-    </details>
-  );
-}
-
-// Contenido de un ejercicio: músculos, consejo, indicaciones y series. Se usa en la
-// tarjeta de la lista y en la pantalla completa del entreno en curso (`bare`: sin
-// músculos, consejo ni aviso de superserie, que allí ya se ven arriba).
-export function ExerciseDetail({ exercise: x, superset, bare = false }: { exercise: Exercise; superset: SupersetRole; bare?: boolean }) {
-  const { model, stats, week, day, actions } = useWorkout();
-  const last = stats.lastBefore(x, week);
-  const lastWhen = last ? (last.date ? formatShortDate(last.date) : "semana " + last.week) : "";
-  const tip = suggestNext(x, last);
-  const muscles = musclesFor(x.name);
-  // Series de calentamiento visibles: las que ya tienen datos, o las añadidas ahora.
-  const [warmups, setWarmups] = useState(() => WARMUP_SETS.filter((s) => {
-    const e = model.getEntry(week, day, x.id, s);
-    return e.weight || e.reps;
-  }).length);
-
-  return (
-    <>
-      {muscles && !bare && (
-        <div className="exmuscles">
-          <BodyMap primary={muscles.primary} secondary={muscles.secondary} size="sm" />
-          <span><b>{muscles.primary.map((m) => MUSCLE_NAMES[m]).join(", ")}</b>{muscles.secondary.length > 0 && <small>También: {muscles.secondary.map((m) => MUSCLE_NAMES[m].toLowerCase()).join(", ")}</small>}</span>
-          <ExerciseDemo name={x.name} />
-        </div>
-      )}
-      {tip && !bare && <div className={"tip " + tip.kind}>{tip.kind === "increase" ? <TrendUpIcon /> : <BulbIcon />}{tip.text}</div>}
-      {superset === "first" && !bare && <p className="ss-note">Superserie: haz una serie de este y otra del siguiente sin descansar entre ambos.</p>}
-      {x.note && <p className="cue">{x.note}</p>}
-      {last && range(x.sets).some((s) => {
-        const e = model.getEntry(week, day, x.id, s);
-        return !e.weight && !e.reps && last.sets.some((r) => r.set === s);
-      }) && (
-        <button type="button" className="repeat-last" onClick={() => actions.repeatLast(week, day, x.id)}>
-          ↺ Igual que la última vez <small>({lastWhen})</small>
-        </button>
-      )}
-      <div className="sethead"><span>Serie</span><span>Carga · kg</span><span>Reps</span></div>
-      {WARMUP_SETS.slice(0, warmups).map((s, i) => <SetRow key={s} exercise={x} set={s} label={"C" + (i + 1)} />)}
-      {range(x.sets).map((s) => (
-        <SetRow key={s} exercise={x} set={s} label={String(s)} old={last?.sets.find((r) => r.set === s)} oldWhen={lastWhen} />
-      ))}
-      {warmups < WARMUP_SETS.length && (
-        <button type="button" className="add-warmup" onClick={() => setWarmups(warmups + 1)}>＋ Serie de calentamiento</button>
-      )}
-    </>
-  );
 }

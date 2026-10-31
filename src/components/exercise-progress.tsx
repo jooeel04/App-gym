@@ -7,15 +7,15 @@ import { progressTrend, type ProgressTrend } from "@/domain/progression";
 import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { Exercise } from "@/domain/types";
 import type { SetResult } from "@/domain/workout-stats";
-import { ChevronIcon, TrophyIcon } from "./icons";
+import { ChevronIcon, TriangleIcon, TrophyIcon } from "./icons";
 import { TapLineChart } from "./tap-line-chart";
 
 export const fmt = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 2 });
 
-// Diferencia con la vez anterior: ▲ sube, ▼ baja.
+// Diferencia con la vez anterior: triángulo hacia arriba si sube, hacia abajo si baja.
 export function Delta({ value, unit = "" }: { value: number; unit?: string }) {
   if (value === 0) return <span className="delta same">= igual</span>;
-  return <span className={"delta " + (value > 0 ? "up" : "down")}>{value > 0 ? "▲ +" : "▼ "}{fmt(value)}{unit}</span>;
+  return <span className={"delta " + (value > 0 ? "up" : "down")}><TriangleIcon dir={value > 0 ? "up" : "down"} />{value > 0 ? "+" : ""}{fmt(value)}{unit}</span>;
 }
 
 export function describeSet(r: SetResult) {

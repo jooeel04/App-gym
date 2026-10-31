@@ -5,7 +5,7 @@ import { getReminder, getReminderStatus, requestTestReminder, saveReminder, type
 import { WEEKDAY_NAMES, WEEKDAY_SHORT, WEEKDAYS } from "@/domain/calendar";
 import { notifyState, requestPermissions } from "@/lib/permissions";
 import { currentEndpoint, DEFAULT_REMINDER, subscribeThisDevice, type ReminderMode, type ReminderSettings } from "@/lib/push";
-import { AlarmIcon } from "./icons";
+import { AlarmIcon, CheckIcon } from "./icons";
 import { Row } from "./settings-rows";
 
 const MODES: { value: ReminderMode; label: string; hint: string }[] = [
@@ -84,7 +84,7 @@ export function ReminderRow({ open, onToggle }: { open: boolean; onToggle: () =>
             {MODES.map((m) => (
               <button key={m.value} type="button" role="radio" aria-checked={draft.mode === m.value}
                 className={"choice" + (draft.mode === m.value ? " active" : "")} onClick={() => set({ mode: m.value })}>
-                <span>{m.label}<small>{m.hint}</small></span><span className="choice-check" aria-hidden="true">✓</span>
+                <span>{m.label}<small>{m.hint}</small></span><span className="choice-check" aria-hidden="true"><CheckIcon /></span>
               </button>
             ))}
           </div>
@@ -204,7 +204,7 @@ function ReminderCheck() {
         <ul className="check-list" aria-label="Estado del recordatorio">
           {checks.map((c) => (
             <li key={c.label} className={c.ok ? "ok" : "bad"}>
-              <span className="check-mark" aria-hidden="true">{c.ok ? "✓" : "!"}</span>
+              <span className="check-mark" aria-hidden="true">{c.ok ? <CheckIcon /> : "!"}</span>
               <span><b>{c.label}</b><small>{c.text}</small></span>
             </li>
           ))}

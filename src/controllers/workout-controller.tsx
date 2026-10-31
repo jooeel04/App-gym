@@ -19,6 +19,7 @@ import { cleanNickname, nicknamePending, readNickname, setNicknamePending, store
 import { getNickname, saveNickname } from "@/app/actions/profile";
 import { getRestPrefs } from "@/lib/preferences";
 import type { StorageMode } from "@/lib/workout-data";
+import { askConfirm } from "@/components/confirm-dialog";
 import { LocalWorkoutRepository } from "@/repositories/local-workout-repository";
 import { ServerActionWorkoutRepository, type SyncStatus } from "@/repositories/server-action-workout-repository";
 import type { WorkoutRepository } from "@/repositories/workout-repository";
@@ -356,7 +357,7 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       if (!copied) return;
       markSessionStart(w, d);
       autoStart(w, d);
-      showToast("↺ Copiado de la última vez (" + (last.date ? formatShortDate(last.date) : "semana " + last.week) + ")");
+      showToast("Copiado de la última vez (" + (last.date ? formatShortDate(last.date) : "semana " + last.week) + ")");
       completeWhenDone(w, d);
     },
 
@@ -371,14 +372,14 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
     // ---- Entreno en curso (empieza solo al anotar la primera serie) ----
     // Termina el entreno: sin nada anotado se descarta; si quedan ejercicios se pide
     // confirmación. Después se muestra el resumen con la duración.
-    finishWorkout() {
+    async finishWorkout() {
       const a = getActiveWorkout();
       if (!a) return;
       const { week: w, day: d } = a;
       const list = model.exercisesOfDay(d);
       const started = list.some((x) => model.isExerciseDone(w, d, x) || model.loggedSets(w, d, x) > 0);
       if (!started) {
-        if (!confirm("No has anotado nada todavía. ¿Descartar el entreno?")) return;
+        if (!await askConfirm({ title: "¿Descartar el entreno?", text: "No has anotado nada todavía.", action: "Descartar" })) return;
         setActiveWorkout(null);
         clearSessionStart(w, d);
         setRest(null);
@@ -386,7 +387,7 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
         return;
       }
       const left = list.filter((x) => !model.isExerciseDone(w, d, x)).length;
-      if (left > 0 && !confirm((left === 1 ? "Queda 1 ejercicio" : "Quedan " + left + " ejercicios") + " sin terminar. ¿Terminar el entreno igualmente?")) return;
+      if (left > 0 && !await askConfirm({ title: "¿Terminar el entreno?", text: (left === 1 ? "Queda 1 ejercicio" : "Quedan " + left + " ejercicios") + " sin terminar.", action: "Terminar" })) return;
       setActiveWorkout(null);
       clearSessionStart(w, d);
       setRest(null);
@@ -478,10 +479,10 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
     },
 
     // Rutina de un amigo: se añade a la propia o la sustituye (borrando la actual).
-    importRoutine(list: (NewExerciseInput & { day: number })[], replace: boolean) {
+    async importRoutine(list: (NewExerciseInput & { day: number })[], replace: boolean) {
       if (replace) {
         const hasData = model.routine.some((x) => model.exerciseHasEntries(x.id));
-        if (!confirm(hasData ? "Se borrarán tus ejercicios actuales y todos sus registros. ¿Continuar?" : "Se sustituirán tus ejercicios actuales. ¿Continuar?")) return false;
+        if (!await askConfirm({ title: "¿Sustituir tu rutina?", text: hasData ? "Se borrarán tus ejercicios actuales y todos sus registros." : "Se sustituirán tus ejercicios actuales.", action: "Sustituir", danger: hasData })) return false;
         model.routine.map((x) => x.id).forEach((id) => model.removeExercise(id));
       }
       const valid = list.filter((x) => x.day >= 1 && x.day <= 5 && x.name?.trim());
@@ -490,9 +491,10 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       return true;
     },
 
-    deleteExercise(id: number) {
-      if (!model.findExercise(id)) return;
-      if (model.exerciseHasEntries(id) && !confirm("Este ejercicio tiene registros guardados. Al eliminarlo también se borrarán. ¿Continuar?")) return;
+    async deleteExercise(id: number) {
+      const x = model.findExercise(id);
+      if (!x) return;
+      if (model.exerciseHasEntries(id) && !await askConfirm({ title: "¿Eliminar «" + x.name + "»?", text: "Tiene registros guardados: también se borrarán.", action: "Eliminar", danger: true })) return;
       model.removeExercise(id);
       showToast("Ejercicio eliminado");
     },
@@ -510,13 +512,13 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
     async importFile(file: File) {
       const restored = backup.parse(await file.text());
       if (!restored) { showToast("No se pudo leer la copia JSON"); return; }
-      if (!confirm("¿Restaurar esta copia? Los registros actuales se sustituirán.")) return;
+      if (!await askConfirm({ title: "¿Restaurar esta copia?", text: "Los registros actuales se sustituirán por los de la copia.", action: "Restaurar", danger: true })) return;
       model.restore(restored);
       showToast("Copia restaurada");
     },
 
-    clearData() {
-      if (!confirm("¿Borrar todos los registros, marcas de días completados, peso y medidas? Esta acción no se puede deshacer.")) return;
+    async clearData() {
+      if (!await askConfirm({ title: "¿Borrar todos los registros?", text: "Se borrarán las series, los días completados, el peso y las medidas. No se puede deshacer.", action: "Borrar todo", danger: true })) return;
       model.clearLogs();
       showToast("Registros borrados");
     },

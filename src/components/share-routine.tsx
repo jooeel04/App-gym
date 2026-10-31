@@ -89,8 +89,8 @@ function ImportModal({ initialCode, onClose }: { initialCode: string; onClose: (
     if (initialCode) queueMicrotask(() => { void load(initialCode); });
   }, [initialCode]);
 
-  const apply = (replace: boolean) => {
-    if (routine && actions.importRoutine(routine, replace)) onClose();
+  const apply = async (replace: boolean) => {
+    if (routine && await actions.importRoutine(routine, replace)) onClose();
   };
 
   // Fuera de las pestañas (su contenedor se desplaza), si no la ventana no queda fija en pantalla.

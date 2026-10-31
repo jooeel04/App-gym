@@ -6,6 +6,7 @@ import { createGroup, groupExerciseRecords, groupLeaderboard, joinGroup, leaveGr
 import { useWorkout } from "@/controllers/workout-controller";
 import { addDays, parseISODate, toISODate } from "@/domain/calendar";
 import { closeOnBackdrop } from "./backdrop";
+import { askConfirm } from "./confirm-dialog";
 import { DumbbellIcon, MedalIcon, UsersIcon } from "./icons";
 import { LiftRanking } from "./lift-ranking";
 
@@ -103,7 +104,7 @@ export function LeaderboardCard() {
               <span>Código del grupo <b>{group.code}</b> · {group.members} {group.members === 1 ? "miembro" : "miembros"}</span>
               <button type="button" className="auth-link" onClick={() => navigator.clipboard.writeText(group.code).catch(() => {})}>Copiar código</button>
               <button type="button" className="auth-link danger-link" onClick={async () => {
-                if (!confirm("¿Salir del grupo «" + group.name + "»?")) return;
+                if (!await askConfirm({ title: "¿Salir del grupo «" + group.name + "»?", text: "Podrás volver a entrar con su código.", action: "Salir del grupo" })) return;
                 await leaveGroup(group.code).catch(() => null);
                 setRows(null);
                 void refresh();

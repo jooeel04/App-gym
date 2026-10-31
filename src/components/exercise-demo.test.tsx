@@ -2,7 +2,6 @@ import { fireEvent, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { freezeToday, PRESS, renderWithWorkout } from "../../tests/workout-fixture";
 import { ExerciseLogger } from "./exercise-logger";
-import { ExerciseDetail } from "./training-view";
 
 describe("Cómo se hace cada ejercicio", () => {
   beforeEach(freezeToday);
@@ -21,13 +20,8 @@ describe("Cómo se hace cada ejercicio", () => {
     expect(screen.queryByRole("dialog", { name: "Cómo se hace" })).not.toBeInTheDocument();
   });
 
-  it("también en la tarjeta del ejercicio de la lista", () => {
-    renderWithWorkout(<ExerciseDetail exercise={PRESS} superset={null} />);
-    expect(screen.getByRole("button", { name: "Ver cómo se hace: " + PRESS.name })).toBeInTheDocument();
-  });
-
   it("un ejercicio inventado no muestra nada", () => {
-    renderWithWorkout(<ExerciseDetail exercise={{ ...PRESS, name: "Mi ejercicio raro" }} superset={null} />);
+    renderWithWorkout(<ExerciseLogger exercise={{ ...PRESS, name: "Mi ejercicio raro" }} superset={null} />);
     expect(screen.queryByRole("button", { name: /Ver cómo se hace/ })).not.toBeInTheDocument();
   });
 });

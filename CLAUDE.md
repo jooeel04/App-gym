@@ -46,17 +46,33 @@ preguntar.
 | `specs/hoy.md` | Pestaña Hoy y entreno en curso: series, descanso, progresión, resumen del día |
 | `specs/rutina.md` | Plan y ejercicios, calendario semanal, asistente de cuenta nueva, compartir rutina |
 | `specs/progreso.md` | Estadísticas, récords, gráficas, calendario de actividad, peso y medidas |
-| `specs/ajustes.md` | Cuenta y contraseña, recordatorios, grupos y clasificación, copias y CSV, tema |
+| `specs/social.md` | Pestaña Social: grupos de amigos, clasificación, quién levanta más, apodo |
+| `specs/ajustes.md` | Cuenta (contraseña, correo, Google, borrar cuenta), recordatorios, privacidad, copias y CSV, tema |
 | `specs/datos.md` | Base de datos (tablas, RLS, funciones), sincronización y modo sin conexión |
 | `specs/interfaz.md` | Lo común: pestañas y gestos, temas, cristal, tamaños mínimos |
+
+**Para qué sirven:** documentan qué hace cada funcionalidad y cómo funciona por dentro,
+para que otro programador (o Claude en otra sesión) entienda el área leyendo solo la
+spec, sin recorrer el código. Se escriben en español claro, con frases cortas: qué ve y
+hace el usuario, qué pasa por dentro (componentes, acciones del controlador, dominio,
+servidor) y por qué se decidió así. Sin copiar código: se nombran archivos y funciones.
 
 Formato de cada spec:
 
 ```markdown
 # <Área>
-Qué es, en una o dos frases.
+Qué es el área y para qué sirve, en dos o tres frases.
 
-## Reglas
+## Archivos clave
+- `src/…/x.tsx` — qué hace ese archivo en esta área.
+
+## Funcionalidades
+### <Nombre de la funcionalidad>
+**Qué hace:** lo que ve y hace el usuario.
+**Cómo funciona:** el recorrido por dentro (quién llama a quién, qué se guarda, dónde).
+**Decisiones:** por qué es así, si no es obvio (lo que se descartó y por qué).
+**Casos límite:** sin datos, sin internet, errores…
+**Reglas:**
 - **R1** Cuando …, entonces … → `src/…/x.test.tsx`
 
 ## Datos
@@ -66,8 +82,9 @@ Tablas y columnas que usa (o "ninguna").
 Lo aprobado que aún no está hecho.
 ```
 
-Las reglas se escriben para que las entienda el usuario. Su número (`R1`, `R2`…) no
-cambia nunca; si una regla deja de valer, se borra.
+Cada regla es una frase que se puede probar, y apunta a la prueba que la vigila. Su número
+(`R1`, `R2`…) no cambia nunca; si deja de valer, se borra. Al terminar un cambio, la spec
+describe lo que hay de verdad (no lo que se pensó hacer).
 
 ### Código (SOLID)
 
@@ -135,8 +152,11 @@ localStorage), lo que permite probar la interfaz: `npx next start -p 3100`.
 - Las migraciones (`supabase/migrations/`) las ejecuta el usuario a mano en el
   **SQL Editor** de Supabase. Cada cambio de base de datos = archivo nuevo con
   fecha; nunca edites una migración ya aplicada.
-- La recuperación de contraseña necesita `https://app-gym-swart.vercel.app/auth/confirm`
-  en Authentication → URL Configuration → Redirect URLs.
+- Redirect URLs (Authentication → URL Configuration): `https://app-gym-swart.vercel.app/auth/**`
+  (cubre `/auth/confirm` de los correos y `/auth/google` de Google).
+- **Google**: provider Google activado (claves de Google Cloud) y *Allow manual linking*
+  activado, para conectar Google a una cuenta que ya existe. Mismo correo = Supabase une
+  las cuentas sola. Código: `src/app/actions/account.ts` y `src/app/auth/google/route.ts`.
 
 ### Reglas para la base de datos
 

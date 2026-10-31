@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import { useActionState, useId, useState } from "react";
-import { EyeIcon, EyeOffIcon } from "@/components/icons";
+import { useFormStatus } from "react-dom";
+import { signInWithGoogle } from "@/app/actions/account";
+import { EyeIcon, EyeOffIcon, GoogleIcon } from "@/components/icons";
 import { authenticate, requestPasswordReset, type AuthFormState } from "./actions";
 
 function Brand() {
@@ -41,6 +43,16 @@ function Messages({ state }: { state: AuthFormState }) {
   );
 }
 
+// Botón de Google: mientras se abre, no se puede pulsar otra vez.
+function GoogleButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" className="google-btn" disabled={pending}>
+      <GoogleIcon />{pending ? "Abriendo Google…" : "Continuar con Google"}
+    </button>
+  );
+}
+
 // Pide el correo y envía el enlace para crear una contraseña nueva.
 function ForgotPassword({ onBack }: { onBack: () => void }) {
   const [state, action, pending] = useActionState<AuthFormState, FormData>(requestPasswordReset, {});
@@ -60,11 +72,12 @@ function ForgotPassword({ onBack }: { onBack: () => void }) {
   );
 }
 
-export function LoginForm({ confirmationFailed }: { confirmationFailed: boolean }) {
+export function LoginForm({ confirmationFailed, googleFailed = false }: { confirmationFailed: boolean; googleFailed?: boolean }) {
   const [forgot, setForgot] = useState(false);
   const [state, action, pending] = useActionState<AuthFormState, FormData>(
     authenticate,
-    confirmationFailed ? { error: "El enlace no es válido o ha caducado. Pide otro." } : {},
+    googleFailed ? { error: "No se pudo entrar con Google. Inténtalo de nuevo." }
+      : confirmationFailed ? { error: "El enlace no es válido o ha caducado. Pide otro." } : {},
   );
 
   return (
@@ -75,6 +88,8 @@ export function LoginForm({ confirmationFailed }: { confirmationFailed: boolean 
           <>
             <h2>Accede a tu cuenta</h2>
             <p>Cada persona tiene su propia cuenta: tus registros se guardan solo en la tuya y se sincronizan entre tus dispositivos.</p>
+            <form action={signInWithGoogle} className="google-form"><GoogleButton /></form>
+            <p className="auth-or"><span>o con tu correo</span></p>
             <form action={action}>
               <label className="form-label">Correo electrónico<input name="email" type="email" autoComplete="email" required disabled={pending} /></label>
               <PasswordField label="Contraseña" name="password" autoComplete="current-password" disabled={pending} />
@@ -86,6 +101,7 @@ export function LoginForm({ confirmationFailed }: { confirmationFailed: boolean 
               </div>
             </form>
             <button type="button" className="auth-link" onClick={() => setForgot(true)}>¿Olvidaste tu contraseña?</button>
+            <p className="auth-note">¿Ya tienes cuenta con otro correo? Entra con él y conecta Google desde Ajustes. Si es el mismo correo, Google entra en tu cuenta de siempre.</p>
           </>
         )}
       </div>

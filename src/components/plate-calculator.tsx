@@ -4,6 +4,7 @@ import { useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { ALL_PLATES, BAR_OPTIONS as BARS, getPlatePrefs } from "@/lib/preferences";
 import { closeOnBackdrop } from "./backdrop";
+import { MinusIcon, PlusIcon } from "./icons";
 // Colores habituales de los discos olímpicos.
 const PLATE_STYLE: Record<number, { color: string; height: number }> = {
   25: { color: "#d62828", height: 92 }, 20: { color: "#1d6fe0", height: 92 }, 15: { color: "#e9b308", height: 84 },
@@ -50,13 +51,13 @@ export function PlateCalculator({ onClose, initialTotal }: { onClose: () => void
         <h2 id="platesTitle">Calculadora de discos</h2>
 
         <div className="plates-total">
-          <button type="button" className="plates-step" aria-label={"Restar " + fmt(STEP) + " kg"} onClick={() => step(-1)}>−</button>
+          <button type="button" className="plates-step" aria-label={"Restar " + fmt(STEP) + " kg"} onClick={() => step(-1)}><MinusIcon /></button>
           <label className="plates-kg">
             <input type="number" inputMode="decimal" min={0} step={0.5} aria-label="Peso total" value={total}
               style={{ "--digits": Math.max(total.length, 3) } as CSSProperties} onChange={(e) => setTotal(e.target.value)} />
             <span aria-hidden="true">kg</span>
           </label>
-          <button type="button" className="plates-step" aria-label={"Sumar " + fmt(STEP) + " kg"} onClick={() => step(1)}>+</button>
+          <button type="button" className="plates-step" aria-label={"Sumar " + fmt(STEP) + " kg"} onClick={() => step(1)}><PlusIcon /></button>
         </div>
         <p className="plates-caption">Peso total, con la barra</p>
 

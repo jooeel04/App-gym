@@ -5,6 +5,7 @@ import { useWorkout } from "@/controllers/workout-controller";
 import { addDays, formatLongDate, formatShortDate, parseISODate, toISODate, WEEKDAY_SHORT, WEEKDAYS, weekdayOf } from "@/domain/calendar";
 import { DAY_NAMES } from "@/domain/snapshot";
 import type { SetEntry } from "@/domain/types";
+import { ArrowIcon, PencilIcon } from "./icons";
 
 function describeSet(e: SetEntry) {
   const load = e.weight ? e.weight.replace(".", ",") + " kg" : "";
@@ -44,9 +45,9 @@ export function ActivityCalendar() {
       <div className="charttitle">
         <h2>Calendario</h2>
         <div className="monthnav">
-          <button type="button" aria-label="Mes anterior" onClick={() => setOffset((o) => o - 1)}>‹</button>
+          <button type="button" aria-label="Mes anterior" onClick={() => setOffset((o) => o - 1)}><ArrowIcon dir="left" /></button>
           <span>{month.charAt(0).toUpperCase() + month.slice(1)}</span>
-          <button type="button" aria-label="Mes siguiente" onClick={() => setOffset((o) => o + 1)} disabled={offset >= 0}>›</button>
+          <button type="button" aria-label="Mes siguiente" onClick={() => setOffset((o) => o + 1)} disabled={offset >= 0}><ArrowIcon dir="right" /></button>
         </div>
       </div>
       <div className="calgrid" role="group" aria-label={"Días entrenados en " + month}>
@@ -87,7 +88,7 @@ export function ActivityCalendar() {
               {sessions.flatMap((s) => s.exercises).map(({ exercise, sets }) => (
                 <div className="diary-ex" key={exercise.id}>
                   <span>{exercise.name}</span>
-                  <span>{sets.map(({ set, entry }) => <i key={set} title={entry.note || undefined}>{describeSet(entry)}{entry.note ? " ✎" : ""}</i>)}</span>
+                  <span>{sets.map(({ set, entry }) => <i key={set} title={entry.note || undefined}>{describeSet(entry)}{entry.note && <PencilIcon className="note-mark" />}</i>)}</span>
                 </div>
               ))}
             </div>

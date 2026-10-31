@@ -78,3 +78,13 @@ describe("Hoy · calculadora de discos", () => {
     expect(screen.getByRole("dialog", { name: "Calculadora de discos" })).toBeInTheDocument();
   });
 });
+
+describe("Hoy · una sola forma de anotar (spec hoy R2)", () => {
+  beforeEach(freezeToday);
+  afterEach(() => vi.useRealTimers());
+
+  it("no hay lista aparte para «corregir series»", () => {
+    renderWithWorkout(<TrainingView />);
+    expect(screen.queryByRole("button", { name: /Corregir series/ })).not.toBeInTheDocument();
+  });
+});

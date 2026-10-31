@@ -9,17 +9,18 @@ Varias personas, cada una con su cuenta (correo y contraseña) y sus propios dat
 - Añadir ejercicios por día con series, objetivo de repeticiones y detalle técnico; eliminar ejercicios cuando ya no se necesiten.
 - Registro por serie de carga, repeticiones y nota; conserva las series opcionales.
 - Calendario: cada día de la rutina se asigna a un día de la semana (L–D), con presets y fecha de inicio del ciclo.
-- Hoy (pestaña principal): lo que toca hoy con un botón grande para empezar, los días de las últimas dos semanas que quedaron sin hacer («Hacer hoy»), los días de descanso y «Hacer otro día»; «Corregir series» abre la lista editable.
+- Hoy (pestaña principal): lo que toca hoy con un botón grande para empezar, los días de las últimas dos semanas que quedaron sin hacer («Hacer hoy»), los días de descanso y «Hacer otro día». Al tocar un ejercicio se anotan sus series con botones + / − (también el calentamiento y una nota por serie); para corregir una serie se toca su ficha.
 - Asistente para cuentas nuevas (sin datos): qué días entrena, qué rutina quiere (recomendada, la de un amigo o vacía) y cómo queda la semana.
 - Calendario en Progreso: al tocar un día se ve lo entrenado esa fecha (ejercicios y series), marcando los días recuperados.
 - Cuentas con correo y contraseña: los datos de cada persona se guardan en su cuenta y los ve en cualquier dispositivo donde inicie sesión.
 - Resumen por semana y día, historial de cargas y exportación a CSV.
 - Copia y restauración de datos en JSON.
 - Al entrenar: peso y repeticiones propuestos en cada serie (de la serie anterior o de la última vez; con escribir solo las repeticiones basta) y botón "Igual que la última vez", temporizador de descanso, sugerencia de progresión (doble progresión), récords personales, series de calentamiento, superseries, calculadora de discos y resumen al completar el día (con la comparación de cada ejercicio frente a la última vez).
-- Entreno en curso: botón "Empezar entreno" (o empieza solo al anotar la primera serie) que abre una pantalla completa con un ejercicio cada vez (avanza solo al terminarlo, flechas y barra de pasos para moverse), barra flotante con el tiempo y los ejercicios hechos al minimizarla, la pantalla no se apaga y "Terminar" muestra el resumen.
+- Entreno en curso: empieza solo al anotar la primera serie; al terminar un ejercicio se abre el siguiente que falte, la pantalla no se apaga y "Terminar entreno" muestra el resumen.
 - Progreso: racha de semanas, fuerza (1RM estimado) y récord de cada ejercicio, peso corporal y medidas.
 - Social (pestaña propia): grupos de amigos con un código, clasificación de días entrenados del mes, quién levanta más en cada ejercicio (de un vistazo) y compartir o importar rutinas.
 - Recuperación de contraseña por correo.
+- Entrar con Google: con el mismo correo se une a la cuenta que ya existe; con otro, se conecta desde Ajustes → Cuenta.
 - Instalación en pantalla de inicio (PWA) y uso sin conexión: los cambios se guardan en el dispositivo y se envían a la cuenta al volver internet.
 
 ## Puesta en marcha
@@ -43,7 +44,9 @@ En el SQL Editor del proyecto, ejecuta en orden los archivos de `supabase/migrat
 Las fotos de cómo se hace cada ejercicio (`public/ejercicios`) son de
 [Free Exercise DB](https://github.com/yuhonas/free-exercise-db), de dominio público (Unlicense).
 
-En Authentication → URL Configuration, añade `https://tu-dominio/auth/confirm` (y `http://localhost:3000/auth/confirm`) a las Redirect URLs: es el enlace del correo de confirmación de cuenta.
+En Authentication → URL Configuration, añade `https://tu-dominio/auth/**` (y `http://localhost:3000/auth/**`) a las Redirect URLs: cubre el enlace de los correos (`/auth/confirm`) y la vuelta de Google (`/auth/google`).
+
+Para entrar con Google: en Authentication → Sign In / Providers → Google, activa Google con las claves de Google Cloud, y activa *Allow manual linking* (Authentication → Sign In / Providers) para poder conectar Google desde Ajustes a una cuenta que ya existe.
 
 ### 2. Variables de entorno
 En Vercel → Settings → Environment Variables (Production y Preview), o en `.env.local` para desarrollo:
@@ -98,6 +101,11 @@ Las pruebas en móvil comprueban, en tamaños de 320 px a tablet (vertical y hor
 que nada se sale de la pantalla, que los botones miden al menos 44 px y los textos 11 px,
 que las gráficas se deslizan con el dedo y que la barra de pestañas lleva el cristal
 líquido. Si no encuentran el navegador, indica su ruta en `BROWSER_PATH`.
+
+## Cómo se trabaja
+
+Cada cambio sigue spec → prueba → código (ver `CLAUDE.md`). Las specs están en `specs/`, una por área
+(Hoy, Rutina, Progreso, Ajustes, Datos e Interfaz), y se actualizan en vez de crear documentos nuevos.
 
 ## Arquitectura (MVC + SOLID)
 

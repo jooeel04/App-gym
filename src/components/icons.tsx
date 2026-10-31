@@ -228,3 +228,50 @@ export function InfoIcon({ className }: IconProps) {
     <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" /><path d="M12 11v5.5M12 7.6v.1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
   );
 }
+
+export function PlusIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
+  );
+}
+
+export function MinusIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
+  );
+}
+
+// Flecha en una dirección: atrás (‹), adelante (›), arriba o abajo.
+export function ArrowIcon({ className, dir = "left" }: IconProps & { dir?: "left" | "right" | "up" | "down" }) {
+  const d = { left: "m15 5-7 7 7 7", right: "m9 5 7 7-7 7", up: "m5 15 7-7 7 7", down: "m5 9 7 7 7-7" }[dir];
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d={d} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  );
+}
+
+// Repetir lo de la última vez.
+export function RepeatIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  );
+}
+
+// Tendencia: sube (▲) o baja (▼).
+export function TriangleIcon({ className, dir = "up" }: IconProps & { dir?: "up" | "down" }) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" aria-hidden="true"><path d={dir === "up" ? "M12 6 20 18H4Z" : "M12 18 4 6h16Z"} fill="currentColor" /></svg>
+  );
+}
+
+// Logo de Google (la "G" de colores) para los botones de entrar o conectar con Google,
+// como piden sus normas de marca.
+export function GoogleIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico google-g " + (className ?? "")} viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.7Z" />
+      <path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9h-4v3.1A12 12 0 0 0 12 24Z" />
+      <path fill="#FBBC05" d="M5.4 14.4a7.2 7.2 0 0 1 0-4.7V6.6h-4a12 12 0 0 0 0 10.8l4-3Z" />
+      <path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.4 6.6l4 3.1C6.3 6.9 8.9 4.8 12 4.8Z" />
+    </svg>
+  );
+}

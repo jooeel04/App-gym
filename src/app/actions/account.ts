@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { createSupabaseServerClient, getCurrentUser } from "@/lib/supabase/server";
 
 // Ajustes de la cuenta: contraseña, correo, privacidad en Social y borrar la cuenta.
@@ -67,4 +68,38 @@ export async function deleteAccount(): Promise<Result> {
   if (error) return { ok: false, error: error.code === "PGRST202" ? NO_DB : "No se pudo borrar la cuenta." };
   await db.auth.signOut();
   return { ok: true };
+}
+
+// Entrar con Google y conectar Google a la cuenta abierta. Supabase habla con Google;
+// la vuelta llega a /auth/google, que abre la sesión. Si el correo de Google es el de una
+// cuenta que ya existe (y confirmada), Supabase la une sola: mismo usuario, mismos datos.
+
+const CALLBACK = "/auth/google";
+
+const origin = async () => (await headers()).get("origin") ?? "";
+
+// Abre Google para entrar (o crear la cuenta la primera vez).
+export async function signInWithGoogle() {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: (await origin()) + CALLBACK } });
+  if (error || !data.url) redirect("/login?error=google");
+  redirect(data.url);
+}
+
+// Con la sesión abierta, conecta un Google (aunque tenga otro correo) a esta cuenta, para
+// poder entrar con los dos sin perder los datos. Necesita "Allow manual linking" en Supabase.
+export async function linkGoogle(): Promise<{ error?: string }> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.linkIdentity({ provider: "google", options: { redirectTo: (await origin()) + CALLBACK + "?next=/ajustes" } });
+  if (error || !data.url) {
+    return { error: error?.code === "manual_linking_disabled" ? "Conectar Google aún no está activado. Inténtalo más tarde." : "No se pudo abrir Google. Inténtalo de nuevo." };
+  }
+  redirect(data.url);
+}
+
+// ¿Esta cuenta ya puede entrar con Google?
+export async function googleStatus(): Promise<{ linked: boolean }> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.auth.getUserIdentities();
+  return { linked: !!data?.identities.some((i) => i.provider === "google") };
 }

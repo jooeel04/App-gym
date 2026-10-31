@@ -7,7 +7,8 @@ import { formatDayMonth, formatShortDate } from "@/domain/calendar";
 import { BODY_FIELDS, type BodyField, type BodyMetrics } from "@/domain/types";
 import { TapLineChart } from "./tap-line-chart";
 import { closeOnBackdrop } from "./backdrop";
-import { CheckIcon, FlameIcon, TrophyIcon } from "./icons";
+import { askConfirm } from "./confirm-dialog";
+import { CheckIcon, FlameIcon, PencilIcon, PlusIcon, TrophyIcon } from "./icons";
 
 const fmt = (n: number, digits = 1) => n.toLocaleString("es-ES", { maximumFractionDigits: digits });
 
@@ -74,7 +75,7 @@ export function BodyCard() {
       <section className="chart">
         <div className="charttitle"><h2>Tu cuerpo</h2></div>
         <p className="body-hint">Anota tu peso y medidas cada semana para ver cómo cambian.</p>
-        <button type="button" className="settings-btn" onClick={() => setEditing(today)}>＋ Anotar medidas de hoy</button>
+        <button type="button" className="settings-btn" onClick={() => setEditing(today)}><PlusIcon />Anotar medidas de hoy</button>
         {form}
       </section>
     );
@@ -108,14 +109,14 @@ export function BodyCard() {
         points={series.map((e) => ({ key: e.date, value: e.metrics[field]!, label: fmt(e.metrics[field]!) + " " + unit, sub: formatShortDate(e.date), tick: formatDayMonth(e.date) }))} />
       {series.length < 2 && <p className="body-hint">Anota tus medidas cada semana para ver aquí cómo cambian.</p>}
       <button type="button" className="settings-btn" onClick={() => setEditing(today)}>
-        {log.some((e) => e.date === today) ? "✎ Cambiar las medidas de hoy" : "＋ Anotar medidas de hoy"}
+        {log.some((e) => e.date === today) ? <><PencilIcon />Cambiar las medidas de hoy</> : <><PlusIcon />Anotar medidas de hoy</>}
       </button>
       <div className="body-history">
         <div className="body-history-title">Historial · toca un día para cambiarlo o borrarlo</div>
         {history.slice(0, allRows ? history.length : HISTORY_ROWS).map((e) => (
           <button key={e.date} type="button" className="body-entry" onClick={() => setEditing(e.date)}>
             <span><b>{formatShortDate(e.date)}</b><small>{describeMetrics(e.metrics)}</small></span>
-            <em aria-hidden="true">✎</em>
+            <em aria-hidden="true"><PencilIcon /></em>
           </button>
         ))}
         {history.length > HISTORY_ROWS && (
@@ -158,7 +159,7 @@ function BodyForm({ date, isToday, initial, canDelete, onSave, onClose }: {
         </div>
         <div className="modal-actions">
           {canDelete && (
-            <button type="button" className="danger-btn" onClick={() => { if (confirm("¿Borrar las medidas del " + formatShortDate(date) + "?")) onSave(null); }}>Borrar</button>
+            <button type="button" className="danger-btn" onClick={async () => { if (await askConfirm({ title: "¿Borrar las medidas del " + formatShortDate(date) + "?", action: "Borrar", danger: true })) onSave(null); }}>Borrar</button>
           )}
           <button type="button" onClick={onClose}>Cancelar</button>
           <button className="primary" type="submit">Guardar</button>

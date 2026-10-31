@@ -7,6 +7,7 @@ import type { MouseEvent, ReactNode } from "react";
 import { registerTabAnimator, switchTab, useWorkout } from "@/controllers/workout-controller";
 import { useScreenAwake } from "@/lib/screen-awake";
 import { syncThemeBar, watchSystemTheme } from "@/lib/theme";
+import { ConfirmDialog } from "./confirm-dialog";
 import { DaySummary } from "./day-summary";
 import { GlassLayer } from "./glass-layer";
 import { NicknamePrompt } from "./nickname-prompt";
@@ -229,6 +230,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {ready && mode === "cloud" && <ReminderDeviceSync />}
       {ready && <NicknamePrompt />}
       {ready && <SetupWizard />}
+      <ConfirmDialog />
       <div className={"toast" + (toast.visible ? " show" : "")} role="status" aria-live="polite">
         {toast.icon === "trophy" && <TrophyIcon />}
         {toast.icon === "clock" && <ClockIcon />}

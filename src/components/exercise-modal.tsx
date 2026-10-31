@@ -9,6 +9,7 @@ import type { Exercise } from "@/domain/types";
 import { BodyMap } from "./body-map";
 import { ExerciseDemo } from "./exercise-demo";
 import { closeOnBackdrop } from "./backdrop";
+import { PlusIcon } from "./icons";
 
 interface Draft {
   name: string;
@@ -87,7 +88,7 @@ export function ExerciseModal({ day, exercise, onClose }: { day: number; exercis
                       <small>{x.primary.map((m) => MUSCLE_NAMES[m]).join(" · ")}</small>
                       <em>{x.sets} × {x.target}</em>
                     </span>
-                    <span className="libadd" aria-hidden="true">＋</span>
+                    <span className="libadd" aria-hidden="true"><PlusIcon /></span>
                   </button>
                 </div>
               ))}
