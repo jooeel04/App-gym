@@ -6,14 +6,16 @@ quedó pendiente de días anteriores, la lista de ejercicios y el entreno en cur
 
 ## Archivos clave
 
-- `src/components/training-view.tsx` — `TrainingView` (tarjeta grande de hoy, pendientes,
+- `src/components/training-view.tsx` — `TrainingView` (cabecera del día, pendientes,
   «Hacer otro día»), `TodayList` (lista de ejercicios desplegables), `PermissionCard`,
   `StreakPill` y `RestCard` (día de descanso). Exporta ayudas que usa el anotador:
   `supersetRole`, `suggestedWeight` y `range`.
 - `src/components/exercise-logger.tsx` — `ExerciseLogger` (un ejercicio desplegado),
   `SetLogger` (fichas de las series, calentamiento, deshacer) y `SetStepper` (tarjeta de
   carga, repeticiones y nota con botones + / −).
-- `src/components/rest-timer.tsx` — barra flotante del descanso entre series.
+- `src/components/dock.tsx` — hueco fijo de abajo (`DOCK_ID`, `InDock`) y «Seguir entreno»
+  (`ContinueWorkout`).
+- `src/components/rest-timer.tsx` — barra del descanso entre series (en el sitio del hueco).
 - `src/components/day-summary.tsx` — resumen al terminar el entreno o completar el día.
 - `src/controllers/workout-controller.tsx` — acciones: `setEntry`, `repeatLast`,
   `toggleExerciseChecked`, `finishWorkout`, `recoverSession`, `selectDay`, descanso
@@ -25,12 +27,61 @@ quedó pendiente de días anteriores, la lista de ejercicios y el entreno en cur
 
 ## Funcionalidades
 
+### Entrenar en un toque (el flujo principal)
+
+**Qué hace:** la app se usa así: entras, haces la serie, la apuntas y sigues; casi nadie
+cambia su rutina. Por eso, al abrir Hoy en un día de entreno **ya está abierto el ejercicio
+que toca** (el primero sin terminar) con su serie actual y los números propuestos. Abajo,
+encima de la barra de pestañas y siempre en el mismo sitio (bajo el pulgar), está el botón
+**«Serie hecha»**, que enseña lo que va a guardar («42,5 × 8»). Si hiciste lo propuesto,
+anotar es un toque, sin bajar por la pantalla. Al pulsarlo, **ese mismo sitio pasa a ser el
+descanso** (cuenta atrás, «+15 s», «Saltar») con «Deshacer» encima unos segundos; cuando
+acaba el descanso vuelve «Serie hecha» para la siguiente. Al terminar las series de un
+ejercicio se abre solo el siguiente, y con la última serie del día sale el resumen.
+Si se cambia de pestaña a mitad de entreno, el sitio del botón dice «Seguir entreno» y
+lleva de vuelta a Hoy, al ejercicio en el que ibas.
+**Cómo funciona:** `TodayList` abre al montarse el primer ejercicio sin terminar (por eso
+también al volver a la pestaña) y solo desplaza la pantalla si ese ejercicio queda en la
+mitad de abajo. `SetStepper` pinta «Serie hecha» con un portal en el hueco fijo `#dock`
+que pone `AppShell` (si no existe, p. ej. en una prueba suelta, lo pinta en su sitio); el
+aviso de «Deshacer» de `SetLogger` va al mismo hueco. Mientras hay descanso (`rest` del
+controlador) el botón no se pinta y en su lugar está `RestTimerBar`. `ContinueWorkout`
+(en `AppShell`) es el botón «Seguir entreno» de las demás pestañas: sale si hay entreno en
+curso, no se está en Hoy y no hay descanso. «Serie hecha» pide también los permisos de
+avisos (antes lo hacía el primer toque en un ejercicio, que ya no hace falta).
+**Decisiones:** antes había que bajar, tocar el ejercicio, volver a bajar y buscar el
+botón (2 toques y 2 desplazamientos para la primera serie). La barra de pestañas se deja
+como está: el botón fijo va justo encima y «Seguir entreno» resuelve volver desde otra
+pestaña; ocultar las pestañas durante el entreno se descartó porque deja a la persona
+sin salida a la vista. La lista de ejercicios sigue visible (no se esconde tras «ver
+todos»): es una fila por ejercicio y así se ve lo que viene sin otro toque.
+**Casos límite:** día ya completado → nada abierto, la lista dice «Lo que hiciste»; día sin
+ejercicios → aviso para añadirlos en Rutina; superserie → no hay descanso entre los dos
+ejercicios enlazados, así que vuelve directamente «Serie hecha». Mientras hay algo en el hueco o
+descanso en marcha, el aviso fijo de los recordatorios (`.device-card`) no sale, para no
+tapar el botón; aparece al acabar o en otra pestaña.
+**Reglas:**
+- **R8** Al entrar en Hoy un día de entreno, el primer ejercicio sin terminar ya está
+  abierto con su serie actual. → `src/components/today-flow.test.tsx`
+- **R9** «Serie hecha» va en el hueco fijo de abajo y dice lo que va a guardar.
+  → `src/components/today-flow.test.tsx`
+- **R10** Tras anotar, en ese sitio está el descanso con «Deshacer»; al saltar o acabar el
+  descanso vuelve «Serie hecha». → `src/components/today-flow.test.tsx`
+- **R11** En otra pestaña con un entreno en curso, «Seguir entreno» lleva a Hoy.
+  → `src/components/today-flow.test.tsx`
+- **R12** Músculos, foto de cómo se hace e indicaciones están plegados en «Cómo se hace»;
+  el consejo de progresión sigue a la vista. → `src/components/today-flow.test.tsx`
+- **R13** La tarjeta para activar los avisos va al final de la pantalla, no delante del
+  ejercicio, y «Serie hecha» pide los permisos. → `src/components/training-view.test.tsx`
+
 ### Qué toca hoy
 
-**Qué hace:** arriba sale la fecha y el título «Hoy», con la racha de semanas al lado. La
-tarjeta grande dice qué día de rutina toca (p. ej. «Empujes»), cuántos ejercicios y series
-tiene, un anillo con los ejercicios hechos y cuándo se hizo por última vez. Si hoy no toca
-nada, sale «Hoy descansas» con lo que toca la próxima vez.
+**Qué hace:** arriba sale la fecha y el título «Hoy», con la racha de semanas al lado.
+Debajo, una cabecera pequeña dice qué día de rutina toca (p. ej. «Empujes»), cuántos
+ejercicios y series tiene y un anillo con los ejercicios hechos (y «Terminar entreno» si
+hay uno en curso). Al final de la pantalla, fuera del camino: «Hacer otro día» (con los
+pendientes), la calculadora de discos y el aviso de permisos. Si hoy no toca nada, sale
+«Hoy descansas» con lo que toca la próxima vez.
 **Cómo funciona:** el controlador da `today`, `week` y `day`. `calendar.sessionsOn(today)`
 dice qué día de rutina cae hoy según `schedule` (día de rutina → día de la semana) y la
 semana del ciclo sale de `startDate`. «Hacer otro día» llama a `actions.selectDay` (el día
@@ -40,11 +91,18 @@ hay racha.
 
 ### Días pendientes
 
-**Qué hace:** si en los últimos 14 días quedó un día de rutina sin hacer, sale una tarjeta
-«Te quedó pendiente: …» con «Hacer hoy».
+**Qué hace:** si en los últimos 14 días quedó un día de rutina sin hacer, «Hacer otro día»
+(al final de Hoy) avisa de cuántos hay; al abrirlo salen en «Pendientes», cada uno con
+«Hacer hoy». No ocupan la parte de arriba de la pantalla.
 **Cómo funciona:** `calendar.missedSessions(today)`; «Hacer hoy» llama a
 `actions.recoverSession`, que lo carga como día de hoy. En Progreso ese día se marca como
 «Hecho más tarde».
+**Casos límite:** en un día de descanso el controlador apunta al último día de rutina de
+la semana (`calendar.focusFor`); ese día no se quita de pendientes, porque no es el que
+se está viendo. Así, si se salta el viernes, el sábado sale «Hacer hoy».
+**Reglas:**
+- **R14** En un día de descanso también sale como pendiente el último día que no se hizo.
+  → `src/components/training-view.test.tsx`
 
 ### Anotar las series
 

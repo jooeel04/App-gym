@@ -717,7 +717,7 @@ body:has(.wizard){overflow:hidden}
 .hero-text{min-width:0}
 .hero-text h2{margin:4px 0 2px;font-size:calc(28px * var(--fs))}
 .hero-text p{margin:0}
-.hero .hero-last{margin-top:14px;color:var(--muted);font-size:calc(13px * var(--fs))}
+
 .peek-row em{text-align:right}
 .peek-row em small{display:block;color:var(--muted2);font-size:max(11px, calc(11px * var(--fs)));font-weight:600}
 .peek-row .n{border-radius:10px;background:rgba(46,139,255,.14)}
@@ -1222,3 +1222,48 @@ button[data-glass]:active{transform:scale(.97)}
 .google-row{display:grid;gap:10px}
 .set-icon .google-g{width:18px;height:18px}
 .plates-step .ico{width:24px;height:24px;margin:0}
+
+/* ===== Entrenar en un toque (specs/hoy.md R8–R13) =====
+   Hueco fijo bajo el pulgar, encima de la barra de pestañas: «Serie hecha», «Deshacer» y,
+   desde otras pestañas, «Seguir entreno». El descanso (.restbar) ocupa el mismo sitio. */
+.dock{position:fixed;z-index:26;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(420px,calc(100% - 24px));display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.dock:empty{display:none}
+.dock>*{pointer-events:auto}
+/* Con el descanso en marcha, lo del hueco queda encima de la cuenta atrás. */
+body:has(.restbar) .dock{bottom:calc(156px + env(safe-area-inset-bottom))}
+.dock .set-done{margin:0;min-height:64px;padding:0 22px;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 14px 34px rgba(46,139,255,.38)}
+.set-done-what{margin-left:6px;font-family:var(--font-num),ui-sans-serif,system-ui,sans-serif;font-variant-numeric:tabular-nums;font-size:calc(21px * var(--fs));font-weight:700;opacity:.92}
+.dock .set-undo{order:-1;margin:0;align-self:center;min-width:220px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.dock-continue{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:60px;padding:8px 20px;border:0;border-radius:999px;background:var(--accent-grad);color:#fff;text-align:left;font:inherit;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 14px 34px rgba(46,139,255,.38)}
+.dock-continue span{min-width:0}
+.dock-continue small{display:block;font-size:max(11px, calc(12px * var(--fs)));font-weight:700;opacity:.85}
+.dock-continue b{display:block;font-size:calc(16px * var(--fs));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dock-continue .ico{width:22px;height:22px;margin:0}
+.dock-continue:active,.dock .set-done:active{transform:scale(.98)}
+/* El final de la página y los avisos no quedan debajo del botón fijo. */
+body:has(.dock>*) .app{padding-bottom:calc(180px + env(safe-area-inset-bottom))}
+body:has(.dock>*) .toast{bottom:calc(164px + env(safe-area-inset-bottom))}
+body:has(.dock>*):has(.restbar) .toast{bottom:calc(236px + env(safe-area-inset-bottom))}
+/* Con el teclado abierto la barra de pestañas se esconde: el botón va justo encima del
+   teclado (parte visible de la pantalla, --vv-* desde AppShell) para guardar sin cerrarlo. */
+@media(pointer:coarse){
+  body:has(:is(input:not([type=checkbox],[type=radio],[type=range],[type=file],[type=button]),textarea,select):focus) .dock{top:calc(var(--vv-top,0px) + var(--vv-h,100vh) - 10px);bottom:auto;transform:translate(-50%,-100%)}
+}
+
+/* «Cómo se hace»: músculos, foto e indicaciones, plegados */
+.how-toggle{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin:0 0 4px;padding:0 2px;border:0;background:transparent;color:var(--muted);font:inherit;font-size:calc(13px * var(--fs));font-weight:750}
+.how-toggle .chev{width:16px}
+.how-toggle[aria-expanded="true"] .chev{transform:rotate(180deg)}
+@media(prefers-reduced-motion:no-preference){.how-toggle .chev{transition:transform .2s}}
+
+/* Cabecera del día pequeña: lo que toca y cuánto llevas, sin quitar sitio al ejercicio */
+.hero{padding:14px 16px;border-radius:24px}
+.hero-top{gap:12px}
+.hero-ring{width:56px;height:56px}
+.hero-text h2{font-size:calc(22px * var(--fs))}
+.hero-text p{font-size:calc(13px * var(--fs))}
+/* Mientras se entrena (hay algo en el hueco o descanso en marcha) el aviso de los
+   recordatorios de este móvil no sale: taparía el botón. Vuelve al acabar o en otra pestaña. */
+body:is(:has(.dock>*),:has(.restbar)) .device-card{display:none}
+/* «Deshacer» flota sobre la tarjeta: fondo propio con desenfoque para leerse bien. */
+.dock .set-undo{background:color-mix(in srgb,var(--s) 88%,transparent);border-color:var(--line2);backdrop-filter:blur(18px) saturate(140%)}

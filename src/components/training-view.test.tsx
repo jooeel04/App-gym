@@ -1,6 +1,7 @@
 import { fireEvent, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { requestPermissions } from "@/lib/permissions";
+import { DAY_NAMES } from "@/domain/snapshot";
 import { freezeToday, renderWithWorkout } from "../../tests/workout-fixture";
 import { TrainingView } from "./training-view";
 
@@ -86,5 +87,42 @@ describe("Hoy · una sola forma de anotar (spec hoy R2)", () => {
   it("no hay lista aparte para «corregir series»", () => {
     renderWithWorkout(<TrainingView />);
     expect(screen.queryByRole("button", { name: /Corregir series/ })).not.toBeInTheDocument();
+  });
+});
+
+// Spec hoy R13: el aviso de permisos no se pone delante del ejercicio que toca.
+describe("Hoy · el aviso de permisos va al final", () => {
+  beforeEach(freezeToday);
+  afterEach(() => vi.useRealTimers());
+
+  it("la tarjeta sale después de la tarjeta de anotar", () => {
+    renderWithWorkout(<TrainingView />);
+    const logButton = screen.getByRole("button", { name: /Serie hecha/ });
+    const card = screen.getByText("Activa los avisos");
+    expect(logButton.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("«Serie hecha» pide los permisos de los avisos", () => {
+    vi.mocked(requestPermissions).mockClear();
+    renderWithWorkout(<TrainingView />);
+    fireEvent.click(screen.getByRole("button", { name: /Serie hecha/ }));
+    expect(requestPermissions).toHaveBeenCalled();
+  });
+});
+
+// Spec hoy R14: en un día de descanso también se ve el último día que quedó sin hacer.
+describe("Hoy · pendientes en un día de descanso", () => {
+  beforeEach(() => {
+    freezeToday();
+    vi.setSystemTime(new Date("2026-10-31T10:00:00")); // sábado; el viernes (Día 5) no se hizo
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("el viernes que no se hizo sale en «Hacer otro día» con «Hacer hoy»", () => {
+    renderWithWorkout(<TrainingView />);
+    fireEvent.click(screen.getByRole("button", { name: /Hacer otro día/ }));
+    // El de ayer, no solo el de la semana pasada.
+    expect(screen.getByText("Era el viernes, 30 de octubre")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Hacer hoy " + DAY_NAMES[5] }).length).toBeGreaterThan(0);
   });
 });

@@ -13,13 +13,20 @@
 -- Las fechas se calculan desde el día en que se carga: la última semana del ciclo
 -- es siempre la semana actual y hoy queda sin anotar.
 
--- El recordatorio programado (pg_cron) llama a la app de producción: en local no.
-do $$
+-- El recordatorio y el aviso del descanso programados (pg_cron) llaman a la app de
+-- producción: en local no.
+do $
 begin
   perform cron.unschedule('rutina-recordatorios');
 exception when others then null;
 end;
-$$;
+$;
+do $
+begin
+  perform cron.unschedule('fitgym-descansos');
+exception when others then null;
+end;
+$;
 
 -- Mismos datos "aleatorios" en cada carga.
 select setseed(0.42);

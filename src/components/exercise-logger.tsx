@@ -8,17 +8,21 @@ import { parseRepRange, suggestNext } from "@/domain/progression";
 import { WARMUP_SETS } from "@/domain/snapshot";
 import type { Exercise, SetEntry } from "@/domain/types";
 import type { SetResult } from "@/domain/workout-stats";
+import { requestPermissions } from "@/lib/permissions";
 import { BodyMap } from "./body-map";
+import { InDock } from "./dock";
 import { ExerciseDemo } from "./exercise-demo";
 import { PlateCalculator } from "./plate-calculator";
-import { BulbIcon, CheckIcon, DumbbellIcon, MinusIcon, PencilIcon, PlusIcon, RepeatIcon, TrendUpIcon } from "./icons";
+import { BulbIcon, CheckIcon, ChevronIcon, DumbbellIcon, MinusIcon, PencilIcon, PlusIcon, RepeatIcon, TrendUpIcon } from "./icons";
 import { range, suggestedWeight, supersetRole } from "./training-view";
 
-// Un ejercicio desplegado en la lista de Hoy: músculos que trabaja (dibujo y cómo se hace),
-// consejo y la tarjeta para anotar las series con botones grandes de + / − (también el
-// calentamiento y las notas: es la única forma de anotar).
+// Un ejercicio desplegado en la lista de Hoy: el consejo de progresión y la tarjeta para
+// anotar las series con botones grandes de + / − (también el calentamiento y las notas: es
+// la única forma de anotar). Lo que no se usa en cada serie (músculos, foto de cómo se hace
+// e indicaciones) está plegado en «Cómo se hace».
 export function ExerciseLogger({ exercise: x, superset }: { exercise: Exercise; superset: ReturnType<typeof supersetRole> }) {
   const { model, stats, week, day, actions } = useWorkout();
+  const [how, setHow] = useState(false);
   const muscles = musclesFor(x.name);
   const tip = suggestNext(x, stats.lastBefore(x, week));
   const done = model.isExerciseDone(week, day, x);
@@ -27,7 +31,12 @@ export function ExerciseLogger({ exercise: x, superset }: { exercise: Exercise; 
 
   return (
     <>
-      {muscles && (
+      {(muscles || x.note) && (
+        <button type="button" className="how-toggle" aria-expanded={how} onClick={() => setHow(!how)}>
+          Cómo se hace<ChevronIcon />
+        </button>
+      )}
+      {how && muscles && (
         <div className="focus-muscles">
           <BodyMap primary={muscles.primary} secondary={muscles.secondary} size="md" />
           <div>
@@ -38,9 +47,9 @@ export function ExerciseLogger({ exercise: x, superset }: { exercise: Exercise; 
           <ExerciseDemo name={x.name} />
         </div>
       )}
+      {how && x.note && <p className="cue">{x.note}</p>}
       {tip && <div className={"tip " + tip.kind}>{tip.kind === "increase" ? <TrendUpIcon /> : <BulbIcon />}{tip.text}</div>}
       {superset === "first" && <p className="ss-note">Superserie: haz una serie de este y otra del siguiente sin descansar entre ambos.</p>}
-      {x.note && <p className="cue">{x.note}</p>}
       <SetLogger exercise={x} />
       {!filled && (
         <button type="button" className={"focus-check" + (done ? " done" : "")} onClick={() => actions.toggleExerciseChecked(week, day, x.id)}>
@@ -136,14 +145,16 @@ function SetLogger({ exercise: x }: { exercise: Exercise }) {
       {current
         ? <SetStepper key={current + (draft?.set === current ? "-draft" : "")} exercise={x} set={current}
             old={isWarmup(current) ? undefined : last?.sets.find((r) => r.set === current)}
-            draft={draft?.set === current ? draft.entry : undefined}
+            draft={draft?.set === current ? draft.entry : undefined} picked={pick !== null}
             onSaved={(prev, saved) => { setPick(null); setDraft(null); setUndo({ set: current, prev, saved }); }} />
         : <p className="set-alldone"><CheckIcon /> Todas las series anotadas. Toca una para cambiarla.</p>}
       {undo && (
-        <p className="set-undo" role="status">
-          <span>{setName(undo.set)} {isWarmup(undo.set) ? "anotado" : "anotada"}</span>
-          <button type="button" onClick={revert}>Deshacer</button>
-        </p>
+        <InDock>
+          <p className="set-undo" role="status">
+            <span>{setName(undo.set)} {isWarmup(undo.set) ? "anotado" : "anotada"}</span>
+            <button type="button" onClick={revert}>Deshacer</button>
+          </p>
+        </InDock>
       )}
     </>
   );
@@ -156,10 +167,10 @@ const bump = (v: string, d: number) => String(Math.max(0, Math.round(((Number(v)
 // empieza con lo propuesto (peso de la serie anterior o de la última vez; repeticiones de
 // la última vez o el mínimo del rango; tras deshacer, lo que se acababa de poner); el
 // calentamiento, vacío. Se guarda al pulsar "Serie hecha".
-function SetStepper({ exercise: x, set: s, old, draft, onSaved }: {
-  exercise: Exercise; set: number; old?: SetResult; draft?: SetEntry; onSaved: (prev: SetEntry, saved: SetEntry) => void;
+function SetStepper({ exercise: x, set: s, old, draft, picked, onSaved }: {
+  exercise: Exercise; set: number; old?: SetResult; draft?: SetEntry; picked: boolean; onSaved: (prev: SetEntry, saved: SetEntry) => void;
 }) {
-  const { model, week, day, actions } = useWorkout();
+  const { model, week, day, rest, actions } = useWorkout();
   const e = model.getEntry(week, day, x.id, s);
   const saved = hasReps(e);
   const warmup = isWarmup(s);
@@ -176,6 +187,8 @@ function SetStepper({ exercise: x, set: s, old, draft, onSaved }: {
 
   const save = () => {
     if (!reps.trim()) return;
+    // Antes lo pedía el primer toque en un ejercicio; ahora se entra con él ya abierto.
+    void requestPermissions();
     const prev = { weight: e.weight, reps: e.reps, note: e.note };
     if (kg.trim() !== (e.weight ?? "").trim()) actions.setEntry(week, day, x.id, s, "weight", kg.trim());
     if (note.trim() !== (e.note ?? "").trim()) actions.setEntry(week, day, x.id, s, "note", note.trim());
@@ -222,9 +235,16 @@ function SetStepper({ exercise: x, set: s, old, draft, onSaved }: {
               value={note} onChange={(ev) => setNote(ev.target.value)} />
           : <button type="button" className="stepper-note-btn" onClick={() => setNoteOpen(true)}><PencilIcon />Añadir nota</button>}
       </div>
-      <button type="button" className="set-done" disabled={!reps.trim()} onClick={save}>
-        <CheckIcon />{saved ? "Guardar cambios" : "Serie hecha"}
-      </button>
+      {/* Bajo el pulgar. Durante el descanso en ese sitio está la cuenta atrás, salvo que se
+          haya elegido una serie a mano para corregirla. */}
+      {(!rest || picked) && (
+        <InDock>
+          <button type="button" className="set-done" disabled={!reps.trim()} onClick={save}>
+            <CheckIcon /><span>{saved ? "Guardar cambios" : "Serie hecha"}</span>
+            {reps.trim() && <b className="set-done-what">{(Number(kg) > 0 ? String(Number(kg)).replace(".", ",") + " " : "") + "× " + reps.trim()}</b>}
+          </button>
+        </InDock>
+      )}
     </>
   );
 }

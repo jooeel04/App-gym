@@ -9,6 +9,7 @@ Varias personas, cada una con su cuenta (correo y contraseña) y sus propios dat
 - Añadir ejercicios por día con series, objetivo de repeticiones y detalle técnico; eliminar ejercicios cuando ya no se necesiten.
 - Registro por serie de carga, repeticiones y nota; conserva las series opcionales.
 - Calendario: cada día de la rutina se asigna a un día de la semana (L–D), con presets y fecha de inicio del ciclo.
+- Entrenar en un toque: al abrir Hoy ya está abierto el ejercicio que toca con los números propuestos; «Serie hecha» va fijo abajo, bajo el pulgar, y después ese sitio muestra el descanso y «Deshacer». Desde otra pestaña, «Seguir entreno» devuelve al ejercicio.
 - Hoy (pestaña principal): lo que toca hoy con un botón grande para empezar, los días de las últimas dos semanas que quedaron sin hacer («Hacer hoy»), los días de descanso y «Hacer otro día». Al tocar un ejercicio se anotan sus series con botones + / − (también el calentamiento y una nota por serie); para corregir una serie se toca su ficha.
 - Asistente para cuentas nuevas (sin datos): qué días entrena, qué rutina quiere (recomendada, la de un amigo o vacía) y cómo queda la semana.
 - Calendario en Progreso: al tocar un día se ve lo entrenado esa fecha (ejercicios y series), marcando los días recuperados.

@@ -9,6 +9,8 @@ describe("Cómo se hace cada ejercicio", () => {
 
   it("en el entreno en curso hay una miniatura animada; al tocarla se ve en grande", () => {
     renderWithWorkout(<ExerciseLogger exercise={PRESS} superset={null} />);
+    // Está plegado en «Cómo se hace» (spec hoy R12).
+    fireEvent.click(screen.getByRole("button", { name: "Cómo se hace" }));
     fireEvent.click(screen.getByRole("button", { name: "Ver cómo se hace: " + PRESS.name }));
     const dialog = screen.getByRole("dialog", { name: "Cómo se hace" });
     const demo = screen.getAllByRole("img", { name: "Cómo se hace: " + PRESS.name }).at(-1)!;

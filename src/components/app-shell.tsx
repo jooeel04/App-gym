@@ -9,6 +9,7 @@ import { useScreenAwake } from "@/lib/screen-awake";
 import { syncThemeBar, watchSystemTheme } from "@/lib/theme";
 import { ConfirmDialog } from "./confirm-dialog";
 import { DaySummary } from "./day-summary";
+import { ContinueWorkout, DOCK_ID } from "./dock";
 import { GlassLayer } from "./glass-layer";
 import { NicknamePrompt } from "./nickname-prompt";
 import { ReminderDeviceSync } from "./reminder-device-sync";
@@ -225,6 +226,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </a>
         ))}
       </nav>
+      {/* Hueco fijo bajo el pulgar: «Serie hecha», «Deshacer» y «Seguir entreno» (dock.tsx). */}
+      <div id={DOCK_ID} className="dock" />
+      {ready && <ContinueWorkout onToday={current.href === "/entrenar"} />}
       {ready && <RestTimerBar />}
       {ready && <DaySummary />}
       {ready && mode === "cloud" && <ReminderDeviceSync />}

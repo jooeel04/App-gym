@@ -19,7 +19,7 @@ export const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 // pendiente está dentro de "Hacer otro día" (que avisa de cuántos hay), para que la
 // pantalla quede limpia. Es la única forma de anotar: para corregir se toca la serie.
 export function TrainingView() {
-  const { model, stats, calendar, diary, today, week, day, picked, active, nickname, actions } = useWorkout();
+  const { model, stats, calendar, today, week, day, picked, active, nickname, actions } = useWorkout();
   const [otherDay, setOtherDay] = useState(false);
   const [plates, setPlates] = useState(false);
   const done = model.isDayCompleted(week, day);
@@ -30,8 +30,9 @@ export function TrainingView() {
   if (!today) return null;
 
   const resting = !picked && calendar.sessionsOn(today).length === 0;
-  const missed = calendar.missedSessions(today).filter((s) => !(s.week === week && s.day === day));
-  const lastDate = diary.days().find((d) => d.date < today && d.sessions.some((s) => s.day === day))?.date;
+  // El día en pantalla no se ofrece como pendiente; en un día de descanso no hay día en
+  // pantalla (week/day apuntan al último de la semana), así que sí sale.
+  const missed = calendar.missedSessions(today).filter((s) => resting || !(s.week === week && s.day === day));
   const totalSets = list.reduce((n, x) => n + x.sets, 0);
   const exDone = list.filter((x) => model.isExerciseDone(week, day, x)).length;
   // Con apodo, la app se dirige a la persona: "Joel, hoy toca".
@@ -50,8 +51,6 @@ export function TrainingView() {
         {model.startDate && <StreakPill today={today} />}
       </div>
 
-      <PermissionCard />
-
       {resting ? <RestCard /> : (
         <section className="hero" style={{ "--hero": "var(--day" + day + ")", "--p": (list.length ? exDone / list.length : 0) * 100 + "%" } as React.CSSProperties}>
           <div className="hero-top">
@@ -62,7 +61,6 @@ export function TrainingView() {
               <p>{list.length} {list.length === 1 ? "ejercicio" : "ejercicios"} · {totalSets} series</p>
             </div>
           </div>
-          <p className="hero-last">{lastDate ? "La última vez: " + formatLongDate(lastDate).toLowerCase() : "Primera vez que lo haces"}</p>
           {list.length === 0 && <p className="hero-note">No tiene ejercicios: añádelos en Rutina.</p>}
           {live && !done && <button type="button" className="finish-workout" onClick={actions.finishWorkout}>Terminar entreno</button>}
         </section>
@@ -104,17 +102,19 @@ export function TrainingView() {
         <ChevronIcon />
       </button>
       {plates && <PlateCalculator onClose={() => setPlates(false)} />}
+      <PermissionCard />
     </section>
   );
 }
 
-// Ejercicios del día en pantalla. Al tocar uno se despliega para anotarlo (uno abierto
-// cada vez); al terminarlo se abre solo el siguiente que falte.
+// Ejercicios del día en pantalla. Al entrar ya está abierto el primero sin terminar (para
+// anotar sin tocar nada más); al tocar otro se abre ese (uno cada vez) y, al terminar el
+// abierto, se abre solo el siguiente que falte.
 function TodayList({ done }: { done: boolean }) {
   const { model, stats, week, day } = useWorkout();
   const list = model.exercisesOfDay(day);
   const isDone = (id: number | null) => list.some((x) => x.id === id && model.isExerciseDone(week, day, x));
-  const [openId, setOpenId] = useState<number | null>(null);
+  const [openId, setOpenId] = useState<number | null>(() => (done ? null : list.find((x) => !model.isExerciseDone(week, day, x))?.id ?? null));
   const [openWasDone, setOpenWasDone] = useState(false);
   const ref = useRef<HTMLElement>(null);
   // El abierto acaba de quedar hecho: se pasa al siguiente que falte.
@@ -122,11 +122,17 @@ function TodayList({ done }: { done: boolean }) {
     if (!openWasDone) setOpenId(list.find((x) => !model.isExerciseDone(week, day, x))?.id ?? null);
     setOpenWasDone(false);
   }
-  // Al abrir uno, su cabecera se coloca arriba para ver las series.
+  // Al abrir uno, su cabecera se coloca arriba para ver las series. Al entrar solo se
+  // desplaza si el abierto queda en la mitad de abajo (si no, se ve la cabecera del día).
+  const mounted = useRef(false);
   useEffect(() => {
+    const first = !mounted.current;
+    mounted.current = true;
     if (openId === null) return;
+    const item = ref.current?.querySelector(".peek-item.open");
+    if (!item || (first && item.getBoundingClientRect().top < window.innerHeight / 2)) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    ref.current?.querySelector(".peek-item.open")?.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
+    item.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
   }, [openId]);
 
   const toggle = (id: number) => {
