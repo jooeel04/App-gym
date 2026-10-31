@@ -17,6 +17,85 @@ lista de migraciones.
 - Antes de decir que algo funciona, compruébalo (ver "Comprobar antes de subir").
   Si no se ha podido probar algo (p. ej. lo que depende de Supabase), dilo.
 
+## Cómo construimos: spec → prueba → código
+
+Todo lo que se implemente sigue este orden (SDD + TDD):
+
+1. **Spec**: antes del código, añade o cambia las reglas en la spec del área
+   (`specs/`). Cuéntale al usuario en palabras sencillas qué va a pasar y qué se va a
+   probar, y espera su "vale". Ese "vale" es la confirmación de las costuras que pide
+   la habilidad `tdd`.
+2. **TDD** (habilidad `tdd`): una regla → una prueba en rojo → el código justo para
+   pasarla → la siguiente. Nunca todas las pruebas de golpe. Se prueba por la
+   interfaz pública (lo que ve el usuario o lo que llama otro módulo), no por dentro.
+3. **Limpiar** con todo en verde (refactor) y pasar "Comprobar antes de subir".
+4. **Cerrar la spec**: que diga lo que se ha construido de verdad, con la prueba de
+   cada regla, y vaciar "Pendiente".
+
+Si un cambio no cambia ninguna regla (un color, un margen), la spec no se toca, pero
+se prueba si se puede medir (componente o e2e).
+
+### Specs por área
+
+Una spec por **área**, no por tarea: se actualiza la que hay y el archivo se crea la
+primera vez que se toca el área. No se crean documentos fuera de esta lista sin
+preguntar.
+
+| Archivo | Qué cubre |
+|---|---|
+| `specs/hoy.md` | Pestaña Hoy y entreno en curso: series, descanso, progresión, resumen del día |
+| `specs/rutina.md` | Plan y ejercicios, calendario semanal, asistente de cuenta nueva, compartir rutina |
+| `specs/progreso.md` | Estadísticas, récords, gráficas, calendario de actividad, peso y medidas |
+| `specs/ajustes.md` | Cuenta y contraseña, recordatorios, grupos y clasificación, copias y CSV, tema |
+| `specs/datos.md` | Base de datos (tablas, RLS, funciones), sincronización y modo sin conexión |
+| `specs/interfaz.md` | Lo común: pestañas y gestos, temas, cristal, tamaños mínimos |
+
+Formato de cada spec:
+
+```markdown
+# <Área>
+Qué es, en una o dos frases.
+
+## Reglas
+- **R1** Cuando …, entonces … → `src/…/x.test.tsx`
+
+## Datos
+Tablas y columnas que usa (o "ninguna").
+
+## Pendiente
+Lo aprobado que aún no está hecho.
+```
+
+Las reglas se escriben para que las entienda el usuario. Su número (`R1`, `R2`…) no
+cambia nunca; si una regla deja de valer, se borra.
+
+### Código (SOLID)
+
+- **S**: una responsabilidad por archivo o clase. Si un componente calcula y además
+  pinta, el cálculo va a `src/domain` y la vista se queda en `src/components`.
+- **O**: para añadir algo, se añade (una entrada en una lista, una implementación
+  nueva) en vez de alargar `if`/`switch` que ya existen.
+- **L**: las implementaciones de un mismo contrato (p. ej. los repositorios) se
+  comportan igual y pasan las mismas pruebas.
+- **I**: interfaces y props pequeñas, solo con lo que se usa.
+- **D**: el dominio no importa React ni Supabase; las dependencias llegan desde fuera
+  (el controlador es la raíz de composición).
+- Con medida (habilidad `codebase-design`): módulos profundos, con mucha lógica
+  detrás de una interfaz pequeña. No crees una interfaz o abstracción con una sola
+  implementación: la costura es real cuando hay dos (p. ej. la de verdad y la de
+  prueba).
+
+### Diseño de pantallas (habilidad `frontend-design`)
+
+- Todo diseño o rediseño de interfaz usa la habilidad `frontend-design`: primero un
+  plan corto (colores, tipografía, distribución y principios), se revisa contra lo
+  que pide el usuario para que no sea genérico, y después se construye.
+- La app es una PWA **para el móvil**: se diseña primero para el dedo (botones de
+  44 px, textos de 11 px, nada que dependa del ratón ni de `:hover`), respetando
+  "Estilos" y "Cristal líquido", tema oscuro y claro, `prefers-reduced-motion` y textos
+  en español, sencillos y en voz activa ("Guardar cambios", no "Enviar").
+- Orden: plan de diseño → "vale" del usuario → spec del área → TDD.
+
 ## "Haz deploy"
 
 "Deploy" = commit + `git push origin main` a github.com/jooeel04/App-gym. Vercel
@@ -40,9 +119,8 @@ npx eslint .
 npx next build          # genera también esos tipos
 ```
 
-Cambios de interfaz con TDD: primero la prueba (en rojo), luego el código, y todo en
-verde antes de subir. Los componentes se prueban dentro de `WorkoutProvider` en modo
-local con los datos de `tests/workout-fixture.tsx`.
+Todo en verde antes de subir (ver "Cómo construimos"). Los componentes se prueban
+dentro de `WorkoutProvider` en modo local con los datos de `tests/workout-fixture.tsx`.
 
 Sin variables de Supabase la app arranca en **modo local** (sin cuentas, datos en
 localStorage), lo que permite probar la interfaz: `npx next start -p 3100`.
@@ -59,6 +137,36 @@ localStorage), lo que permite probar la interfaz: `npx next start -p 3100`.
   fecha; nunca edites una migración ya aplicada.
 - La recuperación de contraseña necesita `https://app-gym-swart.vercel.app/auth/confirm`
   en Authentication → URL Configuration → Redirect URLs.
+
+### Reglas para la base de datos
+
+- **Antes de crear una tabla**, en este orden:
+  1. ¿Se puede calcular con lo que ya hay? → no se guarda.
+  2. ¿Es una propiedad de algo que ya existe? → columna en esa tabla.
+  3. ¿Es otra fila del mismo tipo que algo que ya existe? → fila en esa tabla (como
+     el tick y el calentamiento en `set_logs`).
+  4. Solo si tiene identidad y vida propias → tabla nueva, explicando por qué en
+     `specs/datos.md`.
+- **Normalización (3FN)**: cada dato en un solo sitio. Nada duplicado ni derivado
+  (totales, récords y rachas se calculan); claves externas en vez de copiar textos.
+  `jsonb` solo para datos pequeños que siempre se leen y escriben enteros (como
+  `schedule`), y con `check`.
+- **Integridad**: clave primaria; `references … on delete cascade` hacia el programa o
+  el usuario; `not null` con `default`; `check` de rangos y longitudes; `unique` donde
+  toque; tipos justos (`date`, `numeric`, `smallint`); índice en las columnas por las
+  que se filtra.
+- **ACID**: un cambio que toca varias filas o tablas va en **una función SQL** (una
+  sola transacción) llamada con `rpc`, como `replace_program` y `remove_week`. Nunca
+  varias peticiones seguidas que puedan quedarse a medias.
+- **Seguridad**: RLS y políticas en toda tabla nueva; funciones `security invoker` con
+  `set search_path = ''`. `security definer` solo si no hay otra forma, y explicando
+  por qué en un comentario.
+- **Migraciones**: archivo nuevo con fecha, repetible (`if not exists`,
+  `create or replace`, `drop … if exists`) y con un comentario arriba de qué cambia y
+  por qué. Si añade un dato: `replace_program` (copias), `supabase/seed.sql` (datos
+  demo), la tabla del README y `specs/datos.md`.
+- **Nombres**: `snake_case`, tablas en plural, claves externas en singular + `_id`
+  (`program_id`).
 
 ## Claves del código
 
