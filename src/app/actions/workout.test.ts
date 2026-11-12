@@ -32,7 +32,7 @@ describe("Guardar días de rutina propios y el calendario nuevo", () => {
     await applyWorkoutChanges([
       { type: "entry", week: 1, day: 7, exerciseId: 0, set: 1, entry: null },
       { type: "dayNames", dayNames: { 1: "Torso", 7: "Cardio" } },
-      { type: "dayRemoved", day: 2, dayNames: { 1: "Torso" }, schedule: { 1: [1, 4] } },
+      { type: "dayRemoved", day: 2, dayNames: { 1: "Torso" }, schedule: { 1: [1, 4] }, dayColors: { 1: "rojo" } },
       { type: "schedule", schedule: { 1: [1, 4], 7: [] }, startDate: null },
       { type: "schedule", schedule: { 1: 1, 2: 0 }, startDate: null },
     ], null);
@@ -45,8 +45,29 @@ describe("Guardar días de rutina propios y el calendario nuevo", () => {
       { type: "dayNames", dayNames: { 1: "" } },
       { type: "dayNames", dayNames: { 8: "Extra" } },
       { type: "dayNames", dayNames: { 1: "x".repeat(31) } },
-      { type: "dayRemoved", day: 9, dayNames: {}, schedule: {} },
+      { type: "dayRemoved", day: 9, dayNames: {}, schedule: {}, dayColors: {} },
       { type: "schedule", schedule: { 1: [1, 8] }, startDate: null },
+    ]) await expect(applyWorkoutChanges([bad], null)).rejects.toThrow("Cambios no válidos");
+    expect(repository.apply).not.toHaveBeenCalled();
+  });
+});
+
+// Spec datos R5: el color de cada día, solo de la lista.
+describe("Guardar el color de los días", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("acepta colores de la lista en días 1–7", async () => {
+    await applyWorkoutChanges([{ type: "dayColors", dayColors: { 1: "rojo", 7: "turquesa" } }, { type: "dayColors", dayColors: {} }], null);
+    expect(repository.apply).toHaveBeenCalledTimes(2);
+  });
+
+  it("rechaza colores que no están en la lista, días fuera de 1–7 y un día borrado con colores raros", async () => {
+    for (const bad of [
+      { type: "dayColors", dayColors: { 1: "fucsia" } },
+      { type: "dayColors", dayColors: { 8: "rojo" } },
+      { type: "dayColors", dayColors: { 1: "#ff0000" } },
+      { type: "dayColors", dayColors: null },
+      { type: "dayRemoved", day: 2, dayNames: { 1: "Torso" }, schedule: {}, dayColors: { 1: "fucsia" } },
     ]) await expect(applyWorkoutChanges([bad], null)).rejects.toThrow("Cambios no válidos");
     expect(repository.apply).not.toHaveBeenCalled();
   });

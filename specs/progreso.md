@@ -1,7 +1,7 @@
 # Progreso
 
 La pestaña Progreso (`/progreso`) responde a «¿estoy mejorando?»: un resumen en tres
-números, el calendario de lo entrenado, cómo evoluciona cada ejercicio y el peso y las
+números, el calendario de lo entrenado (donde se editan, mueven y borran los entrenos), cómo evoluciona cada ejercicio y el peso y las
 medidas del cuerpo.
 
 ## Archivos clave
@@ -12,8 +12,8 @@ medidas del cuerpo.
 - `src/components/exercise-progress.tsx` — `ExerciseProgress` (un ejercicio por fila, por
   día de rutina) y `ExerciseRow` (la fila desplegable con la última vez, el récord y la
   gráfica).
-- `src/components/activity-calendar.tsx` — calendario de actividad (con «Editar» y «Borrar entreno» del día).
-- `src/components/workout-history.tsx` — `WorkoutHistory`: historial de entrenos y su detalle.
+- `src/components/activity-calendar.tsx` — `ActivityCalendar`: calendario de actividad; al
+  tocar un día, `DayWorkout` enseña cada entreno con «Editar», «Cambiar fecha» y «Borrar entreno».
 - `src/domain/workout-diary.ts` — `WorkoutDiary`: lo anotado por fecha (`days`, `activity`) y por entreno (`workouts`).
 - `src/domain/workout-stats.ts` — `WorkoutStats`: sesiones de cada ejercicio
   (`session`, `exerciseHistory`), récords (`record`, `records`).
@@ -67,41 +67,43 @@ aviso de «¡Nuevo récord!» solo sale al subir de peso.
   más repeticiones en total. → `src/domain/workout-stats.test.ts`,
   `src/components/exercise-progress.test.tsx`
 
-### Historial de entrenos (editar y borrar)
+### Calendario: ver, editar y borrar entrenos
 
-**Qué hace:** en Progreso hay un «Historial», del más reciente al más antiguo, con una
-tarjeta por entreno: día de rutina, fecha, ejercicios, series, kilos movidos y los récords
-que se consiguieron ese día. Al tocar una tarjeta se abre el detalle con todas las series y
-dos botones: **«Editar»** abre ese entreno en Hoy (con su fecha: lo que se anote se guarda
-en ese día) y **«Borrar entreno»** pregunta y, al confirmar, lo quita entero: ya no sale en
-el historial ni en el calendario y deja de contar como hecho (racha, pendientes, récords).
-En el calendario, al tocar un día, cada entreno de ese día tiene los mismos dos botones.
+**Qué hace:** el calendario del mes marca con un punto de color cada día entrenado. Al
+tocar un día se ve debajo cada entreno de ese día: su día de rutina con **«8 series · 3120
+kg»**, cada ejercicio con sus series y tres botones: **«Editar»** abre ese entreno en Hoy
+(con su fecha: lo que se anote se guarda en ese día), **«Cambiar fecha»** (ver abajo) y
+**«Borrar entreno»**, que pregunta y, al confirmar, lo quita entero: ya no sale en el
+calendario y deja de contar como hecho (racha, pendientes, récords).
 **Cómo funciona:** un entreno es una vez (`round`) de un día de rutina en una semana.
-`diary.workouts()` los junta con sus series, ticks y la fecha real más reciente.
-`actions.editSession` abre Hoy en esa semana, día y vez con su fecha (como «Apuntar otra
-fecha»); `actions.deleteSession` pide confirmación y llama a `model.removeSession`, que borra
-series, ticks y día completado de esa vez y lo guarda de una vez (función SQL
-`remove_session`).
-**Decisiones:** se borra el entreno entero (no ejercicio a ejercicio) porque lo que se
-quiere quitar es lo marcado sin querer; para cambiar una serie está «Editar». Inspirado en el
-historial de Hevy y Strong.
-**Casos límite:** sin entrenos, el historial invita a ir a Hoy; se ven los 5 últimos y
-«Ver más» enseña 10 más cada vez.
+`diary.workouts()` los junta con sus series, ticks, total de series, kilos y la fecha real
+más reciente; `ActivityCalendar` se queda con los de la fecha tocada y pinta uno por
+`DayWorkout`. `actions.editSession` abre Hoy en esa semana, día y vez con su fecha (como
+«Apuntar otra fecha»); `actions.deleteSession` pide confirmación y llama a
+`model.removeSession`, que borra series, ticks y día completado de esa vez y lo guarda de
+una vez (función SQL `remove_session`).
+**Decisiones:** antes había además una tarjeta «Historial» (lista de entrenos con su
+detalle en una ventana). Se quitó porque repetía el calendario: ahora todo se hace tocando
+el día. Se borra el entreno entero (no ejercicio a ejercicio) porque lo que se quiere
+quitar es lo marcado sin querer; para cambiar una serie está «Editar».
+**Casos límite:** un día sin entrenos dice «Sin entrenar»; para ver entrenos antiguos se
+cambia de mes con las flechas.
 **Reglas:**
-- **R6** El historial enseña cada entreno (el más reciente primero) con su día, fecha,
-  series y kilos. → `src/domain/workout-diary.test.ts`, `src/components/workout-history.test.tsx`
-- **R7** «Borrar entreno» pregunta y, al confirmar, el entreno desaparece del historial y del
-  calendario y deja de contar como hecho. → `src/domain/workout-model.test.ts`,
-  `src/components/workout-history.test.tsx`
+- **R7** «Borrar entreno» pregunta y, al confirmar, el entreno desaparece del calendario y
+  deja de contar como hecho. → `src/domain/workout-model.test.ts`,
+  `src/components/activity-calendar.test.tsx`
 - **R8** «Editar» abre Hoy con ese entreno, y lo que se anota se guarda con su fecha.
-  → `src/components/workout-history.test.tsx`
+  → `src/components/activity-calendar.test.tsx`
+- **R10** Progreso no tiene «Historial»; al tocar un día del calendario, cada entreno
+  enseña sus series y kilos. → `src/domain/workout-diary.test.ts`,
+  `src/components/activity-calendar.test.tsx`
 
 ### Cambiar la fecha de un entreno
 
-**Qué hace:** en el detalle de un entreno del historial, «Cambiar fecha» enseña un campo de
-fecha (de la semana 1 del ciclo a hoy). Al guardar, todo el entreno pasa a ese día: sale
-en esa fecha del historial y del calendario, y cuenta para la semana de esa fecha (racha y
-pendientes).
+**Qué hace:** al tocar un día del calendario, «Cambiar fecha» de un entreno enseña ahí
+mismo un campo de fecha (de la semana 1 del ciclo a hoy) con «Cancelar» y «Guardar
+fecha». Al guardar, todo el entreno pasa a ese día, el calendario salta a esa fecha (y a
+su mes) y cuenta para la semana de esa fecha (racha y pendientes).
 **Cómo funciona:** `actions.moveSession` → `model.moveSession(semana, día, vez, fecha)`:
 cambia la fecha de todas sus series y ticks. Si la fecha cae en otra semana del ciclo, el
 entreno se mueve a esa semana, en la primera vez libre de ese día (`lastRound` + 1, o la 1.ª
@@ -110,8 +112,9 @@ en una sola transacción.
 **Casos límite:** no se puede elegir una fecha futura ni anterior a la semana 1 (el campo
 no deja y el modelo lo ignora).
 **Reglas:**
-- **R9** «Cambiar fecha» mueve el entreno entero a ese día; si es de otra semana, pasa a
-  esa semana. → `src/domain/workout-model.test.ts`, `src/components/workout-history.test.tsx`
+- **R9** «Cambiar fecha» mueve el entreno entero a ese día (y el calendario salta a él);
+  si es de otra semana, pasa a esa semana. → `src/domain/workout-model.test.ts`,
+  `src/components/activity-calendar.test.tsx`
 
 ## Datos
 

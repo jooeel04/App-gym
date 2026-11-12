@@ -69,16 +69,40 @@ describe("Hoy · anotar una serie se puede deshacer", () => {
   });
 });
 
-describe("Hoy · calculadora de discos desde la serie", () => {
+describe("Hoy · −/+ de kg según el material (R26)", () => {
   beforeEach(freezeToday);
   afterEach(() => vi.useRealTimers());
 
-  it("«Discos» abre la calculadora con el peso que se está poniendo", () => {
+  const kgAfter = (name: string, from: string, button: string) => {
+    const x = BASE_ROUTINE.find((e) => e.name === name)!;
+    renderWithWorkout(<ExerciseLogger exercise={x} superset={null} />);
+    const kg = screen.getByRole("spinbutton", { name: /carga en kg/ });
+    fireEvent.change(kg, { target: { value: from } });
+    fireEvent.click(screen.getByRole("button", { name: button }));
+    return (kg as HTMLInputElement).value;
+  };
+
+  it("con mancuernas, + pasa de 16 a 18", () => {
+    expect(kgAfter("Curl martillo con mancuernas", "16", "Subir peso")).toBe("18");
+  });
+
+  it("con mancuernas, − baja de 15 a 14", () => {
+    expect(kgAfter("Curl martillo con mancuernas", "15", "Bajar peso")).toBe("14");
+  });
+
+  it("en polea, + suma 2,5 kg", () => {
+    expect(kgAfter("Face pull en polea", "16", "Subir peso")).toBe("18.5");
+  });
+});
+
+describe("Hoy · sin «Discos» en la serie (R22)", () => {
+  beforeEach(freezeToday);
+  afterEach(() => vi.useRealTimers());
+
+  it("la fila que se escribe no tiene botón «Discos», aunque lleve peso", () => {
     renderWithWorkout(<ExerciseLogger exercise={MILITAR} superset={null} />);
     fireEvent.change(screen.getByRole("spinbutton", { name: /carga en kg/ }), { target: { value: "62.5" } });
-    fireEvent.click(screen.getByRole("button", { name: "Calcular discos para 62,5 kg" }));
-    const dialog = screen.getByRole("dialog", { name: "Calculadora de discos" });
-    expect(within(dialog).getByRole("spinbutton")).toHaveValue(62.5);
+    expect(screen.queryByRole("button", { name: /discos/i })).not.toBeInTheDocument();
   });
 });
 
@@ -176,9 +200,26 @@ describe("Hoy · la tabla de series", () => {
     expect(chip(3)).toHaveAttribute("aria-label", "Serie 3: vacía");
     fireEvent.click(within(table).getByRole("button", { name: "Guardar serie 3 con lo propuesto" }));
     expect(chip(3)).toHaveAttribute("aria-label", "Serie 3: 55 × 8");
-    expect(within(table).getByRole("img", { name: "Serie 3 hecha" })).toBeInTheDocument();
+    expect(chip(3).querySelector(".series-check.on")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Serie 3 anotada");
     // La actual sigue siendo la 1.
     expect(chip(1)).toHaveAttribute("aria-label", "Serie 1: ahora");
+  });
+
+  it("al tocar el ✓ verde de una serie hecha se abre para cambiarla y «Guardar cambios» la guarda (R21)", () => {
+    renderWithWorkout(<ExerciseLogger exercise={PRESS} superset={null} />);
+    const table = screen.getByRole("group", { name: "Series de " + PRESS.name });
+    fireEvent.click(within(table).getByRole("button", { name: "Guardar serie 3 con lo propuesto" }));
+    // El ✓ verde de la fila hecha es lo que se toca para cambiarla.
+    const row = within(table).getByRole("button", { name: /^Serie 3: 55 × 8/ });
+    fireEvent.click(row.querySelector(".series-check")!);
+    expect(chip(3)).toHaveAttribute("aria-label", expect.stringContaining("55 × 8"));
+    expect(screen.getByRole("spinbutton", { name: /serie 3, carga en kg/ })).toHaveValue(55);
+    const reps = screen.getByRole("spinbutton", { name: /serie 3, repeticiones/ });
+    expect(reps).toHaveValue(8);
+    fireEvent.change(reps, { target: { value: "10" } });
+    // El botón grande de abajo (el ✓ de la fila se llama «Guardar cambios de la serie 3»).
+    fireEvent.click(screen.getByRole("button", { name: /^Guardar cambios(?! de)/ }));
+    expect(chip(3)).toHaveAttribute("aria-label", "Serie 3: 55 × 10");
   });
 });

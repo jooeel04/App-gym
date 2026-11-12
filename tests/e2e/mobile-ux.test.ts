@@ -123,30 +123,28 @@ describe("Barra de pestañas con cristal líquido (liquid-glass-react)", () => {
   });
 });
 
-// Spec interfaz R6: el cristal solo va en lo que flota. Las tarjetas y botones normales de
-// la pantalla van planos (sin cristal); la barra de pestañas sí lo lleva. Cuenta los
-// cristales activos (solo los que están en pantalla).
+// Spec interfaz R6: el cristal solo va en la barra de pestañas. Nada más lleva cristal
+// (GlassLayer) ni desenfoque (backdrop-filter).
 const glassReport = () => {
   const withGlass: string[] = [];
-  const sel = "main :is(.chart,.hero,.stat-tile,.routine-day,.set-box,.set-account,button.primary)";
-  for (const el of document.querySelectorAll<HTMLElement>(sel)) {
-    const r = el.getBoundingClientRect();
-    if (!r.width || r.bottom < 0 || r.top > innerHeight) continue;
-    if (el.dataset.glass === "on" || el.querySelector(":scope > .glass-slot")) withGlass.push((el.getAttribute("class") ?? "").split(" ")[0]);
+  for (const el of document.querySelectorAll<HTMLElement>("body *")) {
+    if (el.closest(".nav")) continue;
+    const blur = getComputedStyle(el).backdropFilter;
+    if (el.dataset.glass === "on" || (blur && blur !== "none")) withGlass.push((el.getAttribute("class") ?? el.tagName).split(" ")[0]);
   }
   return { withGlass, nav: !!document.querySelector(".nav .glass-layer.on filter"), active: document.querySelectorAll(".glass-layer.on").length };
 };
 
-describe("Cristal líquido solo en lo que flota", () => {
+describe("Cristal líquido solo en la barra de pestañas", () => {
   for (const tab of TABS) {
-    it(`tarjetas planas y barra de pestañas con cristal en ${tab}`, async () => {
+    it(`todo plano menos la barra de pestañas en ${tab}`, async () => {
       await setDevice(page, PHONES[2]);
       await open(page, tab);
       await new Promise((r) => setTimeout(r, 900));
       const report = await page.evaluate(glassReport);
       expect(report.withGlass).toEqual([]);
       expect(report.nav).toBe(true);
-      expect(report.active).toBeLessThanOrEqual(6);
+      expect(report.active).toBe(1);
     });
   }
 });

@@ -83,12 +83,14 @@ export class WorkoutCalendar {
     return this.model.isDayCompleted(week, day, round) || this.model.hasLoggedSets(week, day, round);
   }
 
-  // Rachas: semanas seguidas con todas las veces de todos los días de rutina hechas. La
-  // semana en curso suma si ya está completa; si no, no rompe la racha todavía.
+  // Rachas (spec hoy R30): semanas seguidas con tantos entrenos como veces pide el plan
+  // (`slots`), sean del día de rutina que sean (también repeticiones). La semana en curso
+  // suma si ya está completa; si no, no rompe la racha todavía.
   streak(today: string): { current: number; best: number; weekDone: number; weekTotal: number } {
-    const slots = this.slots();
-    const doneIn = (w: number) => slots.filter((s) => this.isDone(w, s.day, s.round)).length;
-    const complete = (w: number) => slots.length > 0 && doneIn(w) === slots.length;
+    const total = this.slots().length;
+    const doneIn = (w: number) => this.model.days
+      .reduce((n, d) => n + Array.from({ length: this.model.lastRound(w, d) }, (_, i) => i + 1).filter((r) => this.isDone(w, d, r)).length, 0);
+    const complete = (w: number) => total > 0 && doneIn(w) >= total;
     const now = Math.min(Math.max(this.cycleWeekOf(today) ?? 1, 1), this.model.weeksCount);
     let current = 0;
     for (let w = complete(now) ? now : now - 1; w >= 1 && complete(w); w--) current++;
@@ -97,7 +99,7 @@ export class WorkoutCalendar {
       run = complete(w) ? run + 1 : 0;
       best = Math.max(best, run);
     }
-    return { current, best, weekDone: doneIn(now), weekTotal: slots.length };
+    return { current, best, weekDone: Math.min(doneIn(now), total), weekTotal: total };
   }
 
   // Días planificados en las últimas dos semanas que no se hicieron.

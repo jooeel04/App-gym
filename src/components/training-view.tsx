@@ -8,19 +8,17 @@ import type { Exercise } from "@/domain/types";
 import type { SetResult } from "@/domain/workout-stats";
 import { notifyState, requestPermissions, subscribePermission, type NotifyState } from "@/lib/permissions";
 import { ExerciseLogger } from "./exercise-logger";
-import { PlateCalculator } from "./plate-calculator";
-import { ArrowIcon, BellIcon, CheckIcon, ChevronIcon, DumbbellIcon, FlameIcon, RepeatIcon, SleepIcon, WarningIcon } from "./icons";
+import { ArrowIcon, BellIcon, CalendarIcon, CheckIcon, ChevronIcon, FlameIcon, RepeatIcon, SleepIcon, WarningIcon } from "./icons";
 
 export const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 
 // Vista "Hoy": qué toca hoy en grande (con lo que llevas hecho) y la lista de ejercicios:
-// al tocar uno se despliega para anotar sus series con botones + / −. Lo que quedó
-// pendiente está dentro de "Hacer otro día" (que avisa de cuántos hay), para que la
-// pantalla quede limpia. Es la única forma de anotar: para corregir se toca la serie.
+// al tocar uno se despliega para anotar sus series con botones + / −. Debajo de la cabecera,
+// una fila «Hoy · Repetir · Otro día»; lo que quedó pendiente está dentro de «Otro día»
+// (que avisa con un número), para que la pantalla quede limpia. Es la única forma de anotar: para corregir se toca la serie.
 export function TrainingView() {
   const { model, calendar, today, week, day, round, logDate, picked, active, nickname, actions } = useWorkout();
   const [otherDay, setOtherDay] = useState(false);
-  const [plates, setPlates] = useState(false);
   // Fecha elegida en «Hacer otro día» ("" = hoy).
   const [when, setWhen] = useState("");
   const done = model.isDayCompleted(week, day, round);
@@ -76,16 +74,18 @@ export function TrainingView() {
           {live && !done && <button type="button" className="finish-workout" onClick={actions.finishWorkout}>Terminar entreno</button>}
         </section>
       )}
-      {picked && <button type="button" className="other-day" onClick={actions.goToToday}><ArrowIcon dir="left" />Volver a hoy</button>}
-      {!resting && done && list.length > 0 && round < MAX_ROUNDS && (
-        <button type="button" className="other-day" onClick={() => actions.repeatDay(week, day)}><RepeatIcon />Repetir este día</button>
-      )}
-
       {!resting && list.length > 0 && <TodayList key={week + "-" + day + "-" + round} done={done} />}
 
-      <div className="hoy-links">
-        <button type="button" className="other-day" aria-expanded={otherDay} onClick={() => setOtherDay(!otherDay)}>
-          Hacer otro día{missed.length > 0 && <span className="pending-badge">{missed.length} {missed.length === 1 ? "pendiente" : "pendientes"}</span>} <ArrowIcon dir={otherDay ? "up" : "down"} />
+      {/* Una fila de botones iguales: volver a hoy, repetir el día y hacer otro día. Textos
+          cortos a la vista; el nombre completo, para el lector de pantalla (spec hoy R27). */}
+      <div className="today-actions">
+        {picked && <button type="button" aria-label="Volver a hoy" onClick={actions.goToToday}><ArrowIcon dir="left" />Hoy</button>}
+        {!resting && done && list.length > 0 && round < MAX_ROUNDS && (
+          <button type="button" aria-label="Repetir este día" onClick={() => actions.repeatDay(week, day)}><RepeatIcon />Repetir</button>
+        )}
+        <button type="button" className={otherDay ? "on" : undefined} aria-expanded={otherDay} onClick={() => setOtherDay(!otherDay)}
+          aria-label={"Hacer otro día" + (missed.length ? ", " + missed.length + (missed.length === 1 ? " pendiente" : " pendientes") : "")}>
+          <CalendarIcon />Otro día{missed.length > 0 && <span className="pending-badge">{missed.length}</span>}
         </button>
       </div>
       {otherDay && missed.length > 0 && (
@@ -117,12 +117,7 @@ export function TrainingView() {
         </>
       )}
 
-      <button type="button" className="plates-open" aria-label="Calculadora de discos" onClick={() => setPlates(true)}>
-        <span className="plates-ico"><DumbbellIcon /></span>
-        <span className="plates-text"><b>Calculadora de discos</b><small>Qué discos poner a cada lado de la barra</small></span>
-        <ChevronIcon />
-      </button>
-      {plates && <PlateCalculator onClose={() => setPlates(false)} />}
+
       <PermissionCard />
     </section>
   );

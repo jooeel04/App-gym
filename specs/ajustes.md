@@ -15,6 +15,7 @@ spec documenta la **cuenta**; el resto se irá añadiendo cuando se toque.
 - `src/app/auth/confirm/route.ts` — vuelta de los enlaces de los correos.
 - `src/app/auth/google/route.ts` — vuelta de Google (entrar o conectar).
 - `src/components/google-row.tsx` — fila «Entrar con Google» de Ajustes → Cuenta.
+- `src/components/settings-extra.tsx` — `PlatesRow`: barra, discos y «Abrir calculadora».
 - `src/lib/supabase/proxy.ts` — refresca la sesión y manda a `/login` si no hay.
 
 ## Funcionalidades
@@ -90,6 +91,21 @@ está activado»; el Google de otra cuenta vuelve con `identity_already_exists` 
 - **R5** Ajustes ofrece «Conectar con Google» si la cuenta no lo tiene, dice «Google
   conectado» si lo tiene, y avisa si falla o si ese Google ya tiene otra cuenta.
   → `src/components/google-row.test.tsx`, `src/app/auth/google/route.test.ts`
+
+### Calculadora de discos
+
+**Qué hace:** en Ajustes → Calculadora de discos se eligen la barra y los discos que hay en
+tu gym, y el botón **«Abrir calculadora»** abre la calculadora (qué discos poner a cada
+lado de la barra). Es el único sitio donde se abre: en Hoy no está, para que quede limpio.
+**Cómo funciona:** `PlatesRow` (en `settings-extra.tsx`) guarda la barra y los discos con
+`setPlatePrefs` y abre `PlateCalculator`, que los lee con `getPlatePrefs`. El disco más
+pequeño también marca el salto de peso con barra en Hoy (ver `specs/hoy.md`, R24).
+**Decisiones:** antes había una tarjeta grande «Calculadora de discos» al final de Hoy y un
+botón «Discos» en cada serie. Se quitaron de Hoy por limpieza.
+**Reglas:**
+- **R6** La barra y los discos elegidos son los que usa la calculadora.
+  → `src/components/settings-view.test.tsx`
+- **R7** «Abrir calculadora» abre la calculadora de discos. → `src/components/settings-view.test.tsx`
 
 ## Datos
 

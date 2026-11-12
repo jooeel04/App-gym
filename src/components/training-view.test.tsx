@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { requestPermissions } from "@/lib/permissions";
 import { useWorkout } from "@/controllers/workout-controller";
@@ -52,14 +52,16 @@ describe("Hoy · los días pendientes no ocupan la pantalla principal", () => {
   it("no se ven de entrada: «Hacer otro día» avisa de cuántos hay", () => {
     renderWithWorkout(<TrainingView />);
     expect(screen.queryByText(/Te quedó pendiente/)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Hacer otro día/ })).toHaveTextContent(/\d+ pendientes/);
+    const button = screen.getByRole("button", { name: /^Hacer otro día, \d+ pendientes$/ });
+    // A la vista, «Otro día» con el número en un globo.
+    expect(button).toHaveTextContent(/^Otro día\d+$/);
   });
 
   it("al abrir «Hacer otro día» aparecen los pendientes con «Hacer hoy»", () => {
     renderWithWorkout(<TrainingView />);
     fireEvent.click(screen.getByRole("button", { name: /Hacer otro día/ }));
     expect(screen.getByText("Pendientes")).toBeInTheDocument();
-    const count = Number(/(\d+) pendientes/.exec(screen.getByRole("button", { name: /Hacer otro día/ }).textContent ?? "")?.[1]);
+    const count = Number(/(\d+) pendientes/.exec(screen.getByRole("button", { name: /Hacer otro día/ }).getAttribute("aria-label") ?? "")?.[1]);
     const buttons = screen.getAllByRole("button", { name: /^Hacer hoy / });
     expect(buttons).toHaveLength(count);
     const name = buttons[0].getAttribute("aria-label")!.replace("Hacer hoy ", "");
@@ -69,16 +71,13 @@ describe("Hoy · los días pendientes no ocupan la pantalla principal", () => {
   });
 });
 
-describe("Hoy · calculadora de discos", () => {
+describe("Hoy · limpio, sin calculadora de discos (R28)", () => {
   beforeEach(freezeToday);
   afterEach(() => vi.useRealTimers());
 
-  it("tiene su propio botón «Calculadora de discos» (no arriba junto a la racha)", () => {
+  it("no tiene botón de la calculadora: está en Ajustes", () => {
     renderWithWorkout(<TrainingView />);
-    const button = screen.getByRole("button", { name: "Calculadora de discos" });
-    expect(button.closest(".pagehead")).toBeNull();
-    fireEvent.click(button);
-    expect(screen.getByRole("dialog", { name: "Calculadora de discos" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /calculadora/i })).not.toBeInTheDocument();
   });
 });
 
@@ -151,6 +150,35 @@ function doneToday() {
   snap.completed["4|3"] = true;
   return snap;
 }
+
+describe("Hoy · «Hoy», «Repetir» y «Otro día» en la misma fila (R27)", () => {
+  beforeEach(freezeToday);
+  afterEach(() => vi.useRealTimers());
+
+  // La fila de botones: la que contiene «Hacer otro día».
+  const row = () => screen.getByRole("button", { name: /Hacer otro día/ }).parentElement!;
+
+  it("va justo debajo de la lista de ejercicios", () => {
+    renderWithWorkout(<TrainingView />);
+    const list = screen.getByRole("button", { name: new RegExp(MILITAR.name) }).closest("section")!;
+    expect(row().previousElementSibling).toBe(list);
+  });
+
+  it("con el día hecho, «Repetir» está en la fila", () => {
+    renderWithWorkout(<TrainingView />, doneToday());
+    expect(within(row()).getByRole("button", { name: "Repetir este día" })).toHaveTextContent(/^Repetir$/);
+  });
+
+  it("tras elegir otro día, «Hoy» está en la fila y vuelve a lo de hoy", () => {
+    renderWithWorkout(<TrainingView />);
+    fireEvent.click(screen.getByRole("button", { name: /Hacer otro día/ }));
+    fireEvent.click(screen.getByRole("button", { name: DAY_NAMES[2] }));
+    const back = within(row()).getByRole("button", { name: "Volver a hoy" });
+    expect(back).toHaveTextContent(/^Hoy$/);
+    fireEvent.click(back);
+    expect(screen.queryByRole("button", { name: "Volver a hoy" })).not.toBeInTheDocument();
+  });
+});
 
 describe("Hoy · repetir un día en la misma semana", () => {
   beforeEach(freezeToday);

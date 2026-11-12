@@ -1,3 +1,4 @@
+import { nextLoad } from "./equipment";
 import type { Exercise } from "./types";
 import type { ExerciseSession, SetResult } from "./workout-stats";
 
@@ -11,11 +12,6 @@ export function parseRepRange(target: string): { min: number; max: number } | nu
   return single ? { min: Number(single[1]), max: Number(single[1]) } : null;
 }
 
-// Cuánto subir la carga: pasos pequeños para pesos ligeros (mancuernas, poleas).
-function increment(weight: number) {
-  return weight < 20 ? 1 : 2.5;
-}
-
 export interface Suggestion {
   kind: "increase" | "reps" | "reach";
   weight: number;
@@ -26,8 +22,9 @@ export interface Suggestion {
 const kg = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 2 }) + " kg";
 
 // Doble progresión: si la última vez todas las series llegaron al máximo del rango,
-// toca subir peso; si no, mantener el peso y buscar más repeticiones.
-export function suggestNext(x: Exercise, last: ExerciseSession | null): Suggestion | null {
+// toca subir peso (al siguiente que existe con su material, ver `nextLoad`); si no,
+// mantener el peso y buscar más repeticiones. `smallestPlate`: el disco más pequeño del gym.
+export function suggestNext(x: Exercise, last: ExerciseSession | null, smallestPlate?: number): Suggestion | null {
   const range = parseRepRange(x.target);
   if (!last || !range || last.topWeight === null) return null;
   const required = x.sets - (x.optionalLast ? 1 : 0);
@@ -36,8 +33,8 @@ export function suggestNext(x: Exercise, last: ExerciseSession | null): Suggesti
   const minReps = Math.min(...work.map((s) => s.reps ?? 0));
   const weight = last.topWeight;
 
-  if (work.length >= required && minReps >= range.max) {
-    const next = weight + increment(weight);
+  const next = nextLoad(x.name, weight, 1, smallestPlate);
+  if (work.length >= required && minReps >= range.max && next > weight) {
     return { kind: "increase", weight: next, reps: range.min, text: "Sube a " + kg(next) + " y haz " + range.min + "–" + range.max + " reps" };
   }
   if (minReps < range.min) {

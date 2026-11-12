@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { progressTrend } from "./progression";
+import { progressTrend, suggestNext } from "./progression";
+import type { Exercise } from "./types";
 import type { ExerciseSession } from "./workout-stats";
 
 const session = (week: number, sets: [number | null, number][], date = "2026-10-0" + week): ExerciseSession => {
@@ -44,5 +45,28 @@ describe("progressTrend", () => {
     expect(trend.kind).toBe("weight");
     expect(trend.points).toHaveLength(1);
     expect(trend.points[0].week).toBe(2);
+  });
+});
+
+// Un ejercicio de 3 series de 8–12; la última vez, todas al máximo con `kg`: toca subir.
+const exercise = (name: string): Exercise => ({ id: 1, day: 1, group: "", name, note: "", prescription: "", sets: 3, target: "8–12", optionalLast: false });
+const allMax = (kg: number) => session(1, [[kg, 12], [kg, 12], [kg, 12]]);
+
+describe("suggestNext · el salto depende del material (spec hoy R23–R24)", () => {
+  it("con mancuernas sube de 2 en 2 kg: de 16 a 18, nunca a 17,5 (R23)", () => {
+    const tip = suggestNext(exercise("Curl de bíceps con mancuernas"), allMax(16))!;
+    expect(tip.kind).toBe("increase");
+    expect(tip.weight).toBe(18);
+    expect(tip.text).toContain("Sube a 18 kg");
+  });
+
+  it("en polea o máquina sube de 2,5 en 2,5 kg (R24)", () => {
+    expect(suggestNext(exercise("Curl en polea baja"), allMax(16))!.weight).toBe(18.5);
+    expect(suggestNext(exercise("Extensión de cuádriceps"), allMax(20))!.weight).toBe(22.5);
+  });
+
+  it("con barra, el doble del disco más pequeño del gym (R24)", () => {
+    expect(suggestNext(exercise("Press banca con barra"), allMax(60))!.weight).toBe(62.5);
+    expect(suggestNext(exercise("Press banca con barra"), allMax(60), 2.5)!.weight).toBe(65);
   });
 });

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { addDays, formatLongDate, formatShortDate, parseISODate, toISODate, WEEKDAY_SHORT, WEEKDAYS, weekdayOf } from "@/domain/calendar";
 import type { SetEntry } from "@/domain/types";
+import type { Workout } from "@/domain/workout-diary";
+import { fmt } from "./exercise-progress";
 import { ArrowIcon, PencilIcon } from "./icons";
 
 function describeSet(e: SetEntry) {
@@ -23,7 +25,7 @@ function dotBackground(days: number[]) {
 // que se hizo (series anotadas o ejercicios marcados con el tick). Al tocar un día
 // se ve debajo qué se entrenó: cada ejercicio con sus series.
 export function ActivityCalendar() {
-  const { model, diary, today, actions } = useWorkout();
+  const { model, diary, today } = useWorkout();
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   if (!today) return null;
@@ -38,8 +40,14 @@ export function ActivityCalendar() {
   const sel = selected ?? today;
   const selDays = Array.from(activity.get(sel) ?? []).sort();
   const selSessions = diary.days().find((d) => d.date === sel)?.sessions ?? [];
-  // Entrenos de ese día, para «Editar» y «Borrar entreno».
+  // Entrenos de ese día, para «Editar», «Cambiar fecha» y «Borrar entreno».
   const workouts = diary.workouts().filter((w) => w.date === sel);
+  // Tras cambiar la fecha de un entreno, el calendario salta a ese día (y a su mes).
+  const show = (date: string) => {
+    const d = parseISODate(date);
+    setOffset((d.getFullYear() - base.getFullYear()) * 12 + d.getMonth() - base.getMonth());
+    setSelected(date);
+  };
 
   return (
     <section className="chart">
@@ -78,6 +86,12 @@ export function ActivityCalendar() {
                 <span>
                   <b>{model.dayName(d)}</b>
                   {(() => {
+                    // Lo que antes decía el historial: series y kilos de ese día de rutina.
+                    const mine = workouts.filter((w) => w.day === d);
+                    const sets = mine.reduce((n, w) => n + w.sets, 0), kg = mine.reduce((n, w) => n + w.volume, 0);
+                    return sets > 0 && <small className="calinfo-total">{sets} {sets === 1 ? "serie" : "series"}{kg > 0 && " · " + fmt(kg) + " kg"}</small>;
+                  })()}
+                  {(() => {
                     // Si se hizo otro día del que tocaba, se indica cuándo tocaba.
                     // Si se repitió en la misma semana, qué vez fue.
                     const moved = sessions.filter((s) => s.round > 1 || (s.plannedDate && s.plannedDate !== sel))
@@ -93,17 +107,49 @@ export function ActivityCalendar() {
                   <span>{sets.map(({ set, entry }) => <i key={set} title={entry.note || undefined}>{describeSet(entry)}{entry.note && <PencilIcon className="note-mark" />}</i>)}</span>
                 </div>
               ))}
-              {/* Corregir o quitar lo de ese día (p. ej. marcado sin querer). */}
+              {/* Corregir, mover o quitar lo de ese día (p. ej. marcado sin querer). */}
               {workouts.filter((w) => w.day === d).map((w) => (
-                <div className="calinfo-actions" key={w.round}>
-                  <button type="button" className="edit-ex" aria-label={"Editar " + model.dayName(d)} onClick={() => actions.editSession(w)}>Editar</button>
-                  <button type="button" className="remove-ex" aria-label={"Borrar " + model.dayName(d)} onClick={() => { void actions.deleteSession(w); }}>Borrar entreno</button>
-                </div>
+                <WorkoutActions key={w.round} workout={w} onMoved={show} />
               ))}
             </div>
           );
         })}
       </div>
     </section>
+  );
+}
+
+// Botones de un entreno del día tocado: «Editar» (lo abre en Hoy), «Cambiar fecha» (un campo
+// de fecha ahí mismo; al guardar avisa con `onMoved` para que el calendario salte a ese día)
+// y «Borrar entreno» (pregunta antes).
+function WorkoutActions({ workout: w, onMoved }: { workout: Workout; onMoved: (date: string) => void }) {
+  const { model, today, actions } = useWorkout();
+  const [moving, setMoving] = useState(false);
+  const [date, setDate] = useState(w.date);
+  const name = model.dayName(w.day);
+  const saveDate = () => {
+    if (date === w.date) setMoving(false);
+    else if (actions.moveSession(w, date)) onMoved(date);
+  };
+
+  if (moving) {
+    return (
+      <div className="move-date">
+        <label className="form-label">Nueva fecha
+          <input type="date" value={date} min={model.startDate ?? undefined} max={today ?? undefined} onChange={(e) => setDate(e.target.value)} />
+        </label>
+        <div className="modal-actions">
+          <button type="button" onClick={() => { setDate(w.date); setMoving(false); }}>Cancelar</button>
+          <button className="primary" type="button" disabled={!date} onClick={saveDate}>Guardar fecha</button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="calinfo-actions">
+      <button type="button" className="edit-ex" aria-label={"Editar " + name} onClick={() => actions.editSession(w)}>Editar</button>
+      <button type="button" className="edit-ex" aria-label={"Cambiar fecha de " + name} onClick={() => setMoving(true)}>Cambiar fecha</button>
+      <button type="button" className="remove-ex" aria-label={"Borrar " + name} onClick={() => { void actions.deleteSession(w); }}>Borrar entreno</button>
+    </div>
   );
 }

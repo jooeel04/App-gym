@@ -7,6 +7,7 @@ import { APP_VERSION, BUILD_DATE, NOVEDADES } from "@/lib/novedades";
 import { ALL_PLATES, BAR_OPTIONS, DEFAULT_PLATES, getPlatePrefs, setPlatePrefs, subscribePrefs } from "@/lib/preferences";
 import { getTextSize, setTextSize, subscribeTheme, type TextSize } from "@/lib/theme";
 import { DumbbellIcon, InfoIcon, LockIcon, MailIcon, ShieldIcon, TextSizeIcon, TrashIcon } from "./icons";
+import { PlateCalculator } from "./plate-calculator";
 import { Row } from "./settings-rows";
 
 type RowProps = { open: boolean; onToggle: () => void };
@@ -62,9 +63,11 @@ export function VersionRow({ open, onToggle }: RowProps) {
 
 // ---- Entreno ----
 
-// La barra y los discos de tu gym: los usa la calculadora de discos.
+// La barra y los discos de tu gym, y «Abrir calculadora»: es el único sitio donde se abre la
+// calculadora de discos (spec ajustes R6–R7).
 export function PlatesRow({ open, onToggle }: RowProps) {
   const prefs = useSyncExternalStore(subscribePrefs, getPlatePrefs, () => DEFAULT_PLATES);
+  const [calculator, setCalculator] = useState(false);
   const togglePlate = (p: number) => {
     const plates = prefs.plates.includes(p) ? prefs.plates.filter((x) => x !== p) : [...prefs.plates, p];
     if (plates.length) setPlatePrefs({ ...prefs, plates });
@@ -73,6 +76,8 @@ export function PlatesRow({ open, onToggle }: RowProps) {
   return (
     <Row icon={<DumbbellIcon />} label="Calculadora de discos" value={(prefs.bar ? "Barra " + prefs.bar + " kg" : "Sin barra") + (missing ? " · " + prefs.plates.length + " discos" : "")}
       open={open} onClick={onToggle}>
+      <button type="button" className="settings-btn" onClick={() => setCalculator(true)}><DumbbellIcon />Abrir calculadora</button>
+      {calculator && <PlateCalculator onClose={() => setCalculator(false)} />}
       <p className="set-hint">La calculadora usará tu barra y solo los discos que tenga tu gym.</p>
       <div className="set-sub">Tu barra</div>
       <div className="segmented" role="group" aria-label="Tu barra">

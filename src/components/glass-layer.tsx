@@ -7,13 +7,10 @@ type LiquidGlass = (typeof import("liquid-glass-react"))["default"];
 
 // Si el sistema pide menos transparencia o más contraste, no hay cristal.
 const PLAIN = ["(prefers-reduced-transparency: reduce)", "(prefers-contrast: more)"];
-export const glassAllowed = () => !PLAIN.some((q) => window.matchMedia(q).matches);
+const glassAllowed = () => !PLAIN.some((q) => window.matchMedia(q).matches);
 
-// Elemento que lleva el cristal: el padre, o el de su hueco si lo puso GlassSurfaces.
-const hostOf = (el: HTMLElement) => {
-  const parent = el.parentElement;
-  return parent?.classList.contains("glass-slot") ? parent.parentElement : parent;
-};
+// Elemento que lleva el cristal: el padre (solo la barra de pestañas, spec interfaz R6).
+const hostOf = (el: HTMLElement) => el.parentElement;
 
 // Radio de las esquinas del elemento, en px (los porcentajes, sobre el lado menor).
 function radiusOf(host: Element | null, w: number, h: number) {

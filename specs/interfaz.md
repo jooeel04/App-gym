@@ -83,21 +83,26 @@ librería (`glass__warp`) están en su lista de excepciones.
 **Qué hace:** la app se ve como una app de iOS o Android y no como una web: fondo negro
 puro, listas agrupadas de superficie plana con separadores finos (sin bordes gruesos),
 título grande en cada pestaña y la raya del color del día a la izquierda allí donde sale un
-día de rutina (Rutina, Historial, Hoy). El cristal solo va en lo que flota por encima del
-contenido: la barra de pestañas, la barra del descanso, el botón del hueco de abajo
-(«Serie hecha», «Seguir entreno») y las ventanas. Ya no hay cabecera con el logo
+día de rutina (Rutina, Hoy). El cristal solo va en **la barra de pestañas**: todo lo demás
+(tarjetas, botones, campos, ventanas, la barra del descanso, «Serie hecha») es plano, con
+fondo sólido, borde fino y sin brillos ni desenfoque. Ya no hay cabecera con el logo
 «FITGYM»: el aviso de «Sin conexión»/«Guardando…» sale arriba solo cuando hace falta.
 **Cómo funciona:** los colores son variables en `:root` (oscuro) y
 `:root[data-theme="light"]`, redefinidas en la capa «Diseño profesional» al final de
 `globals.css` (la última manda): `--bg`, `--s` (superficie), `--s2` (elevada), `--line`,
-`--text`, `--muted`, `--accent` y `--ok` (serie hecha). `GLASS_SURFACES` (en
-`glass-surfaces.tsx`) solo lista lo que flota.
+`--text`, `--muted`, `--accent` y `--ok` (serie hecha). Las variables `--glass*` valen
+colores sólidos en `:root` (la capa «Sin cristal», al final de `globals.css`); solo `.nav`
+las redefine con transparencia y desenfoque, y es el único sitio con `GlassLayer`
+(`app-shell.tsx`).
 **Decisiones:** inspirado en Hevy, Strong y Fitbod: se ven profesionales por ser sobrios y
 densos. Antes todo era una tarjeta grande con cristal y nada destacaba; además el cristal
 en muchas tarjetas a la vez pesa en el móvil. Se descartó un degradado de fondo (adorno).
+Después quedaban recuadros a medias (fondo transparente con brillo en unos sí y en otros
+no) y cristal en ventanas y botones flotantes: se quitó todo menos en la barra de abajo,
+para que la app se vea igual en todas partes.
 **Reglas:**
-- **R6** El cristal solo va en lo que flota (ventanas y el botón del hueco de abajo), no en
-  las tarjetas ni en los botones normales. → `src/components/glass-surfaces.test.tsx`
+- **R6** El cristal (desenfoque o `GlassLayer`) solo va en la barra de pestañas.
+  → `src/app/styles.test.ts`, `src/components/rest-timer.test.tsx`, `tests/e2e/mobile-ux.test.ts`
 - **R7** No hay cabecera con el logo; el aviso de sincronización sale solo si hace falta.
   → `src/components/app-shell.test.tsx`
 

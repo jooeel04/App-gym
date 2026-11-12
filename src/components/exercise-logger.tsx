@@ -3,17 +3,18 @@
 import { useEffect, useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { formatShortDate } from "@/domain/calendar";
+import { nextLoad } from "@/domain/equipment";
 import { MUSCLE_NAMES, musclesFor } from "@/domain/exercise-library";
 import { parseRepRange, suggestNext } from "@/domain/progression";
 import { WARMUP_SETS } from "@/domain/snapshot";
 import type { Exercise, SetEntry } from "@/domain/types";
 import type { SetResult } from "@/domain/workout-stats";
 import { requestPermissions } from "@/lib/permissions";
+import { getPlatePrefs } from "@/lib/preferences";
 import { BodyMap } from "./body-map";
 import { InDock } from "./dock";
 import { ExerciseDemo } from "./exercise-demo";
-import { PlateCalculator } from "./plate-calculator";
-import { BulbIcon, CheckIcon, ChevronIcon, DumbbellIcon, MinusIcon, PencilIcon, PlusIcon, RepeatIcon, TrendUpIcon } from "./icons";
+import { BulbIcon, CheckIcon, ChevronIcon, MinusIcon, PencilIcon, PlusIcon, RepeatIcon, TrendUpIcon } from "./icons";
 import { range, suggestedWeight, supersetRole } from "./training-view";
 
 // Un ejercicio desplegado en la lista de Hoy: el consejo de progresión y la tarjeta para
@@ -24,7 +25,7 @@ export function ExerciseLogger({ exercise: x, superset }: { exercise: Exercise; 
   const { model, stats, week, day, round, actions } = useWorkout();
   const [how, setHow] = useState(false);
   const muscles = musclesFor(x.name);
-  const tip = suggestNext(x, stats.lastBefore(x, week, round));
+  const tip = suggestNext(x, stats.lastBefore(x, week, round), smallestPlate());
   const done = model.isExerciseDone(week, day, x, round);
   // Con todas las series anotadas ya está hecho y la marca no se puede quitar a mano.
   const filled = done && !model.isExerciseChecked(week, day, x.id, round);
@@ -169,7 +170,7 @@ function SetLogger({ exercise: x }: { exercise: Exercise }) {
           : <SetRow key={s} exercise={x} set={s} name={name(s)} old={oldOf(s)} proposal={proposal(s)}
               onPick={() => setPick(s)} onQuickSave={() => save(s, proposal(s))} />))}
       </div>
-      {!current && <p className="set-alldone"><CheckIcon /> Todas las series anotadas. Toca un número para cambiar su serie.</p>}
+      {!current && <p className="set-alldone"><CheckIcon /> Todas las series anotadas. Toca una serie para cambiarla.</p>}
       {warmups < WARMUP_SETS.length && (
         <button type="button" className="add-warmup" onClick={addWarmup}><PlusIcon />Añadir calentamiento</button>
       )}
@@ -189,33 +190,46 @@ function SetLogger({ exercise: x }: { exercise: Exercise }) {
 const prevText = (old?: SetResult) => (old ? (old.weight !== null ? kgText(old.weight) : "") + "×" + (old.reps ?? "—") : "—");
 
 // Una fila de la tabla que no es la actual: hecha (verde, con sus números) o vacía (con lo
-// propuesto en gris). Al tocar su número pasa a ser la actual; su ✓ la guarda tal cual viene.
+// propuesto en gris). La hecha es entera un botón: tocar cualquier parte (también su ✓) la
+// abre para cambiarla. En la vacía, su número la hace la actual y su ✓ la guarda tal cual viene.
 function SetRow({ exercise: x, set: s, name, old, proposal, onPick, onQuickSave }: {
   exercise: Exercise; set: number; name: string; old?: SetResult; proposal: SetEntry; onPick: () => void; onQuickSave: () => void;
 }) {
   const { model, week, day, round } = useWorkout();
   const e = model.getEntry(week, day, x.id, s, round);
-  const done = hasReps(e);
+  const cls = "series-row" + (isWarmup(s) ? " warmup" : "");
+  if (hasReps(e)) {
+    return (
+      <button type="button" className={cls + " done"} aria-label={name + ": " + describeEntry(e)} onClick={onPick}>
+        <span className="series-num">{setLabel(s)}</span>
+        <span className="series-prev">{prevText(old)}</span>
+        <span className="series-val">{kgText(e.weight) || "—"}</span>
+        <span className="series-val">{e.reps}</span>
+        <span className="series-check on"><CheckIcon /></span>
+        {e.note && <span className="series-row-note"><PencilIcon />{e.note}</span>}
+      </button>
+    );
+  }
   return (
-    <div className={"series-row" + (isWarmup(s) ? " warmup" : "") + (done ? " done" : "")}>
-      <button type="button" className="series-num" aria-label={name + ": " + (done ? describeEntry(e) : "vacía")} onClick={onPick}>{setLabel(s)}</button>
+    <div className={cls}>
+      <button type="button" className="series-num" aria-label={name + ": vacía"} onClick={onPick}>{setLabel(s)}</button>
       <span className="series-prev">{prevText(old)}</span>
-      <span className={"series-val" + (done ? "" : " ghost")}>{kgText(done ? e.weight : proposal.weight) || "—"}</span>
-      <span className={"series-val" + (done ? "" : " ghost")}>{(done ? e.reps : proposal.reps) || "—"}</span>
-      {done
-        ? <span className="series-check on" role="img" aria-label={name + " hecha"}><CheckIcon /></span>
-        : <button type="button" className="series-check" aria-label={"Guardar " + name.toLowerCase() + " con lo propuesto"} disabled={!proposal.reps} onClick={onQuickSave}><CheckIcon /></button>}
-      {e.note && <p className="series-row-note"><PencilIcon />{e.note}</p>}
+      <span className="series-val ghost">{kgText(proposal.weight) || "—"}</span>
+      <span className="series-val ghost">{proposal.reps || "—"}</span>
+      <button type="button" className="series-check" aria-label={"Guardar " + name.toLowerCase() + " con lo propuesto"} disabled={!proposal.reps} onClick={onQuickSave}><CheckIcon /></button>
     </div>
   );
 }
+
+// El disco más pequeño de tu gym (Ajustes → Calculadora de discos): marca el salto con barra.
+const smallestPlate = () => Math.min(...getPlatePrefs().plates);
 
 // Para sumar o restar a un número escrito (vacío cuenta como 0, nunca baja de 0).
 const bump = (v: string, d: number) => String(Math.max(0, Math.round(((Number(v) || 0) + d) * 100) / 100));
 
 // La fila que toca: carga y repeticiones para escribir (empiezan con lo propuesto o, tras
 // deshacer, con lo que se acababa de poner; el calentamiento, vacío), y debajo −/+ de carga y
-// repeticiones, «Discos» y «Nota». Se guarda con su ✓ o con «Serie hecha», abajo.
+// repeticiones y «Nota». Se guarda con su ✓ o con «Serie hecha», abajo.
 function SetEditor({ exercise: x, set: s, name, old, start, picked, onSave }: {
   exercise: Exercise; set: number; name: string; old?: SetResult; start: SetEntry; picked: boolean; onSave: (next: SetEntry) => void;
 }) {
@@ -227,9 +241,10 @@ function SetEditor({ exercise: x, set: s, name, old, start, picked, onSave }: {
   const [reps, setReps] = useState(() => filled(start.reps) ?? filled(e.reps) ?? "");
   const [note, setNote] = useState(() => start.note ?? e.note ?? "");
   const [noteOpen, setNoteOpen] = useState(!!(start.note ?? e.note));
-  const [plates, setPlates] = useState(false);
   const label = x.name + ", " + setName(s).toLowerCase();
   const save = () => onSave({ weight: kg, reps, note });
+  // El peso siguiente o anterior que existe con el material del ejercicio (spec hoy R26).
+  const load = (dir: 1 | -1) => String(nextLoad(x.name, Number(kg) || 0, dir, smallestPlate()));
   const what = (Number(kg) > 0 ? String(Number(kg)).replace(".", ",") + " " : "") + "× " + reps.trim();
 
   return (
@@ -243,27 +258,21 @@ function SetEditor({ exercise: x, set: s, name, old, start, picked, onSave }: {
       </div>
       <div className="series-tools">
         <span className="series-tool-pair">
-          <button type="button" aria-label="Quitar 2,5 kg" onClick={() => setKg(bump(kg, -2.5))}><MinusIcon /></button>
+          <button type="button" aria-label="Bajar peso" onClick={() => setKg(load(-1))}><MinusIcon /></button>
           <small>kg</small>
-          <button type="button" aria-label="Añadir 2,5 kg" onClick={() => setKg(bump(kg, 2.5))}><PlusIcon /></button>
+          <button type="button" aria-label="Subir peso" onClick={() => setKg(load(1))}><PlusIcon /></button>
         </span>
         <span className="series-tool-pair">
           <button type="button" aria-label="Una repetición menos" onClick={() => setReps(bump(reps, -1))}><MinusIcon /></button>
           <small>reps</small>
           <button type="button" aria-label="Una repetición más" onClick={() => setReps(bump(reps, 1))}><PlusIcon /></button>
         </span>
-        {Number(kg) > 0 && (
-          <button type="button" className="series-tool" aria-label={"Calcular discos para " + String(Number(kg)).replace(".", ",") + " kg"} onClick={() => setPlates(true)}>
-            <DumbbellIcon />Discos
-          </button>
-        )}
         {!noteOpen && <button type="button" className="series-tool" onClick={() => setNoteOpen(true)}><PencilIcon />Añadir nota</button>}
       </div>
       {noteOpen && (
         <input className="series-note" type="text" maxLength={160} placeholder="Cómo fue esta serie" aria-label={"Nota de la " + setName(s).toLowerCase()}
           value={note} onChange={(ev) => setNote(ev.target.value)} />
       )}
-      {plates && <PlateCalculator initialTotal={kg} onClose={() => setPlates(false)} />}
       {/* Bajo el pulgar. Durante el descanso en ese sitio está la cuenta atrás, salvo que se
           haya elegido una serie a mano para corregirla. */}
       {(!rest || picked) && (

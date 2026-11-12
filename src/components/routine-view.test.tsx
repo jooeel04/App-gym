@@ -2,8 +2,14 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { freezeToday, PRESS, renderWithWorkout } from "../../tests/workout-fixture";
 import { ConfirmDialog } from "./confirm-dialog";
+import { DayColorStyle } from "./day-color-style";
 import { RoutineView } from "./routine-view";
 
+// Abre un día y pulsa su «Editar» (dentro del recuadro).
+const editDay = (day: RegExp, name: string) => {
+  fireEvent.click(dayButton(day));
+  fireEvent.click(screen.getByRole("button", { name: "Editar " + name }));
+};
 const dayButton = (name: RegExp) => screen.getAllByRole("button", { expanded: false }).concat(screen.queryAllByRole("button", { expanded: true }))
   .find((b) => name.test(b.textContent ?? ""))!;
 
@@ -34,8 +40,7 @@ describe("Rutina · eliminar un ejercicio con registros", () => {
 
   const removePress = () => {
     renderWithWorkout(<><RoutineView /><ConfirmDialog /></>);
-    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
-    fireEvent.click(screen.getByRole("button", { name: /^Lunes/, expanded: false }));
+    editDay(/Lunes/, "Torso");
     const row = screen.getByText(PRESS.name).closest(".routine-ex") as HTMLElement;
     fireEvent.click(within(row).getByRole("button", { name: "Eliminar" }));
   };
@@ -73,10 +78,7 @@ describe("Rutina · tus días de rutina", () => {
   beforeEach(freezeToday);
   afterEach(() => vi.useRealTimers());
 
-  const edit = () => {
-    renderWithWorkout(<><RoutineView /><ConfirmDialog /></>);
-    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
-  };
+  const edit = () => renderWithWorkout(<><RoutineView /><ConfirmDialog /></>);
   const nameDialog = () => screen.getByRole("dialog", { name: /nombre|Nuevo día/i });
 
   it("«Añadir día» pide un nombre y crea el día vacío; con 7 días ya no sale (R1)", () => {
@@ -95,7 +97,7 @@ describe("Rutina · tus días de rutina", () => {
 
   it("«Cambiar nombre» cambia el nombre del día (R2)", () => {
     edit();
-    fireEvent.click(dayButton(/Lunes/));
+    editDay(/Lunes/, "Torso");
     fireEvent.click(screen.getByRole("button", { name: "Cambiar nombre" }));
     const input = within(nameDialog()).getByLabelText("Nombre del día");
     expect(input).toHaveValue("Torso");
@@ -106,12 +108,59 @@ describe("Rutina · tus días de rutina", () => {
 
   it("«Eliminar día» pregunta y, al confirmar, lo borra con sus ejercicios (R3)", async () => {
     edit();
-    fireEvent.click(dayButton(/Lunes/));
+    editDay(/Lunes/, "Torso");
     fireEvent.click(screen.getByRole("button", { name: "Eliminar día" }));
     const confirm = await screen.findByRole("alertdialog");
     expect(confirm).toHaveTextContent("¿Eliminar «Torso»?");
     fireEvent.click(within(confirm).getByRole("button", { name: "Eliminar día" }));
     await waitFor(() => expect(screen.queryByText(/Torso/)).not.toBeInTheDocument());
     expect(screen.queryByText(PRESS.name)).not.toBeInTheDocument();
+  });
+});
+
+// Spec rutina R6: «Editar» va dentro de cada día y solo edita ese día.
+describe("Rutina · editar dentro del día", () => {
+  beforeEach(freezeToday);
+  afterEach(() => vi.useRealTimers());
+
+  it("no hay «Editar» arriba; «Añadir día» está siempre al final", () => {
+    renderWithWorkout(<RoutineView />);
+    expect(screen.queryByRole("button", { name: /^Editar/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Añadir día" })).toBeInTheDocument();
+  });
+
+  it("al abrir un día, su «Editar» está dentro del recuadro y solo edita ese día; «Listo» lo cierra", () => {
+    renderWithWorkout(<RoutineView />);
+    fireEvent.click(dayButton(/Lunes/));
+    const box = dayButton(/Lunes/).closest("article")!;
+    fireEvent.click(within(box).getByRole("button", { name: "Editar Torso" }));
+    expect(within(box).getByRole("button", { name: /Añadir ejercicio/ })).toBeInTheDocument();
+    expect(within(box).getByRole("button", { name: "Cambiar nombre" })).toBeInTheDocument();
+    // Otro día abierto no está en modo editar.
+    fireEvent.click(dayButton(/Martes/));
+    const other = dayButton(/Martes/).closest("article")!;
+    expect(within(other).queryByRole("button", { name: /Añadir ejercicio/ })).not.toBeInTheDocument();
+    expect(within(other).getByRole("button", { name: "Editar Pierna" })).toBeInTheDocument();
+    fireEvent.click(within(other).getByRole("button", { name: "Editar Pierna" }));
+    fireEvent.click(within(other).getByRole("button", { name: "Listo" }));
+    expect(within(other).queryByRole("button", { name: /Añadir ejercicio/ })).not.toBeInTheDocument();
+  });
+});
+
+// Spec rutina R7: el color de cada día, a tu gusto.
+describe("Rutina · color del día", () => {
+  beforeEach(freezeToday);
+  afterEach(() => vi.useRealTimers());
+
+  it("al elegir un color, el día lo usa en toda la app (--dayN)", () => {
+    renderWithWorkout(<><RoutineView /><DayColorStyle /></>);
+    editDay(/Lunes/, "Torso");
+    const colors = screen.getByRole("group", { name: "Color de Torso" });
+    expect(within(colors).getAllByRole("button")).toHaveLength(8);
+    expect(within(colors).getByRole("button", { name: "Azul" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(within(colors).getByRole("button", { name: "Rojo" }));
+    expect(within(colors).getByRole("button", { name: "Rojo" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(colors).getByRole("button", { name: "Azul" })).toHaveAttribute("aria-pressed", "false");
+    expect(document.querySelector("style[data-day-colors]")?.textContent).toContain("--day1:var(--c-rojo)");
   });
 });

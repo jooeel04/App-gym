@@ -45,7 +45,14 @@ describe("Ajustes · apariencia", () => {
   });
 });
 
-describe("Ajustes · calculadora de discos", () => {
+describe("Ajustes · calculadora de discos (spec ajustes R6–R7)", () => {
+  it("«Abrir calculadora» abre la calculadora de discos (R7)", () => {
+    renderWithWorkout(<SettingsView />);
+    open(/Calculadora de discos/);
+    fireEvent.click(screen.getByRole("button", { name: "Abrir calculadora" }));
+    expect(screen.getByRole("dialog", { name: "Calculadora de discos" })).toBeInTheDocument();
+  });
+
   it("la barra y los discos que elijas son los que usa la calculadora", () => {
     renderWithWorkout(<SettingsView />);
     open(/Calculadora de discos/);

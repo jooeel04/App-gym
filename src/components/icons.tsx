@@ -256,6 +256,13 @@ export function RepeatIcon({ className }: IconProps) {
   );
 }
 
+// Calendario: elegir otro día.
+export function CalendarIcon({ className }: IconProps) {
+  return (
+    <svg className={"ico " + (className ?? "")} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm-1 5h16M8 3.5v4M16 3.5v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  );
+}
+
 // Tendencia: sube (▲) o baja (▼).
 export function TriangleIcon({ className, dir = "up" }: IconProps & { dir?: "up" | "down" }) {
   return (

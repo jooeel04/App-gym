@@ -24,7 +24,7 @@ interface LogRow {
   weight: number | null; reps: number | null; note: string | null; logged_on: string | null;
 }
 type BodyRow = { date: string } & Record<(typeof BODY_FIELDS)[number], number | null>;
-interface ProgramRow { id: string; weeks_count: number; schedule: unknown; start_date: string | null; day_names: Record<string, string> | null }
+interface ProgramRow { id: string; weeks_count: number; schedule: unknown; start_date: string | null; day_names: Record<string, string> | null; day_colors: Record<string, string> | null }
 
 // Persistencia en Supabase (Postgres). Se usa solo en el servidor, con la sesión del
 // usuario: RLS limita cada consulta a su propio programa (user_id). Solo depende del
@@ -43,7 +43,7 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
   constructor(private readonly db: SupabaseClient, private readonly userId: string) {}
 
   private programQuery() {
-    return this.db.from("programs").select("id, weeks_count, schedule, start_date, day_names").eq("user_id", this.userId).maybeSingle();
+    return this.db.from("programs").select("id, weeks_count, schedule, start_date, day_names, day_colors").eq("user_id", this.userId).maybeSingle();
   }
 
   // ---- Lectura ----
@@ -69,6 +69,7 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
     snapshot.weeksCount = program.weeks_count;
     if (program.schedule) snapshot.schedule = normalizeSchedule(program.schedule);
     if (program.day_names) snapshot.dayNames = program.day_names;
+    if (program.day_colors) snapshot.dayColors = program.day_colors;
     if (program.start_date) snapshot.startDate = program.start_date;
     if (body.length) snapshot.body = Object.fromEntries(body.map((r) => [r.date, fromBodyRow(r)]));
     const checked: Record<string, string> = {};
@@ -170,6 +171,9 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
       case "dayNames":
         await must(db.from("programs").update({ day_names: change.dayNames }).eq("id", programId));
         return;
+      case "dayColors":
+        await must(db.from("programs").update({ day_colors: change.dayColors }).eq("id", programId));
+        return;
       case "sessionRemoved":
         // En una sola transacción: series, ticks y día completado de esa vez.
         await must(db.rpc("remove_session", { p_program_id: programId, p_week: change.week, p_day: change.day, p_round: change.round }));
@@ -182,8 +186,10 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
         }));
         return;
       case "dayRemoved":
-        // En una sola transacción: ejercicios (y sus series), días completados, nombre y calendario.
-        await must(db.rpc("remove_routine_day", { p_program_id: programId, p_day: change.day, p_day_names: change.dayNames, p_schedule: change.schedule }));
+        // En una sola transacción: ejercicios (y sus series), días completados, nombre, color y calendario.
+        await must(db.rpc("remove_routine_day", {
+          p_program_id: programId, p_day: change.day, p_day_names: change.dayNames, p_schedule: change.schedule, p_day_colors: change.dayColors,
+        }));
         return;
       case "schedule":
         await must(db.from("programs").update({ schedule: change.schedule, start_date: change.startDate }).eq("id", programId));
@@ -302,6 +308,7 @@ function toProgramPayload(snapshot: WorkoutSnapshot) {
     p_weeks_count: snapshot.weeksCount, p_exercises: snapshot.routine, p_logs: logs, p_completed: completed,
     p_schedule: snapshot.schedule ? normalizeSchedule(snapshot.schedule) : null, p_start_date: isISODate(snapshot.startDate) ? snapshot.startDate : null,
     p_day_names: snapshot.dayNames ?? null,
+    p_day_colors: snapshot.dayColors ?? null,
     p_body: Object.entries(snapshot.body ?? {}).filter(([date]) => isISODate(date)).map(([date, m]) => ({ date, ...toBodyColumns(m) })),
   };
 }

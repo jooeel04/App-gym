@@ -3,10 +3,9 @@
 import { ActivityCalendar } from "./activity-calendar";
 import { ExerciseProgress } from "./exercise-progress";
 import { BodyCard, ProgressStats } from "./progress-cards";
-import { WorkoutHistory } from "./workout-history";
 
-// Vista "Progreso": resumen (racha, días y récords del mes), historial de entrenos (editar o
-// borrar cada uno), calendario (al tocar un día se ve lo que se entrenó),
+// Vista "Progreso": resumen (racha, días y récords del mes), calendario (al tocar un día se
+// ve lo que se entrenó, y ahí se edita, se cambia de fecha o se borra cada entreno),
 // progreso de cada ejercicio (la última vez, su peso máximo y su récord) y peso y medidas.
 // Lo de los amigos está en la pestaña Social.
 export function ProgressView() {
@@ -17,8 +16,6 @@ export function ProgressView() {
       </div>
 
       <ProgressStats />
-
-      <WorkoutHistory />
 
       <ActivityCalendar />
 

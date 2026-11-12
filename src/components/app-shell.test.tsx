@@ -28,7 +28,7 @@ describe("Barras flotantes con cristal líquido", () => {
     await waitFor(() => expect(nav.querySelector(".glass-layer.on filter")).not.toBeNull());
   });
 
-  it("la barra del descanso lleva el cristal y sus botones siguen funcionando", async () => {
+  it("la barra del descanso es plana (spec interfaz R6) y sus botones funcionan", () => {
     function StartRest() {
       const { actions } = useWorkout();
       return <button type="button" onClick={() => actions.startRest(90)}>Empezar descanso</button>;
@@ -37,7 +37,7 @@ describe("Barras flotantes con cristal líquido", () => {
     fireEvent.click(screen.getByRole("button", { name: "Empezar descanso" }));
     const bar = screen.getByRole("timer");
     expect(bar).toHaveAccessibleName("Descanso: quedan 90 segundos");
-    await waitFor(() => expect(bar.querySelector(".glass-layer.on filter")).not.toBeNull());
+    expect(bar.querySelector(".glass-layer")).toBeNull();
     fireEvent.click(within(bar).getByRole("button", { name: "Saltar" }));
     expect(screen.queryByRole("timer")).not.toBeInTheDocument();
   });

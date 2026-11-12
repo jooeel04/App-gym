@@ -1,6 +1,7 @@
 "use server";
 
 import { isISODate } from "@/domain/calendar";
+import { isDayColor } from "@/domain/day-colors";
 import { isValidSnapshot, MAX_DAY_NAME, MAX_DAYS, MAX_ROUNDS } from "@/domain/snapshot";
 import { isExercise, isInt, isText } from "@/domain/validation";
 import { BODY_FIELDS, type WorkoutChange, type WorkoutSnapshot } from "@/domain/types";
@@ -45,6 +46,10 @@ const isSchedule = (s: unknown) => !!s && typeof s === "object" && !Array.isArra
 const isDayNames = (n: unknown) => !!n && typeof n === "object" && !Array.isArray(n)
   && Object.entries(n).every(([day, name]) => isDayKey(day) && typeof name === "string" && name.trim().length >= 1 && name.length <= MAX_DAY_NAME);
 
+// Color de cada día: solo días 1–7 y colores de DAY_COLORS (spec datos R5).
+const isDayColors = (n: unknown) => !!n && typeof n === "object" && !Array.isArray(n)
+  && Object.entries(n).every(([day, color]) => isDayKey(day) && isDayColor(color));
+
 function isWorkoutChange(c: unknown): c is WorkoutChange {
   const x = c as Record<string, unknown>;
   if (!x || typeof x !== "object") return false;
@@ -75,13 +80,15 @@ function isWorkoutChange(c: unknown): c is WorkoutChange {
       return isSchedule(x.schedule) && (x.startDate === null || isISODate(x.startDate));
     case "dayNames":
       return isDayNames(x.dayNames);
+    case "dayColors":
+      return isDayColors(x.dayColors);
     case "sessionRemoved":
       return isInt(x.week, 1, 520) && isInt(x.day, 1, MAX_DAYS) && isInt(x.round, 1, MAX_ROUNDS);
     case "sessionMoved":
       return isInt(x.week, 1, 520) && isInt(x.day, 1, MAX_DAYS) && isInt(x.round, 1, MAX_ROUNDS)
         && isInt(x.toWeek, 1, 520) && isInt(x.toRound, 1, MAX_ROUNDS) && isISODate(x.date);
     case "dayRemoved":
-      return isInt(x.day, 1, MAX_DAYS) && isDayNames(x.dayNames) && isSchedule(x.schedule);
+      return isInt(x.day, 1, MAX_DAYS) && isDayNames(x.dayNames) && isSchedule(x.schedule) && isDayColors(x.dayColors);
     case "body": {
       const m = x.metrics as Record<string, unknown> | null;
       const metricsOk = m === null || (typeof m === "object"

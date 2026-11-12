@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { WEEKDAY_NAMES } from "@/domain/calendar";
+import { DAY_COLORS } from "@/domain/day-colors";
 import { musclesFor } from "@/domain/exercise-library";
 import { MAX_DAYS } from "@/domain/snapshot";
 import type { Exercise } from "@/domain/types";
 import { BodyMap } from "./body-map";
 import { ExerciseModal } from "./exercise-modal";
-import { ArrowIcon, ChevronIcon, PlusIcon } from "./icons";
+import { ArrowIcon, CheckIcon, ChevronIcon, PencilIcon, PlusIcon } from "./icons";
 import { ScheduleCard } from "./schedule-card";
 import { DayNameModal } from "./day-name-modal";
 
@@ -16,14 +17,15 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // Vista "Rutina": un día de rutina por fila, plegado, ordenados por su primer día de la
 // semana (de título los días de la semana y debajo su nombre); al tocarlo se ven sus
-// ejercicios y el botón para hacerlo hoy. Con "Editar" aparecen las acciones para añadir, editar, reordenar
-// y eliminar ejercicios, y para añadir, renombrar y eliminar días (hasta 7).
+// ejercicios, «Hacer … hoy» y «Editar». «Editar» pone en modo editar solo ese día, dentro
+// de su recuadro (spec rutina R6): añadir, editar, reordenar y eliminar ejercicios, su color
+// (R7), su nombre y eliminarlo. «Añadir día» (hasta 7) está siempre al final.
 export function RoutineView() {
   const { model, actions } = useWorkout();
   const [editing, setEditing] = useState<{ day: number; exercise?: Exercise } | null>(null);
-  const [edit, setEdit] = useState(false);
-  // Al entrar están todos cerrados: se abre el que se toque.
+  // Al entrar están todos cerrados: se abre el que se toque. Solo uno se edita a la vez.
   const [open, setOpen] = useState<number | null>(null);
+  const [editDay, setEditDay] = useState<number | null>(null);
   // Los días sin día fijo van al final.
   const order = [...model.days].sort((a, b) => (model.weekdaysFor(a)[0] ?? 8) - (model.weekdaysFor(b)[0] ?? 8));
   // Ventana del nombre: día nuevo (`day` null) o cambiar el de uno.
@@ -33,9 +35,6 @@ export function RoutineView() {
     <section className="view active">
       <div className="pagehead">
         <h1>Rutina</h1>
-        <button type="button" className={"tool-btn" + (edit ? " active" : "")} aria-pressed={edit} onClick={() => setEdit(!edit)}>
-          {edit ? "Listo" : "Editar"}
-        </button>
       </div>
 
       <div className="routine-list">
@@ -43,9 +42,11 @@ export function RoutineView() {
           const list = model.exercisesOfDay(d);
           const isOpen = open === d;
           const weekdays = model.weekdaysFor(d);
+          const edit = editDay === d;
+          const name = model.dayName(d);
           return (
             <article className={"routine-day" + (isOpen ? " open" : "")} key={d} style={{ "--dc": "var(--day" + d + ")" } as React.CSSProperties}>
-              <button type="button" className="routine-toggle" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : d)}>
+              <button type="button" className="routine-toggle" aria-expanded={isOpen} onClick={() => { setOpen(isOpen ? null : d); setEditDay(null); }}>
                 <i className="routine-bar" aria-hidden="true" />
                 <span className="routine-title">
                   <b>{weekdays.length ? capitalize(weekdays.map((w) => WEEKDAY_NAMES[w]).join(" y ")) : "Sin día fijo"}</b>
@@ -90,13 +91,20 @@ export function RoutineView() {
                       </div>
                     );
                   })}
-                  {edit
-                    ? <button className="add-ex" type="button" onClick={() => setEditing({ day: d })}><PlusIcon />Añadir ejercicio</button>
-                    : list.length > 0 && <button className="routine-go" type="button" onClick={() => actions.startDay(d)}>Hacer {model.dayName(d)} hoy</button>}
-                  {edit && (
-                    <div className="day-actions">
-                      <button type="button" className="edit-ex" onClick={() => setNaming({ day: d })}>Cambiar nombre</button>
-                      {model.days.length > 1 && <button type="button" className="remove-ex" onClick={() => { void actions.deleteDay(d).then((gone) => { if (gone) setOpen(null); }); }}>Eliminar día</button>}
+                  {edit ? (
+                    <>
+                      <button className="add-ex" type="button" onClick={() => setEditing({ day: d })}><PlusIcon />Añadir ejercicio</button>
+                      <DayColorPicker day={d} />
+                      <div className="day-actions">
+                        <button type="button" className="edit-ex" onClick={() => setNaming({ day: d })}>Cambiar nombre</button>
+                        {model.days.length > 1 && <button type="button" className="remove-ex" onClick={() => { void actions.deleteDay(d).then((gone) => { if (gone) setOpen(null); }); }}>Eliminar día</button>}
+                      </div>
+                      <button type="button" className="routine-done" onClick={() => setEditDay(null)}>Listo</button>
+                    </>
+                  ) : (
+                    <div className="routine-foot">
+                      {list.length > 0 && <button className="routine-go" type="button" onClick={() => actions.startDay(d)}>Hacer {name} hoy</button>}
+                      <button type="button" className="routine-edit" aria-label={"Editar " + name} onClick={() => setEditDay(d)}><PencilIcon />Editar</button>
                     </div>
                   )}
                 </div>
@@ -104,7 +112,7 @@ export function RoutineView() {
             </article>
           );
         })}
-        {edit && model.days.length < MAX_DAYS && (
+        {model.days.length < MAX_DAYS && (
           <button className="add-ex add-day" type="button" onClick={() => setNaming({ day: null })}><PlusIcon />Añadir día</button>
         )}
       </div>
@@ -115,5 +123,25 @@ export function RoutineView() {
           onSave={(name) => (naming.day === null ? actions.addDay(name) !== null : actions.renameDay(naming.day, name))} />
       )}
     </section>
+  );
+}
+
+// Los 8 colores para elegir el de un día (spec rutina R7): al tocar uno, el día cambia de
+// color en toda la app (`DayColorStyle`).
+function DayColorPicker({ day }: { day: number }) {
+  const { model, actions } = useWorkout();
+  const current = model.dayColor(day);
+  return (
+    <div className="day-color">
+      <span className="day-color-label">Color</span>
+      <div className="day-color-list" role="group" aria-label={"Color de " + model.dayName(day)}>
+        {DAY_COLORS.map((c) => (
+          <button key={c.id} type="button" aria-label={c.name} aria-pressed={c.id === current}
+            style={{ "--swatch": "var(--c-" + c.id + ")" } as React.CSSProperties} onClick={() => actions.setDayColor(day, c.id)}>
+            {c.id === current && <CheckIcon />}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -46,6 +46,7 @@ En el SQL Editor del proyecto, ejecuta en orden los archivos de `supabase/migrat
 14. `20261112000000_repeat_days.sql` (repetir un día de rutina en la misma semana: columna `round`)
 15. `20261113000000_routine_days.sql` (días de rutina propios hasta 7, un día en varios días de la semana y el máximo con sus series en Social)
 16. `20261114000000_remove_session.sql` (borrar un entreno entero o cambiarle la fecha desde el historial o el calendario de Progreso)
+17. `20261115000000_day_colors.sql` (color de cada día de rutina a tu gusto)
 
 Las fotos de cómo se hace cada ejercicio (`public/ejercicios`) son de
 [Free Exercise DB](https://github.com/yuhonas/free-exercise-db), de dominio público (Unlicense).

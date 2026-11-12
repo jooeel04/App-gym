@@ -12,7 +12,6 @@ import { ContinueWorkout, DOCK_ID } from "./dock";
 import { GlassLayer } from "./glass-layer";
 import { NicknamePrompt } from "./nickname-prompt";
 import { ReminderDeviceSync } from "./reminder-device-sync";
-import { TAB_SETTLED } from "./glass-surfaces";
 import { LoadProblem } from "./load-problem";
 import { ClockIcon, ProgressIcon, RoutineIcon, SettingsIcon, StrongIcon, TrainingIcon, TrophyIcon, UsersIcon } from "./icons";
 import { ProgressView } from "./progress-view";
@@ -172,8 +171,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       pager.style.transform = "";
     }
     window.scrollTo({ top: scrolls.current[pathname] ?? 0, behavior: "instant" });
-    // Ya quieta: la pestaña nueva recibe su cristal (con un fundido suave).
-    requestAnimationFrame(() => window.dispatchEvent(new Event(TAB_SETTLED)));
   }, [pathname]);
 
   const pages = peek ? [index, peek.index] : [index];

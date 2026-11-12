@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/app-shell";
+import { DayColorStyle } from "@/components/day-color-style";
 import { WorkoutProvider } from "@/controllers/workout-controller";
 import { loadInitialWorkout } from "@/lib/workout-data";
 
@@ -8,6 +9,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { mode, snapshot, email } = await loadInitialWorkout();
   return (
     <WorkoutProvider mode={mode} initialSnapshot={snapshot} email={email}>
+      <DayColorStyle />
       <AppShell>{children}</AppShell>
     </WorkoutProvider>
   );

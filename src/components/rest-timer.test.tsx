@@ -49,3 +49,12 @@ describe("Descanso · aviso por notificación (suena y vibra con el móvil bloqu
     expect(scheduleRestAlert).not.toHaveBeenCalled();
   });
 });
+
+// Spec interfaz R6: el cristal solo va en la barra de pestañas; la del descanso es plana.
+describe("Descanso · barra plana", () => {
+  it("la barra del descanso no lleva cristal", async () => {
+    renderWithWorkout(<><StartRest seconds={90} /><RestTimerBar /></>);
+    const timer = await screen.findByRole("timer");
+    expect(timer.closest(".restbar")?.querySelector(".glass-layer")).toBeNull();
+  });
+});

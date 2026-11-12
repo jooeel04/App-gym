@@ -13,9 +13,9 @@ function setup() {
   return { model, diary: new WorkoutDiary(model, new WorkoutCalendar(model)) };
 }
 
-// Spec progreso R6: el historial, un entreno por tarjeta, del más reciente al más antiguo.
+// Spec progreso R10: cada entreno con sus series y kilos (lo que enseña el calendario al tocar un día).
 describe("Historial de entrenos", () => {
-  it("junta cada entreno con su fecha, series y kilos, del más reciente al más antiguo (R6)", () => {
+  it("junta cada entreno con su fecha, series y kilos, del más reciente al más antiguo (R10)", () => {
     const { model, diary } = setup();
     model.setEntryField(3, 1, PRESS.id, 1, "reps", "6", "2026-10-22", 2);
     const list = diary.workouts();

@@ -1,4 +1,5 @@
 import type { WorkoutRepository } from "@/repositories/workout-repository";
+import { defaultDayColor, isDayColor, type DayColor } from "./day-colors";
 import { daysBetween, isISODate, mondayOf } from "./calendar";
 import { blankSnapshot, dayKey, DEFAULT_DAY_NAMES, DEFAULT_SCHEDULE, DEFAULT_WEEKS, entryKey, exerciseKey, isLogged, MAX_DAY_NAME, MAX_DAYS, MAX_ROUNDS, normalizeSchedule, parseKey, roundOf } from "./snapshot";
 import type { BodyMetrics, Exercise, NewExerciseInput, SetEntry, SetField, WeekSchedule, WorkoutChange, WorkoutSnapshot } from "./types";
@@ -111,6 +112,20 @@ export class WorkoutModel {
     return this.dayNames[d] ?? "Día " + d;
   }
 
+  // Color de un día: el elegido o, si no, el de siempre de su número.
+  dayColor(d: number): DayColor {
+    const c = this.state.dayColors?.[d];
+    return isDayColor(c) ? c : defaultDayColor(d);
+  }
+
+  // Elige el color de un día (solo de DAY_COLORS).
+  setDayColor(d: number, color: string) {
+    if (!this.days.includes(d) || !isDayColor(color)) return;
+    const dayColors = { ...this.state.dayColors, [d]: color };
+    this.state.dayColors = dayColors;
+    this.commit({ type: "dayColors", dayColors });
+  }
+
   // Crea un día vacío con ese nombre en el número `at` o, sin él, en el primero libre.
   // Devuelve el número, o
   // null si el nombre está vacío, ese número ya existe o ya hay MAX_DAYS.
@@ -134,16 +149,18 @@ export class WorkoutModel {
   removeDay(d: number) {
     if (!this.days.includes(d) || this.days.length <= 1) return;
     const other = <T,>(source: Record<string, T>) => Object.fromEntries(Object.entries(source).filter(([k]) => parseKey(k)[1] !== d));
-    const dayNames = this.dayNames, schedule = this.schedule;
+    const dayNames = this.dayNames, schedule = this.schedule, dayColors = { ...this.state.dayColors };
     delete dayNames[d];
     delete schedule[d];
+    delete dayColors[d];
     this.state.routine = this.state.routine.filter((x) => x.day !== d);
     this.state.entries = other(this.state.entries);
     this.state.checked = other(this.checked);
     this.state.completed = other(this.state.completed);
     this.state.dayNames = dayNames;
     this.state.schedule = schedule;
-    this.commit({ type: "dayRemoved", day: d, dayNames, schedule });
+    this.state.dayColors = dayColors;
+    this.commit({ type: "dayRemoved", day: d, dayNames, schedule, dayColors });
   }
 
   private setDayNames(dayNames: Record<string, string>) {

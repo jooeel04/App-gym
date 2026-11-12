@@ -7,7 +7,6 @@ import { primeAudioOnTouch, restFinishedAlert } from "@/lib/alerts";
 import { notifyState, showNotification } from "@/lib/permissions";
 import { getRestPrefs } from "@/lib/preferences";
 import { subscribeThisDevice } from "@/lib/push";
-import { GlassLayer } from "./glass-layer";
 
 const clock = (s: number) => Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
 
@@ -72,7 +71,6 @@ export function RestTimerBar() {
 
   return (
     <div className="restbar" role="timer" aria-live="off" aria-label={"Descanso: quedan " + left + " segundos"}>
-      <GlassLayer radius={26} />
       <svg className="rest-ring" viewBox="0 0 44 44" aria-hidden="true">
         <circle cx="22" cy="22" r={R} className="rest-ring-bg" />
         <circle cx="22" cy="22" r={R} className="rest-ring-fg" strokeDasharray={C} strokeDashoffset={C * (1 - progress)} />

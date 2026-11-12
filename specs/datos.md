@@ -49,13 +49,20 @@ se escribe el objeto entero) y `dayRemoved`, que llama a la función SQL
 nombre y sitio en el calendario en **una sola transacción**. `replace_program` recibe
 `p_day_names`. El recordatorio diario (`due_reminders`) lee los dos formatos de `schedule`
 y da el nombre del día.
-**Decisiones:** `day_names` es una propiedad del programa que siempre se lee y escribe
-entera, así que va en `jsonb` con `check`, como `schedule` (regla 2: no es tabla).
+El color de cada día va en `programs.day_colors` (`jsonb`, día → nombre del color de
+`DAY_COLORS`; null o sin clave = el de siempre). Cambio nuevo: `dayColors` (se escribe el
+objeto entero); `dayRemoved` lleva también cómo quedan los colores y
+`remove_routine_day` los guarda en la misma transacción. `replace_program` recibe
+`p_day_colors` (migración `20261115000000_day_colors.sql`).
+**Decisiones:** `day_names` y `day_colors` son propiedades del programa que siempre se
+leen y escriben enteras, así que va en `jsonb` con `check`, como `schedule` (regla 2: no es tabla).
 **Casos límite:** `schedule` antiguo (un número por día, 0 = sin día fijo) se lee igual en
 la app (`normalizeSchedule`) y en SQL.
 **Reglas:**
 - **R3** La Server Action acepta días 1–7, nombres de 1 a 30 letras y listas de días de la
   semana (también el formato antiguo), y rechaza lo demás. → `src/app/actions/workout.test.ts`
+- **R5** La Server Action acepta colores de día solo de `DAY_COLORS` (días 1–7) y rechaza
+  lo demás. → `src/app/actions/workout.test.ts`
 
 ### Borrar un entreno entero o cambiarle la fecha
 
@@ -77,7 +84,8 @@ sola transacción** (security invoker: RLS solo deja tocar el programa propio). 
   carga, repeticiones, nota y fecha real (`logged_on`). Serie 0 = tick manual, 1–10
   trabajo, 11–13 calentamiento.
 - `completed_days`: (`program_id`, `week`, `day`, `round`).
-- `programs`: `schedule` (día → días de la semana) y `day_names` (día → nombre).
+- `programs`: `schedule` (día → días de la semana), `day_names` (día → nombre) y
+  `day_colors` (día → color).
 
 ## Pendiente
 

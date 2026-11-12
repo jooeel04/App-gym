@@ -37,6 +37,7 @@ export type WeekSchedule = Record<string, number[]>;
 // startDate: lunes en que empieza la semana 1 del ciclo
 // body:      fecha → peso corporal y medidas de ese día
 // dayNames:  día de rutina → su nombre (qué días existen)
+// dayColors: día de rutina → su color elegido (de DAY_COLORS; sin él, el de siempre)
 export interface WorkoutSnapshot {
   version: 1;
   weeksCount: number;
@@ -49,6 +50,8 @@ export interface WorkoutSnapshot {
   body?: Record<string, BodyMetrics>;
   // Nombre de cada día de rutina ("1" → "Torso"); sin él, los 5 de siempre.
   dayNames?: Record<string, string>;
+  // Color elegido de cada día ("3" → "rojo"); los que no están, el de siempre.
+  dayColors?: Record<string, string>;
 }
 
 // Peso corporal (kg) y medidas (cm) de un día. Todos opcionales.
@@ -87,12 +90,13 @@ export type WorkoutChange =
   | { type: "schedule"; schedule: WeekSchedule; startDate: string | null }
   | { type: "body"; date: string; metrics: BodyMetrics | null }
   | { type: "dayNames"; dayNames: Record<string, string> }
+  | { type: "dayColors"; dayColors: Record<string, string> }
   // Entreno borrado entero (series, ticks y día completado de esa vez).
   | { type: "sessionRemoved"; week: number; day: number; round: number }
   // Entreno movido a otra fecha (y, si es de otra semana, a esa semana y a la vez `toRound`).
   | { type: "sessionMoved"; week: number; day: number; round: number; toWeek: number; toRound: number; date: string }
   // Día de rutina borrado con todo lo suyo; lleva cómo quedan los nombres y el calendario.
-  | { type: "dayRemoved"; day: number; dayNames: Record<string, string>; schedule: WeekSchedule }
+  | { type: "dayRemoved"; day: number; dayNames: Record<string, string>; schedule: WeekSchedule; dayColors: Record<string, string> }
   | { type: "logsCleared" }
   | { type: "replaced" };
 

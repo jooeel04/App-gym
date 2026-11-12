@@ -18,3 +18,17 @@ describe("Interfaz · CSS sin estilos muertos", () => {
     expect([...classes].filter((c) => !DYNAMIC.includes(c) && !used(c))).toEqual([]);
   });
 });
+
+// Spec interfaz R6: el cristal solo va en la barra de pestañas. Cualquier regla con
+// desenfoque (backdrop-filter distinto de none) solo puede ser de `.nav` o de la capa de
+// la librería del cristal (`.glass-layer`, que solo se usa en `.nav`).
+describe("Interfaz · cristal solo en la barra de pestañas", () => {
+  it("solo la barra de pestañas tiene desenfoque", () => {
+    const css = readFileSync("src/app/globals.css", "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    const blurred = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter(([, , body]) => /backdrop-filter\s*:\s*(?!none)/.test(body))
+      .flatMap(([, sel]) => sel.split(",").map((s) => s.trim()))
+      .filter((s) => !/^(:root(\[data-theme="light"\])? )?\.(nav|glass-layer)\b/.test(s));
+    expect(blurred).toEqual([]);
+  });
+});

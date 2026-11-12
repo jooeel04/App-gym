@@ -535,6 +535,11 @@ function createActions({ model, stats, calendar, sync, showToast, setWeek, setDa
       return true;
     },
 
+    // Color del día (spec rutina R7): cambia al momento en toda la app.
+    setDayColor(d: number, color: string) {
+      model.setDayColor(d, color);
+    },
+
     // Pregunta antes: se borran sus ejercicios y todos sus registros.
     async deleteDay(d: number) {
       const name = model.dayName(d), count = model.exercisesOfDay(d).length;

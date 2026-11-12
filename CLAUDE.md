@@ -213,7 +213,7 @@ localStorage), lo que permite probar la interfaz: `npx next start -p 3100`.
 - **Estilos**: todo en `src/app/globals.css`. Colores como variables (tema oscuro en
   `:root`, claro en `:root[data-theme="light"]`). Al final hay capas que refinan lo
   anterior: "Liquid Glass" (estilo iOS 26) y "Transiciones integradas". El
-  desenfoque (`backdrop-filter`) solo en elementos flotantes, por rendimiento.
+  desenfoque (`backdrop-filter`) solo en la barra de pestañas (spec interfaz R6).
   Respeta `prefers-reduced-motion`. Mínimos: textos de 11 px (`calc(11px * var(--fs))`)
   y botones de 44 px (lo comprueba `npm run test:e2e`).
 - **`backdrop-filter`**: escribe solo la propiedad sin prefijo. El compilador de CSS
@@ -221,16 +221,13 @@ localStorage), lo que permite probar la interfaz: `npx next start -p 3100`.
   `-webkit-backdrop-filter`; él ya añade el prefijo para Safari.
 - **Cristal líquido** (`liquid-glass-react`): `GlassLayer` es una capa detrás del
   contenido (se carga solo en el navegador, porque lee `navigator`, y solo cerca de la
-  pantalla). **Solo va en lo que flota** (spec interfaz R6): la barra de pestañas y la del
-  descanso la llevan en su JSX; las ventanas y el botón del hueco de abajo la reciben de
-  `GlassSurfaces` (lista `GLASS_SURFACES`). Las tarjetas y los botones normales van planos
-  (capa «Diseño profesional» del CSS). El elemento con cristal queda marcado con `data-glass="on"`.
-  Reglas: nada dentro del cristal con `mix-blend-mode` (anula el desenfoque); el elemento
-  no debe tener su propio `backdrop-filter`; las capas son `span`, así que las reglas
-  tipo `.tarjeta span{…}` las alcanzan (por eso se les quita el margen en el CSS).
-  La pestaña que asoma al cambiar de pestaña (`.page.peek`) no lleva cristal mientras se
-  desliza (atasca el movimiento): se le pone al quedarse quieta (evento `TAB_SETTLED`,
-  que lanza `AppShell`), con un fundido (`.glass-layer.on`) para que no dé un destello.
+  pantalla). **Solo va en la barra de pestañas** (spec interfaz R6), en el JSX de
+  `app-shell.tsx`. Todo lo demás es plano: las variables `--glass*` valen colores sólidos
+  (capa «Sin cristal», al final del CSS) y solo `.nav` las redefine con transparencia;
+  nadie más usa `backdrop-filter` (lo vigila `src/app/styles.test.ts`). La barra queda
+  marcada con `data-glass="on"`. Reglas: nada dentro del cristal con `mix-blend-mode`
+  (anula el desenfoque); las capas son `span`, así que las reglas tipo `.tarjeta span{…}`
+  las alcanzan (por eso se les quita el margen en el CSS).
 - **Cambio de pestaña**: se da por terminado al acabar de verdad la transición del
   `.pager` (`afterSlide` en `use-tab-swipe.ts`), no a tiempo fijo. No uses la clase
   `peek` sola en CSS (`.peek{…}`): también la lleva la pestaña que asoma y la deforma

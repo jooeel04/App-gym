@@ -36,6 +36,27 @@ describe("Tus días de rutina", () => {
     expect(model.dayName(1)).toBe("Pecho y espalda");
   });
 
+  it("cada día tiene su color de siempre y se puede elegir otro de la lista (rutina R7)", () => {
+    const { model, changes } = setup();
+    expect(model.dayColor(1)).toBe("azul");
+    expect(model.dayColor(3)).toBe("verde");
+    model.setDayColor(3, "rojo");
+    expect(model.dayColor(3)).toBe("rojo");
+    expect(changes.at(-1)).toEqual({ type: "dayColors", dayColors: { 3: "rojo" } });
+    // Un color que no está en la lista no se guarda.
+    model.setDayColor(3, "fucsia");
+    expect(model.dayColor(3)).toBe("rojo");
+  });
+
+  it("al eliminar un día se olvida su color (un día nuevo con ese número sale con el de siempre)", () => {
+    const { model, changes } = setup();
+    model.setDayColor(1, "rojo");
+    model.removeDay(1);
+    expect(changes.at(-1)).toMatchObject({ type: "dayRemoved", day: 1, dayColors: {} });
+    model.addDay("Nuevo");
+    expect(model.dayColor(1)).toBe("azul");
+  });
+
   it("«Eliminar día» borra el día con sus ejercicios, registros y su sitio en el calendario (R3)", () => {
     const { model, changes } = setup();
     model.removeDay(1);
