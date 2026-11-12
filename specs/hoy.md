@@ -29,40 +29,38 @@ quedó pendiente de días anteriores, la lista de ejercicios y el entreno en cur
 
 ### Entrenar en un toque (el flujo principal)
 
-**Qué hace:** la app se usa así: entras, haces la serie, la apuntas y sigues; casi nadie
-cambia su rutina. Por eso, al abrir Hoy en un día de entreno **ya está abierto el ejercicio
-que toca** (el primero sin terminar) con su serie actual y los números propuestos. Abajo,
-encima de la barra de pestañas y siempre en el mismo sitio (bajo el pulgar), está el botón
-**«Serie hecha»**, que enseña lo que va a guardar («42,5 × 8»). Si hiciste lo propuesto,
-anotar es un toque, sin bajar por la pantalla. Al pulsarlo, **ese mismo sitio pasa a ser el
-descanso** (cuenta atrás, «+15 s», «Saltar») con «Deshacer» encima unos segundos; cuando
-acaba el descanso vuelve «Serie hecha» para la siguiente. Al terminar las series de un
-ejercicio se abre solo el siguiente, y con la última serie del día sale el resumen.
-Si se cambia de pestaña a mitad de entreno, el sitio del botón dice «Seguir entreno» y
-lleva de vuelta a Hoy, al ejercicio en el que ibas.
-**Cómo funciona:** `TodayList` abre al montarse el primer ejercicio sin terminar (por eso
-también al volver a la pestaña) y solo desplaza la pantalla si ese ejercicio queda en la
-mitad de abajo. `SetStepper` pinta «Serie hecha» con un portal en el hueco fijo `#dock`
-que pone `AppShell` (si no existe, p. ej. en una prueba suelta, lo pinta en su sitio); el
-aviso de «Deshacer» de `SetLogger` va al mismo hueco. Mientras hay descanso (`rest` del
-controlador) el botón no se pinta y en su lugar está `RestTimerBar`. `ContinueWorkout`
-(en `AppShell`) es el botón «Seguir entreno» de las demás pestañas: sale si hay entreno en
-curso, no se está en Hoy y no hay descanso. «Serie hecha» pide también los permisos de
-avisos (antes lo hacía el primer toque en un ejercicio, que ya no hace falta).
-**Decisiones:** antes había que bajar, tocar el ejercicio, volver a bajar y buscar el
-botón (2 toques y 2 desplazamientos para la primera serie). La barra de pestañas se deja
-como está: el botón fijo va justo encima y «Seguir entreno» resuelve volver desde otra
-pestaña; ocultar las pestañas durante el entreno se descartó porque deja a la persona
-sin salida a la vista. La lista de ejercicios sigue visible (no se esconde tras «ver
-todos»): es una fila por ejercicio y así se ve lo que viene sin otro toque.
+**Qué hace:** la app se usa así: entras, eliges el ejercicio, haces la serie, la apuntas y
+sigues. Al abrir Hoy **ningún ejercicio está abierto**: se ve la lista entera y se toca el
+que se va a hacer. Al abrirlo sale su tabla de series con la que toca lista para anotar.
+Abajo, encima de la barra de pestañas y siempre en el mismo sitio (bajo el pulgar), está el
+botón **«Serie hecha»**, que enseña lo que va a guardar («42,5 × 8»). Si hiciste lo
+propuesto, anotar es un toque, sin bajar por la pantalla. Al pulsarlo, **ese mismo sitio
+pasa a ser el descanso** (cuenta atrás, «+15 s», «Saltar») con «Deshacer» encima unos
+segundos; cuando acaba el descanso vuelve «Serie hecha» para la siguiente. Al terminar las
+series de un ejercicio se abre solo el siguiente, y con la última serie del día sale el
+resumen. Si se cambia de pestaña a mitad de entreno, el sitio del botón dice «Seguir
+entreno» y lleva de vuelta a Hoy.
+**Cómo funciona:** `TodayList` empieza sin nada abierto; al tocar un ejercicio lo abre y
+coloca su cabecera arriba. `SetEditor` pinta «Serie hecha» con un portal en el hueco fijo
+`#dock` que pone `AppShell` (si no existe, p. ej. en una prueba suelta, lo pinta en su
+sitio); el aviso de «Deshacer» de `SetLogger` va al mismo hueco. Mientras hay descanso
+(`rest` del controlador) el botón no se pinta y en su lugar está `RestTimerBar`.
+`ContinueWorkout` (en `AppShell`) es el botón «Seguir entreno» de las demás pestañas: sale
+si hay entreno en curso, no se está en Hoy y no hay descanso. «Serie hecha» pide también
+los permisos de avisos.
+**Decisiones:** hubo una versión que abría sola el primer ejercicio sin terminar al entrar;
+se quitó porque la persona prefiere elegir ella qué ejercicio hace (no siempre sigue el
+orden). La barra de pestañas se deja como está: el botón fijo va justo encima y «Seguir
+entreno» resuelve volver desde otra pestaña; ocultar las pestañas durante el entreno se
+descartó porque deja a la persona sin salida a la vista.
 **Casos límite:** día ya completado → nada abierto, la lista dice «Lo que hiciste»; día sin
 ejercicios → aviso para añadirlos en Rutina; superserie → no hay descanso entre los dos
 ejercicios enlazados, así que vuelve directamente «Serie hecha». Mientras hay algo en el hueco o
 descanso en marcha, el aviso fijo de los recordatorios (`.device-card`) no sale, para no
 tapar el botón; aparece al acabar o en otra pestaña.
 **Reglas:**
-- **R8** Al entrar en Hoy un día de entreno, el primer ejercicio sin terminar ya está
-  abierto con su serie actual. → `src/components/today-flow.test.tsx`
+- **R8** Al entrar en Hoy ningún ejercicio está abierto: se abre al tocarlo, con su serie
+  actual lista para anotar. → `src/components/today-flow.test.tsx`
 - **R9** «Serie hecha» va en el hueco fijo de abajo y dice lo que va a guardar.
   → `src/components/today-flow.test.tsx`
 - **R10** Tras anotar, en ese sitio está el descanso con «Deshacer»; al saltar o acabar el
@@ -151,53 +149,62 @@ duración (no tiene sentido medirla). La semana del ciclo se amplía si hace fal
 - **R18** Tras elegir una fecha pasada y un día, lo que se anota se guarda con esa fecha
   y en la semana del ciclo de esa fecha. → `src/components/training-view.test.tsx`
 
-### Anotar las series
+### Anotar las series: la tabla de series
 
 **Qué hace:** cada ejercicio de la lista se despliega al tocarlo (solo uno abierto). Dentro
-salen los músculos que trabaja, el consejo de progresión, las fichas de las series y la
-tarjeta de anotar: carga (± 2,5 kg) y repeticiones (± 1) con botones grandes, y «Serie
-hecha». Es la **única** forma de anotar: para corregir una serie se toca su ficha.
-**Cómo funciona:** `SetLogger` elige la serie actual (la primera sin repeticiones, o la
-ficha tocada). `SetStepper` guarda en su estado lo escrito y, al pulsar «Serie hecha»,
-llama a `actions.setEntry` para la carga, la nota y por último las repeticiones. Al
-escribir las repeticiones de una serie vacía, el controlador empieza el descanso (salvo
-dentro de una superserie), comprueba el récord (1RM estimado, tras 1,5 s) y marca el día
-como completado si ya están todas las series. Cuando el ejercicio abierto queda hecho,
-`TodayList` abre el siguiente que falte.
-**Decisiones:** antes había tres formas de anotar (botones, «Más opciones» con la lista
-completa y «Corregir series»). Se dejó una sola porque liaba; el calentamiento y las
-notas se pasaron a la misma tarjeta.
+está la **tabla de series** (como en Hevy o Strong): una fila por serie con su número,
+«Anterior» (lo que se hizo en esa serie la última vez), la carga, las repeticiones y un ✓.
+La fila que toca está resaltada y se puede escribir en ella (carga y repeticiones, con
+teclado de números); debajo, una barra fina con −/+ para la carga (2,5 kg) y las
+repeticiones (1), «Discos» y «Nota». Las hechas quedan con un tinte verde. El ✓ de la fila
+que toca (o «Serie hecha», abajo) la guarda; el ✓ de otra fila vacía la guarda tal cual
+viene propuesta. Para corregir una serie hecha se toca su número. Es la **única** forma de
+anotar.
+**Cómo funciona:** `SetLogger` pinta la tabla (`SetRow` por serie) y elige la serie actual
+(la primera sin repeticiones, o la que se toca). La fila actual es `SetEditor`: guarda en
+su estado lo escrito y, al guardar, llama a `actions.setEntry` para la carga, la nota y
+por último las repeticiones. Lo propuesto para cada serie sale de `proposal` (ver «Lo
+propuesto»). Al escribir las repeticiones de una serie vacía, el controlador empieza el
+descanso (salvo dentro de una superserie), comprueba el récord y marca el día como
+completado si ya están todas. Cuando el ejercicio abierto queda hecho, `TodayList` abre el
+siguiente que falte.
+**Decisiones:** antes era una tarjeta grande con botones enormes que ocupaba media
+pantalla y no dejaba ver las demás series; la tabla enseña todo de un vistazo, como las
+apps de referencia. Se mantiene «Serie hecha» abajo (un toque bajo el pulgar) y los −/+,
+porque con las manos sudadas es más fácil que escribir.
 **Casos límite:** carga máxima 9999 kg y 999 repeticiones (avisa con un mensaje); sin
 repeticiones no se puede guardar; en iPhone no vibra (la web no puede).
 **Reglas:**
 - **R1** Al tocar un ejercicio se despliega y muestra sus series; solo hay uno abierto y,
   al terminarlo, se abre el siguiente que falte.
-- **R2** Las series se anotan solo con la tarjeta de botones + / −: no hay lista aparte
-  ni «más opciones». → `src/components/exercise-logger.test.tsx`,
-  `src/components/training-view.test.tsx`
+- **R2** Las series se anotan solo en la tabla: no hay lista aparte ni «más opciones».
+  → `src/components/exercise-logger.test.tsx`, `src/components/training-view.test.tsx`
 - **R3** «Serie hecha» guarda, vibra un instante y durante 6 s ofrece «Deshacer», que
   devuelve la serie a como estaba y para el descanso. → `src/components/exercise-logger.test.tsx`
+- **R20** La tabla enseña cada serie con «Anterior», carga, repeticiones y ✓; el ✓ de una
+  fila vacía que no es la actual la guarda con lo propuesto. → `src/components/exercise-logger.test.tsx`
 
 ### Lo propuesto para cada serie
 
-**Qué hace:** la tarjeta empieza ya rellena: la carga de la serie anterior de hoy o la de
-esa serie la última vez, y las repeticiones de la última vez o el mínimo del rango
-objetivo. Debajo dice qué se hizo la última vez.
-**Cómo funciona:** `suggestedWeight` (en `training-view.tsx`) y `parseRepRange`
+**Qué hace:** cada fila vacía de la tabla ya viene rellena (en gris en las que no son la
+actual): la carga de la serie anterior de hoy o la de esa serie la última vez, y las
+repeticiones de la última vez o el mínimo del rango objetivo. La columna «Anterior» dice
+qué se hizo en esa serie la última vez.
+**Cómo funciona:** `proposal` (en `SetLogger`) con `suggestedWeight` (en `training-view.tsx`) y `parseRepRange`
 (dominio); «la última vez» es `stats.lastBefore(ejercicio, semana, vez)` (la tanda
 anterior, ver R17).
 
 ### La lista de ejercicios, limpia
 
 **Qué hace:** la lista de Hoy no enseña números a la derecha de cada ejercicio. Lo que se
-hizo la última vez se ve al abrir el ejercicio, en la tarjeta de anotar («La última vez:
-55 kg × 8», serie a serie; ver «Lo propuesto para cada serie»).
+hizo la última vez se ve al abrir el ejercicio, en la columna «Anterior» de la tabla de
+series («55×8», serie a serie).
 **Decisiones:** primero se pusieron todas las series a la derecha de cada fila (recargado)
 y luego una línea «Última vez: …» al abrir el ejercicio; se quitó porque repetía lo que ya
-dice la tarjeta de anotar.
+dice la tabla.
 **Reglas:**
-- **R19** La lista no enseña series y al abrir un ejercicio no hay una línea aparte con
-  la última vez: solo la de la tarjeta de anotar. → `src/components/training-view.test.tsx`
+- **R19** La lista no enseña series; al abrir un ejercicio, lo de la última vez está en la
+  columna «Anterior». → `src/components/training-view.test.tsx`
 
 ### Calentamiento
 

@@ -37,7 +37,7 @@ describe("Interfaz · tipografía", () => {
     expect(last(".eyebrow", "text-transform")).toBe("none");
   });
 
-  it.each([".stepper-val input", ".rest-text strong", ".summary-grid strong", ".set-chip b", ".hero-ring span"])("%s usa la letra de cifras", (selector) => {
+  it.each([".series-input", ".series-val", ".rest-text strong", ".summary-grid strong", ".hero-ring span"])("%s usa la letra de cifras", (selector) => {
     expect(rule(selector)).toMatch(/font-family:\s*var\(--font-num\)/);
     expect(rule(selector)).toMatch(/font-variant-numeric:\s*tabular-nums/);
   });

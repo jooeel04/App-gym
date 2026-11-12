@@ -42,3 +42,17 @@ describe("Barras flotantes con cristal líquido", () => {
     expect(screen.queryByRole("timer")).not.toBeInTheDocument();
   });
 });
+
+// Spec interfaz R7: sin cabecera con el logo; cada pestaña empieza por su título.
+describe("AppShell · sin cabecera de marca", () => {
+  beforeEach(freezeToday);
+  afterEach(() => vi.useRealTimers());
+
+  it("no hay cabecera con el logo «FITGYM» (R7)", async () => {
+    renderWithWorkout(<AppShell>{null}</AppShell>);
+    await screen.findByRole("navigation");
+    expect(screen.queryByText("FITGYM")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Inicio" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("banner")).not.toBeInTheDocument();
+  });
+});

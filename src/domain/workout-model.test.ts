@@ -51,3 +51,43 @@ describe("Tus días de rutina", () => {
     expect(model.days).toEqual([5]);
   });
 });
+
+// Spec progreso R7: borrar un entreno marcado sin querer.
+describe("Borrar un entreno", () => {
+  it("quita sus series, ticks y el día completado de esa vez, y nada más", () => {
+    const { model, changes } = setup();
+    model.setEntryField(3, 1, PRESS.id, 1, "reps", "6", "2026-10-22", 2);
+    model.toggleExerciseChecked(3, 1, PRESS.id, "2026-10-22", 2);
+    model.removeSession(3, 1, 1);
+    expect(model.isDayCompleted(3, 1)).toBe(false);
+    expect(model.hasLoggedSets(3, 1, 1)).toBe(false);
+    expect(model.hasLoggedSets(3, 1, 2)).toBe(true);
+    expect(model.hasLoggedSets(2, 1, 1)).toBe(true);
+    expect(changes.at(-1)).toEqual({ type: "sessionRemoved", week: 3, day: 1, round: 1 });
+    model.removeSession(3, 1, 2);
+    expect(model.isExerciseChecked(3, 1, PRESS.id, 2)).toBe(false);
+    expect(model.isDayDone(3, 1)).toBe(false);
+  });
+});
+
+// Spec progreso R9: cambiar la fecha de un entreno.
+describe("Cambiar la fecha de un entreno", () => {
+  it("en la misma semana solo cambia la fecha de sus series", () => {
+    const { model } = setup();
+    model.moveSession(3, 1, 1, "2026-10-21");
+    expect(model.getEntry(3, 1, PRESS.id, 1)).toMatchObject({ weight: "55", date: "2026-10-21" });
+    expect(model.isDayCompleted(3, 1)).toBe(true);
+  });
+
+  it("en otra semana pasa a esa semana, en la primera vez libre, con su día completado", () => {
+    const { model, changes } = setup();
+    // La semana 2 ya tiene Torso: el de la semana 3 pasa a ser su 2.ª vez.
+    model.moveSession(3, 1, 1, "2026-10-14");
+    expect(model.hasLoggedSets(3, 1)).toBe(false);
+    expect(model.isDayCompleted(3, 1)).toBe(false);
+    expect(model.getEntry(2, 1, PRESS.id, 1, 2)).toMatchObject({ weight: "55", date: "2026-10-14" });
+    expect(model.getEntry(2, 1, PRESS.id, 1, 1)).toMatchObject({ weight: "52.5" });
+    expect(model.isDayCompleted(2, 1, 2)).toBe(true);
+    expect(changes.at(-1)).toEqual({ type: "sessionMoved", week: 3, day: 1, round: 1, toWeek: 2, toRound: 2, date: "2026-10-14" });
+  });
+});

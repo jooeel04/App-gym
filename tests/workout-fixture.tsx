@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { fireEvent, render } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { vi } from "vitest";
 import { WorkoutProvider } from "@/controllers/workout-controller";
@@ -55,4 +55,12 @@ export function freshSnapshot(): WorkoutSnapshot {
 
 export function renderWithWorkout(ui: ReactNode, snapshot: WorkoutSnapshot = historySnapshot(), mode: "local" | "cloud" = "local") {
   return render(<WorkoutProvider mode={mode} initialSnapshot={snapshot} email={mode === "cloud" ? "demo@rutina.local" : null}>{ui}</WorkoutProvider>);
+}
+
+// En Hoy no hay ningún ejercicio abierto al entrar (spec hoy R8): abre el primero sin
+// terminar, como haría la persona tocándolo.
+export function openNextExercise() {
+  const row = Array.from(document.querySelectorAll<HTMLButtonElement>("button.peek-row")).find((b) => !b.classList.contains("done"));
+  if (!row) throw new Error("No hay ningún ejercicio sin terminar en Hoy");
+  fireEvent.click(row);
 }

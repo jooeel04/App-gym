@@ -693,8 +693,7 @@ body:has(.wizard){overflow:hidden}
 .tool-btn.active{background:rgba(46,139,255,.18);border-color:rgba(46,139,255,.55);color:var(--accent)}
 
 /* Cristal fino reutilizable para piezas que antes eran opacas */
-.pending-card,.rest-next,.summary-vs,.body-entry,.wizard-opt,.wizard-plan div,.wizard-days button,.wizard-actions button,.focus-check,
-.stat-tile,.set-box,.set-account,.focus-muscles,.stepper-card,.set-chip{
+.pending-card,.rest-next,.summary-vs,.body-entry,.wizard-opt,.wizard-plan div,.wizard-days button,.wizard-actions button,.focus-check,.stat-tile,.set-box,.set-account,.focus-muscles{
   background:linear-gradient(180deg,var(--glass-strong),var(--glass));border:1px solid var(--glass-line);box-shadow:inset 0 1px 0 var(--glass-hi)}
 .pending-card{background:linear-gradient(180deg,rgba(240,196,107,.16),var(--glass));border-color:rgba(240,196,107,.35)}
 .wizard-opt.on,.wizard-days button.on{background:rgba(46,139,255,.18);border-color:rgba(46,139,255,.6)}
@@ -728,28 +727,6 @@ body:has(.wizard){overflow:hidden}
 .focus-muscles small{display:block;color:var(--accent);font-size:max(11px, calc(11px * var(--fs)));font-weight:850;text-transform:uppercase;letter-spacing:.08em}
 .focus-muscles b{display:block;margin-top:4px;font-size:calc(16px * var(--fs));line-height:1.25}
 .focus-muscles span{display:block;margin-top:4px;color:var(--muted);font-size:max(11px, calc(12px * var(--fs)))}
-.set-chips{display:flex;gap:8px;margin:4px 0 12px;overflow-x:auto;scrollbar-width:none}
-.set-chips::-webkit-scrollbar{display:none}
-.set-chip{flex:1 0 82px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:10px 12px;border-radius:16px;color:var(--muted);text-align:left}
-.set-chip small{font-size:max(11px, calc(11px * var(--fs)));font-weight:750;opacity:.85;white-space:nowrap}
-.set-chip b{font-size:calc(15px * var(--fs));white-space:nowrap}
-.set-chip.done{background:color-mix(in srgb,var(--day3) 18%,transparent);border-color:color-mix(in srgb,var(--day3) 45%,transparent);color:var(--day3)}
-.set-chip.current{background:rgba(46,139,255,.16);border-color:rgba(46,139,255,.7);color:var(--accent);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 0 0 2px rgba(46,139,255,.35)}
-.stepper-card{display:grid;gap:14px;padding:16px;border-radius:24px}
-.stepper-title{color:var(--muted);font-size:max(11px, calc(11px * var(--fs)));font-weight:850;text-transform:uppercase;letter-spacing:.08em}
-.stepper-title span{color:var(--day3)}
-.stepper{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.stepper>span{color:var(--soft);font-size:calc(14px * var(--fs));font-weight:750}
-.stepper-ctl{display:flex;align-items:center;gap:10px}
-.stepper-ctl button{width:50px;height:50px;flex:none;border-radius:50%;border:1px solid var(--glass-line);background:var(--glass-strong);color:var(--text);
-  font-size:26px;font-weight:600;line-height:1;box-shadow:inset 0 1px 0 var(--glass-hi);transition:transform .12s}
-.stepper-ctl button:active{transform:scale(.92)}
-.stepper-val{display:flex;align-items:baseline;justify-content:center;gap:3px;width:92px}
-.stepper-val input{width:100%;min-width:0;border:0;background:transparent;color:var(--text);text-align:center;font-size:calc(30px * var(--fs));font-weight:900;font-variant-numeric:tabular-nums;padding:0;-moz-appearance:textfield;appearance:textfield}
-.stepper-val input::-webkit-inner-spin-button,.stepper-val input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-.stepper-val input:focus{outline:none;box-shadow:0 2px 0 var(--accent)}
-.stepper-val small{color:var(--muted);font-size:calc(13px * var(--fs));font-weight:700}
-.stepper-prev{margin:0;color:var(--muted);font-size:max(11px, calc(12px * var(--fs)))}
 .set-done{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:60px;margin-top:12px;border:0;border-radius:999px;font-size:calc(18px * var(--fs));font-weight:900;transition:transform .15s}
 .set-done .ico{width:22px;height:22px}
 .set-done:active{transform:scale(.98)}
@@ -757,7 +734,7 @@ body:has(.wizard){overflow:hidden}
 .set-alldone{display:flex;align-items:center;gap:8px;margin:0;padding:14px;border-radius:18px;background:color-mix(in srgb,var(--day3) 14%,transparent);color:var(--day3);font-size:calc(13px * var(--fs));font-weight:750}
 
 .focus-check{border-radius:999px}
-@media(prefers-reduced-motion:reduce){.stepper-ctl button,.set-done{transition:none}}
+@media(prefers-reduced-motion:reduce){.set-done{transition:none}}
 
 /* ----- Rutina: días plegados ----- */
 .routine-list{display:grid;gap:10px;margin-bottom:14px}
@@ -990,15 +967,6 @@ button[data-glass]:active{transform:scale(.97)}
 .page{display:flow-root}
 @media(prefers-reduced-motion:reduce){.glass-layer.on{animation:none}}
 /* Móviles estrechos (iPhone SE 1ª gen.): los + / − de la serie caben sin salirse */
-.stepper-card{grid-template-columns:minmax(0,1fr)}
-@media(max-width:360px){
-  .stepper{gap:6px;flex-wrap:wrap}
-  .stepper-ctl{margin-left:auto}
-  .stepper-ctl{gap:6px}
-  .stepper-ctl button{width:44px;height:44px}
-  .stepper-val{width:74px}
-  .stepper-val input{font-size:calc(26px * var(--fs))}
-}
 
 /* ===== Rutina · «Tu semana»: cada día del color de su rutina, sin abreviaturas ===== */
 .week-strip .wk-day{min-height:64px;align-items:center;justify-content:center;gap:2px;padding:8px 2px}
@@ -1053,11 +1021,6 @@ button[data-glass]:active{transform:scale(.97)}
 .plates-text b{display:block;font-size:calc(15px * var(--fs))}
 .plates-text small{display:block;margin-top:2px;color:var(--muted);font-size:max(11px, calc(12px * var(--fs)))}
 .plates-open .chev{flex:none;width:18px;color:var(--muted2);transform:rotate(-90deg)}
-.stepper-plates{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:46px;padding:0 14px;border-radius:999px;
-  border:1px solid var(--glass-line);background:color-mix(in srgb,var(--accent) 12%,var(--glass));box-shadow:inset 0 1px 0 var(--glass-hi);
-  color:var(--accent);font-size:calc(13px * var(--fs));font-weight:800}
-.stepper-plates svg{width:18px;height:18px}
-.stepper-plates b{padding:3px 9px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:max(11px, calc(12px * var(--fs)))}
 :root[data-theme="light"] .plates-open{box-shadow:inset 0 1px 0 #fff,0 6px 18px rgba(30,45,80,.1)}
 
 /* Quién levanta más, dividido por grupo muscular */
@@ -1174,21 +1137,18 @@ button[data-glass]:active{transform:scale(.97)}
    =========================================================================== */
 /* R3: etiquetas en letra normal, sin mayúsculas ni espaciado de adorno. Solo la fecha de
    Hoy va encima de un título. (Los códigos para compartir siguen en mayúsculas: lo son.) */
-.eyebrow,.day small,.optional,.lasttime>span,.settings-foot,.rest-text small,.summary-grid span,.share-code small,.wk-today,.body-history-title,.hero small,.focus-muscles small,.stepper-title,.set-group h2,.set-sub{text-transform:none;letter-spacing:0}
+.eyebrow,.day small,.optional,.lasttime>span,.settings-foot,.rest-text small,.summary-grid span,.share-code small,.wk-today,.body-history-title,.hero small,.focus-muscles small,.set-group h2,.set-sub{text-transform:none;letter-spacing:0}
 .eyebrow{text-transform:none;color:var(--muted);font-size:calc(13px * var(--fs));font-weight:650}
 
 /* R4: los números del entreno en letra estrecha de cifras iguales, como un marcador. */
-.stepper-val input,.rest-text strong,.summary-grid strong,.set-chip b,.hero-ring span{font-family:var(--font-num),ui-sans-serif,system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:0}
-.stepper-val input{font-size:calc(40px * var(--fs));font-weight:700;line-height:1}
+.rest-text strong,.summary-grid strong,.hero-ring span{font-family:var(--font-num),ui-sans-serif,system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:0}
 .rest-text strong{font-size:calc(28px * var(--fs));font-weight:700;line-height:1}
 .summary-grid strong{font-size:calc(26px * var(--fs));font-weight:700}
-.set-chip b{font-size:calc(19px * var(--fs));font-weight:700}
 .hero-ring span{font-weight:700;font-size:calc(17px * var(--fs))}
 
 /* R2: iconos dibujados dentro de los botones */
-.stepper-ctl button .ico{width:22px;height:22px;margin:0}
-.repeat-last,.add-warmup,.stepper-note-btn,.settings-btn,.add-ex,.other-day{display:inline-flex;align-items:center;justify-content:center;gap:6px}
-.repeat-last .ico,.add-warmup .ico,.stepper-note-btn .ico,.other-day .ico{width:16px;height:16px;margin:0}
+.repeat-last,.add-warmup,.settings-btn,.add-ex,.other-day{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.repeat-last .ico,.add-warmup .ico,.other-day .ico{width:16px;height:16px;margin:0}
 .libadd .ico,.pick-check .ico,.theme-check .ico,.choice-check .ico{width:14px;height:14px;margin:0}
 .monthnav button,.ex-order button,.cycle-week button{display:inline-grid;place-items:center}
 .monthnav button .ico,.ex-order button .ico,.cycle-week button .ico{width:18px;height:18px;margin:0}
@@ -1198,12 +1158,7 @@ button[data-glass]:active{transform:scale(.97)}
 .body-entry em .ico{width:16px;height:16px;margin:0}
 
 /* Hoy: calentamiento y notas dentro de la tarjeta de anotar (specs/hoy.md R4, R5) */
-.set-chip.warmup{border-style:dashed}
-.set-chip.warmup:not(.done):not(.current){color:var(--warn-text)}
-.stepper-card.warmup .stepper-title{color:var(--warn-text)}
 .add-warmup{min-height:44px;margin:0 0 12px}
-.stepper-note-btn{justify-self:start;min-height:44px;padding:0 4px;border:0;background:transparent;color:var(--muted);font-size:calc(13px * var(--fs));font-weight:750}
-.stepper-note{width:100%;min-height:44px;border:1px solid var(--line2);border-radius:14px;padding:10px 12px;background:var(--s1);color:var(--text);font:inherit;font-size:calc(14px * var(--fs))}
 
 /* Ventana para confirmar (specs/interfaz.md R1) */
 .modal.confirm{max-width:400px}
@@ -1289,3 +1244,180 @@ body:is(:has(.dock>*),:has(.restbar)) .device-card{display:none}
 .lift-person{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:11px 12px;border:0;background:none;color:inherit;font:inherit;text-align:left}
 .lift-person .leader-days{margin-left:auto}
 .lift-full .lift-sets{width:100%;margin:-4px 0 0;padding:0 12px 11px 48px;color:var(--muted);font-size:max(11px, calc(12px * var(--fs)));font-weight:650}
+/* Progreso · Historial: una fila por entreno (lista plana, sin tarjeta por fila). */
+.history-list{list-style:none;margin:0;padding:0}
+.history-list li+li{border-top:1px solid var(--hair)}
+.history-item{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:10px 0;border:0;background:none;color:var(--text);font:inherit;text-align:left}
+.history-bar{flex:none;width:4px;align-self:stretch;border-radius:4px;background:var(--dc)}
+.history-main{flex:1;min-width:0}
+.history-main b,.history-nums b{display:block;font-size:calc(14px * var(--fs));font-weight:800}
+.history-main small,.history-nums small{display:block;margin-top:2px;color:var(--muted);font-size:max(11px, calc(12px * var(--fs)))}
+.history-nums{flex:none;text-align:right;font-variant-numeric:tabular-nums}
+.history-nums .ico{width:12px;height:12px;vertical-align:-1px}
+.history-item .chev{flex:none;width:16px;color:var(--muted2);transform:rotate(-90deg)}
+.history-more{width:100%;min-height:44px;margin-top:6px;border:0;background:none;color:var(--accent);font:inherit;font-weight:800}
+.detail-list{list-style:none;margin:12px 0 4px;padding:0;max-height:50vh;overflow:auto}
+.detail-list li{display:grid;gap:2px;padding:9px 0;border-top:1px solid var(--hair)}
+.detail-list b{font-size:calc(13px * var(--fs))}
+.detail-list span{color:var(--muted);font-size:max(11px, calc(12px * var(--fs)));font-variant-numeric:tabular-nums}
+.calinfo-actions{display:flex;gap:8px;margin-top:10px}
+.calinfo-actions button{flex:1;min-height:44px}
+/* Acción que borra, dentro de una ventana: texto rojo (sin fondo) para que se distinga. */
+.modal-actions button.danger{background:transparent;color:var(--danger-text);border-color:color-mix(in srgb,var(--danger-text) 45%,transparent)}
+.move-date{margin-top:12px}
+.move-date input{width:100%;min-height:44px}
+/* ==========================================================================
+   Diseño profesional (spec interfaz R6–R7): estilo de app nativa, inspirado en Hevy,
+   Strong y Fitbod. Fondo negro puro, listas agrupadas planas con separadores finos, título
+   grande, la raya del color del día y la tabla de series. El cristal solo en lo que flota.
+   Va al final: manda sobre las capas de arriba.
+   ========================================================================== */
+:root{--bg:#000000;--s:#16171a;--s2:#202226;--s0:#16171a;--s1:#202226;--line:#2a2c31;--line2:#34373d;--hair:#ffffff14;--text:#f2f3f5;--muted:#8d929b;--muted2:#6f747d;--soft:#c9ccd2;--accent:#2e8bff;--ok:#30c060;--ok-bg:rgba(48,192,96,.13);--r:14px}
+:root[data-theme="light"]{--bg:#f2f2f7;--s:#ffffff;--s2:#f2f2f7;--s0:#ffffff;--s1:#f2f2f7;--line:#e3e3e8;--line2:#d1d1d6;--hair:#0000001a;--text:#0d1220;--muted:#6b6f78;--muted2:#8a8e96;--soft:#2c3341;--accent:#1f6fe5;--ok:#1f9d4c;--ok-bg:rgba(31,157,76,.12)}
+
+/* Fondo plano, sin brillos de color. */
+body::before{background:var(--bg)}
+main{padding-top:calc(env(safe-area-inset-top) + 18px)}
+.topbar{height:auto;padding:calc(env(safe-area-inset-top) + 8px) 0 0;border:0;justify-content:center}
+
+/* Título grande de cada pestaña, como en iOS. */
+.pagehead{align-items:center;margin:4px 0 16px}
+.pagehead h1{font-size:calc(32px * var(--fs));font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.pagehead .eyebrow{color:var(--muted);font-size:max(11px, calc(13px * var(--fs)));font-weight:600;letter-spacing:0;text-transform:none}
+
+/* Tarjetas: superficie plana, sin borde ni sombra (listas agrupadas). */
+.chart,.hero,.routine-day,.perm-card,.pending-card,.set-box,.set-account,.rest-card,.history{background:var(--s);border:0;border-radius:var(--r);box-shadow:none}
+.chart{padding:14px 16px;margin-bottom:14px}
+.charttitle{margin-bottom:8px}
+.charttitle h2{font-size:calc(17px * var(--fs));font-weight:700;letter-spacing:-.01em}
+.charttitle>span{color:var(--muted);font-size:max(11px, calc(13px * var(--fs)))}
+.modal{border:0;border-radius:20px}
+
+/* Botones: principal relleno de acento; secundarios con superficie elevada; sin bordes. */
+button.primary{background:var(--accent);color:#fff;border:0;border-radius:12px;min-height:44px;box-shadow:none;font-weight:700}
+.tool-btn,.settings-btn,.quiet,.edit-ex,.remove-ex,.modal-actions button,.focus-check,.finish-workout,.plates-open,.routine-go,.add-ex{background:var(--s2);border:0;border-radius:12px;min-height:44px;box-shadow:none;color:var(--text);font-weight:650}
+.modal-actions button.primary{background:var(--accent);color:#fff}
+.modal-actions button.danger,.remove-ex{background:transparent;color:var(--danger-text);border:1px solid color-mix(in srgb,var(--danger-text) 35%,transparent)}
+.other-day,.history-more,.add-warmup,.repeat-last{background:transparent;border:0;color:var(--accent);font-weight:700;min-height:44px}
+.repeat-last{width:auto;justify-content:flex-start;padding:0;margin:0 0 4px}
+.repeat-last small{color:var(--muted);opacity:1;font-weight:600}
+.add-warmup{width:auto;padding:0;justify-content:flex-start}
+
+/* La raya del color del día de rutina, siempre igual (firma de la app). */
+.routine-bar,.history-bar{width:4px;border-radius:4px}
+.hero{box-shadow:inset 4px 0 0 var(--hero);padding:14px 16px}
+
+/* ---- Hoy ---- */
+.hero-top{gap:14px}
+.hero-ring{width:52px;height:52px}
+.hero-text small{color:var(--muted);font-size:max(11px, calc(13px * var(--fs)));font-weight:600}
+.hero-text h2{font-size:calc(22px * var(--fs));letter-spacing:-.01em}
+.hero-text p{color:var(--muted)}
+.chart.peek{padding:4px 16px}
+.chart.peek>h3{margin:12px 0 2px;font-size:calc(17px * var(--fs))}
+.peek-hint{display:none}
+button.peek-row{min-height:56px;border-top:1px solid var(--hair)}
+.peek-row .n{border-radius:50%;background:var(--s2);color:var(--muted)}
+.peek-row.done .n{background:var(--ok);color:#fff}
+.peek-detail{padding:0 0 14px}
+.tip{background:transparent;border:0;padding:2px 0 8px;color:var(--soft);font-size:max(11px, calc(13px * var(--fs)))}
+.tip .ico{color:var(--accent)}
+.how-toggle{min-height:44px}
+
+/* Tabla de series: Serie · Anterior · kg · Reps · ✓ */
+.series-table{display:grid;gap:4px;margin:6px 0 4px}
+.series-head,.series-row{display:grid;grid-template-columns:44px minmax(0,1fr) 72px 60px 44px;align-items:center;column-gap:6px;border-radius:12px}
+.series-head{padding:0 4px;min-height:24px;color:var(--muted);font-size:max(11px, calc(11px * var(--fs)));font-weight:700}
+.series-head span{text-align:center}
+.series-head span:nth-child(2){text-align:left}
+.series-row{padding:2px 4px;min-height:48px}
+.series-row.current{background:var(--s2)}
+.series-row.done{background:var(--ok-bg)}
+.series-row.warmup .series-num{color:var(--warn-text)}
+.series-num{display:grid;place-items:center;width:44px;height:44px;border:0;background:transparent;color:var(--text);font-family:var(--font-num);font-size:calc(19px * var(--fs));font-weight:700;padding:0}
+.series-row.current .series-num{color:var(--accent)}
+.series-prev{color:var(--muted);font-size:max(11px, calc(13px * var(--fs)));font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.series-val{text-align:center;font-family:var(--font-num);font-size:calc(20px * var(--fs));font-weight:700;font-variant-numeric:tabular-nums}
+.series-val.ghost{color:var(--muted2);font-weight:600}
+.series-input{width:100%;min-width:0;height:44px;padding:0 4px;border:1px solid var(--line2);border-radius:10px;background:var(--bg);color:var(--text);text-align:center;font-family:var(--font-num);font-size:calc(21px * var(--fs));font-weight:700;font-variant-numeric:tabular-nums;-moz-appearance:textfield;appearance:textfield}
+.series-input::-webkit-outer-spin-button,.series-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.series-input:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+.series-check{display:grid;place-items:center;width:44px;height:44px;border:1.5px solid var(--line2);border-radius:12px;background:transparent;color:var(--muted);padding:0}
+.series-check .ico,.series-check svg{width:20px;height:20px}
+.series-row.current .series-check{background:var(--accent);border-color:var(--accent);color:#fff}
+.series-check.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.series-check:disabled{opacity:.4}
+.series-row-note{grid-column:2/-1;margin:-4px 0 6px;color:var(--muted);font-size:max(11px, calc(12px * var(--fs)));display:flex;gap:5px;align-items:center}
+.series-row-note .ico,.series-row-note svg{width:12px;height:12px}
+.series-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:4px 0 6px}
+.series-tool-pair{display:inline-flex;align-items:center;background:var(--s2);border-radius:12px}
+.series-tool-pair button{display:grid;place-items:center;width:44px;height:44px;border:0;background:transparent;color:var(--text);padding:0}
+.series-tool-pair small{color:var(--muted);font-size:max(11px, calc(12px * var(--fs)));font-weight:700;min-width:28px;text-align:center}
+.series-tool{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border:0;border-radius:12px;background:var(--s2);color:var(--text);font-size:max(11px, calc(13px * var(--fs)));font-weight:650}
+.series-tool .ico,.series-tool svg,.series-tool-pair svg{width:16px;height:16px}
+.series-note{width:100%;min-height:44px;margin:2px 0 8px;padding:0 12px;border:1px solid var(--line2);border-radius:10px;background:var(--bg);color:var(--text);font:inherit}
+.set-alldone{color:var(--ok);font-weight:650;font-size:max(11px, calc(13px * var(--fs)));display:flex;gap:6px;align-items:center;margin:6px 0}
+.set-done{border-radius:16px}
+
+/* ---- Rutina ---- */
+.routine-list{display:grid;gap:8px}
+.routine-day{padding:0}
+.routine-toggle{min-height:64px;padding:10px 14px}
+
+/* ---- Progreso ---- */
+/* El resumen, en una sola tarjeta con tres números separados por líneas finas. */
+.stat-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;background:var(--s);border-radius:var(--r);padding:12px 0;margin-bottom:14px}
+.stat-tile{background:transparent;border:0;border-radius:0;box-shadow:none;padding:0 12px;min-height:0}
+.stat-tile+.stat-tile{border-left:1px solid var(--hair)}
+.stat-tile strong{font-family:var(--font-num);font-size:calc(28px * var(--fs));font-variant-numeric:tabular-nums}
+.stat-tile span{color:var(--muted);font-size:max(11px, calc(12px * var(--fs)))}
+.caldot{width:14px;height:14px}
+.calday{min-height:44px;justify-content:center}
+.exprog{background:transparent;border:0;border-radius:0;border-top:1px solid var(--hair);padding:10px 0}
+.exprog-list{gap:0}
+.daychip{border:0;background:var(--s2);box-shadow:none}
+.daychip.active{background:var(--accent);color:#fff}
+/* «Tu semana»: los 7 días caben con 44 px también en móviles pequeños. */
+.chart.planner{padding-left:10px;padding-right:10px}
+.week-strip{gap:2px}
+/* Hoy: el ejercicio abierto sin burbuja (la tabla va directamente en la lista). */
+.peek-item.open{margin:0;padding:0;border-radius:0;background:transparent;box-shadow:none}
+.peek-item.open button.peek-row{border-top-color:var(--hair)}
+.peek-detail{display:grid;gap:6px}
+.tip{margin:0;font-weight:600}
+.how-toggle{justify-self:start}
+.focus-check{margin-top:6px;border-radius:12px;font-size:max(11px, calc(13px * var(--fs)));color:var(--muted)}
+.series-tool-pair,.series-tool{background:var(--s2);box-shadow:inset 0 0 0 1px var(--line)}
+.add-warmup{border:0;border-radius:0;box-shadow:none;margin:0;min-height:44px}
+/* ---- Toque de color: que el fondo no se vea plano ----
+   Un brillo suave del acento arriba (como la luz de un gimnasio) y las tarjetas con un
+   filo de luz arriba. La tarjeta del día de Hoy lleva un degradado de su color. */
+:root{--glow:rgba(46,139,255,.16);--edge:rgba(255,255,255,.05)}
+:root[data-theme="light"]{--glow:rgba(31,111,229,.10);--edge:rgba(255,255,255,.9)}
+body::before{background:radial-gradient(120% 55% at 50% -12%,var(--glow),transparent 62%),var(--bg)}
+.chart,.routine-day,.perm-card,.pending-card,.set-box,.set-account,.rest-card,.history,.stat-tiles{box-shadow:inset 0 1px 0 var(--edge)}
+.hero{background:linear-gradient(135deg,color-mix(in srgb,var(--hero) 24%,var(--s)) 0%,var(--s) 72%);box-shadow:inset 4px 0 0 var(--hero),inset 0 1px 0 var(--edge)}
+
+/* ---- Hoy: el color del día en los títulos ---- */
+.hero-text h2{color:var(--hero)}
+.chart.peek>h3{color:var(--dc)}
+.peek-row .n{background:color-mix(in srgb,var(--dc) 20%,transparent);color:var(--dc)}
+.peek-item.open .peek-row b{color:var(--dc)}
+
+/* ---- Progreso: más aire entre títulos, subtítulos y números ---- */
+.stat-tile strong{display:block;margin:6px 0 4px}
+.history-main small,.history-nums small{margin-top:5px}
+.exprog-hint{margin:10px 0 8px}
+.exprog-row{gap:14px;padding:6px 0}
+.exprog-name{display:grid;gap:6px}
+.exprog-name small{margin:0}
+.exprog-value{display:grid;gap:5px;justify-items:end;line-height:1.15}
+.exprog-detail{display:grid;gap:16px;padding:12px 0 6px}
+.lasttime{display:grid;gap:10px}
+.setchips{display:flex;flex-wrap:wrap;gap:8px}
+.exprog-info,.exprog-record{margin:0;line-height:1.55}
+.spark-label{display:grid;gap:6px;margin-bottom:10px}
+.calinfo{display:grid;gap:10px}
+.calinfo-row{gap:10px}
+.diary-ex{display:grid;gap:6px;padding:8px 0}
+.diary-ex>span:last-child{display:flex;flex-wrap:wrap;gap:6px 14px}

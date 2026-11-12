@@ -33,7 +33,7 @@ function toNumber(v: string | undefined) {
 // Mejor marca de un ejercicio: el día de más peso, con sus series.
 export interface PersonalRecord {
   exercise: Exercise;
-  heaviest: { weight: number; reps: number | null; week: number; date: string | null };
+  heaviest: { weight: number; reps: number | null; week: number; round: number; date: string | null };
   sets: SetResult[]; // todas las series de trabajo de ese día
   totalReps: number;
 }
@@ -114,7 +114,7 @@ export class WorkoutStats {
       const totalReps = sets.reduce((sum, v) => sum + (v.reps ?? 0), 0);
       if (best && (weight < best.heaviest.weight || (weight === best.heaviest.weight && totalReps <= best.totalReps))) continue;
       const reps = Math.max(0, ...sets.filter((v) => v.weight === weight).map((v) => v.reps ?? 0)) || null;
-      best = { exercise: x, heaviest: { weight, reps, week: session.week, date: session.date }, sets, totalReps };
+      best = { exercise: x, heaviest: { weight, reps, week: session.week, round: session.round, date: session.date }, sets, totalReps };
     }
     return best;
   }

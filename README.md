@@ -20,7 +20,7 @@ Varias personas, cada una con su cuenta (correo y contraseña) y sus propios dat
 - Días de rutina propios: hasta 7, con su nombre (añadir, renombrar y eliminar desde "Editar" en Rutina).
 - Al entrenar: peso y repeticiones propuestos en cada serie (de la serie anterior o de la última vez; con escribir solo las repeticiones basta) y botón "Igual que la última vez", temporizador de descanso, sugerencia de progresión (doble progresión), récords personales, series de calentamiento, superseries, calculadora de discos y resumen al completar el día (con la comparación de cada ejercicio frente a la última vez).
 - Entreno en curso: empieza solo al anotar la primera serie; al terminar un ejercicio se abre el siguiente que falte, la pantalla no se apaga y "Terminar entreno" muestra el resumen.
-- Progreso: racha de semanas, peso máximo y récord (el día de más peso, con todas sus series) de cada ejercicio, peso corporal y medidas.
+- Progreso: historial de entrenos (cada uno se puede editar, cambiar de fecha o borrar), racha de semanas, peso máximo y récord (el día de más peso, con todas sus series) de cada ejercicio, peso corporal y medidas.
 - Social (pestaña propia): grupos de amigos con un código, clasificación de días entrenados del mes, quién levanta más en cada ejercicio (de un vistazo) y compartir o importar rutinas.
 - Recuperación de contraseña por correo.
 - Entrar con Google: con el mismo correo se une a la cuenta que ya existe; con otro, se conecta desde Ajustes → Cuenta.
@@ -45,6 +45,7 @@ En el SQL Editor del proyecto, ejecuta en orden los archivos de `supabase/migrat
 13. `20261109000000_rest_alerts.sql` (aviso del fin del descanso como notificación push, pg_cron cada 2 s)
 14. `20261112000000_repeat_days.sql` (repetir un día de rutina en la misma semana: columna `round`)
 15. `20261113000000_routine_days.sql` (días de rutina propios hasta 7, un día en varios días de la semana y el máximo con sus series en Social)
+16. `20261114000000_remove_session.sql` (borrar un entreno entero o cambiarle la fecha desde el historial o el calendario de Progreso)
 
 Las fotos de cómo se hace cada ejercicio (`public/ejercicios`) son de
 [Free Exercise DB](https://github.com/yuhonas/free-exercise-db), de dominio público (Unlicense).

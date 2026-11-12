@@ -75,6 +75,11 @@ function isWorkoutChange(c: unknown): c is WorkoutChange {
       return isSchedule(x.schedule) && (x.startDate === null || isISODate(x.startDate));
     case "dayNames":
       return isDayNames(x.dayNames);
+    case "sessionRemoved":
+      return isInt(x.week, 1, 520) && isInt(x.day, 1, MAX_DAYS) && isInt(x.round, 1, MAX_ROUNDS);
+    case "sessionMoved":
+      return isInt(x.week, 1, 520) && isInt(x.day, 1, MAX_DAYS) && isInt(x.round, 1, MAX_ROUNDS)
+        && isInt(x.toWeek, 1, 520) && isInt(x.toRound, 1, MAX_ROUNDS) && isISODate(x.date);
     case "dayRemoved":
       return isInt(x.day, 1, MAX_DAYS) && isDayNames(x.dayNames) && isSchedule(x.schedule);
     case "body": {

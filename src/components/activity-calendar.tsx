@@ -23,7 +23,7 @@ function dotBackground(days: number[]) {
 // que se hizo (series anotadas o ejercicios marcados con el tick). Al tocar un día
 // se ve debajo qué se entrenó: cada ejercicio con sus series.
 export function ActivityCalendar() {
-  const { model, diary, today } = useWorkout();
+  const { model, diary, today, actions } = useWorkout();
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   if (!today) return null;
@@ -38,6 +38,8 @@ export function ActivityCalendar() {
   const sel = selected ?? today;
   const selDays = Array.from(activity.get(sel) ?? []).sort();
   const selSessions = diary.days().find((d) => d.date === sel)?.sessions ?? [];
+  // Entrenos de ese día, para «Editar» y «Borrar entreno».
+  const workouts = diary.workouts().filter((w) => w.date === sel);
 
   return (
     <section className="chart">
@@ -89,6 +91,13 @@ export function ActivityCalendar() {
                 <div className="diary-ex" key={round + "-" + exercise.id}>
                   <span>{exercise.name}</span>
                   <span>{sets.map(({ set, entry }) => <i key={set} title={entry.note || undefined}>{describeSet(entry)}{entry.note && <PencilIcon className="note-mark" />}</i>)}</span>
+                </div>
+              ))}
+              {/* Corregir o quitar lo de ese día (p. ej. marcado sin querer). */}
+              {workouts.filter((w) => w.day === d).map((w) => (
+                <div className="calinfo-actions" key={w.round}>
+                  <button type="button" className="edit-ex" aria-label={"Editar " + model.dayName(d)} onClick={() => actions.editSession(w)}>Editar</button>
+                  <button type="button" className="remove-ex" aria-label={"Borrar " + model.dayName(d)} onClick={() => { void actions.deleteSession(w); }}>Borrar entreno</button>
                 </div>
               ))}
             </div>

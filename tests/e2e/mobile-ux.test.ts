@@ -123,32 +123,30 @@ describe("Barra de pestañas con cristal líquido (liquid-glass-react)", () => {
   });
 });
 
-// Tarjetas y botones visibles sin cristal (o cuyo propio desenfoque le impide ver lo que
-// hay detrás), y cuántos cristales hay activos a la vez (solo los que están en pantalla).
+// Spec interfaz R6: el cristal solo va en lo que flota. Las tarjetas y botones normales de
+// la pantalla van planos (sin cristal); la barra de pestañas sí lo lleva. Cuenta los
+// cristales activos (solo los que están en pantalla).
 const glassReport = () => {
-  const missing: string[] = [];
+  const withGlass: string[] = [];
   const sel = "main :is(.chart,.hero,.stat-tile,.routine-day,.set-box,.set-account,button.primary)";
   for (const el of document.querySelectorAll<HTMLElement>(sel)) {
     const r = el.getBoundingClientRect();
     if (!r.width || r.bottom < 0 || r.top > innerHeight) continue;
-    const name = (el.getAttribute("class") ?? "").split(" ")[0] + " «" + (el.textContent ?? "").trim().slice(0, 18) + "»";
-    if (el.dataset.glass !== "on" || !el.querySelector(":scope > .glass-slot .glass-layer.on filter")) { missing.push(name + " sin cristal"); continue; }
-    if (getComputedStyle(el).backdropFilter !== "none") missing.push(name + " con desenfoque propio");
-    if (getComputedStyle(el).isolation !== "isolate") missing.push(name + " sin capa propia (el cristal quedaría encima)");
+    if (el.dataset.glass === "on" || el.querySelector(":scope > .glass-slot")) withGlass.push((el.getAttribute("class") ?? "").split(" ")[0]);
   }
-  return { missing, active: document.querySelectorAll(".glass-layer.on").length };
+  return { withGlass, nav: !!document.querySelector(".nav .glass-layer.on filter"), active: document.querySelectorAll(".glass-layer.on").length };
 };
 
-describe("Cristal líquido en toda la app", () => {
+describe("Cristal líquido solo en lo que flota", () => {
   for (const tab of TABS) {
-    it(`tarjetas y botones de ${tab}`, async () => {
+    it(`tarjetas planas y barra de pestañas con cristal en ${tab}`, async () => {
       await setDevice(page, PHONES[2]);
       await open(page, tab);
       await new Promise((r) => setTimeout(r, 900));
       const report = await page.evaluate(glassReport);
-      expect(report.missing).toEqual([]);
-      expect(report.active).toBeGreaterThan(1);
-      expect(report.active).toBeLessThanOrEqual(30);
+      expect(report.withGlass).toEqual([]);
+      expect(report.nav).toBe(true);
+      expect(report.active).toBeLessThanOrEqual(6);
     });
   }
 });

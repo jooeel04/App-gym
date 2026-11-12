@@ -58,7 +58,7 @@ siguen en mayúsculas porque lo son.
 
 ### Letra de los números
 
-**Qué hace:** la carga, las repeticiones, el reloj del descanso, las fichas de las series,
+**Qué hace:** la carga, las repeticiones, el reloj del descanso, la tabla de series,
 el anillo de Hoy y el resumen van en una letra estrecha, grande y de cifras iguales, para
 leerse de un vistazo con el móvil en la mano (como el marcador de un gimnasio). El resto
 usa la letra del sistema.
@@ -77,6 +77,29 @@ alguna pantalla las usa. Las que se forman al vuelo («from-» + dirección) o p
 librería (`glass__warp`) están en su lista de excepciones.
 **Reglas:**
 - **R5** En el CSS no quedan clases que no use ninguna pantalla. → `src/app/styles.test.ts`
+
+### Diseño profesional (estilo app nativa)
+
+**Qué hace:** la app se ve como una app de iOS o Android y no como una web: fondo negro
+puro, listas agrupadas de superficie plana con separadores finos (sin bordes gruesos),
+título grande en cada pestaña y la raya del color del día a la izquierda allí donde sale un
+día de rutina (Rutina, Historial, Hoy). El cristal solo va en lo que flota por encima del
+contenido: la barra de pestañas, la barra del descanso, el botón del hueco de abajo
+(«Serie hecha», «Seguir entreno») y las ventanas. Ya no hay cabecera con el logo
+«FITGYM»: el aviso de «Sin conexión»/«Guardando…» sale arriba solo cuando hace falta.
+**Cómo funciona:** los colores son variables en `:root` (oscuro) y
+`:root[data-theme="light"]`, redefinidas en la capa «Diseño profesional» al final de
+`globals.css` (la última manda): `--bg`, `--s` (superficie), `--s2` (elevada), `--line`,
+`--text`, `--muted`, `--accent` y `--ok` (serie hecha). `GLASS_SURFACES` (en
+`glass-surfaces.tsx`) solo lista lo que flota.
+**Decisiones:** inspirado en Hevy, Strong y Fitbod: se ven profesionales por ser sobrios y
+densos. Antes todo era una tarjeta grande con cristal y nada destacaba; además el cristal
+en muchas tarjetas a la vez pesa en el móvil. Se descartó un degradado de fondo (adorno).
+**Reglas:**
+- **R6** El cristal solo va en lo que flota (ventanas y el botón del hueco de abajo), no en
+  las tarjetas ni en los botones normales. → `src/components/glass-surfaces.test.tsx`
+- **R7** No hay cabecera con el logo; el aviso de sincronización sale solo si hace falta.
+  → `src/components/app-shell.test.tsx`
 
 ## Datos
 

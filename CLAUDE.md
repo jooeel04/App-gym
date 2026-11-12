@@ -221,9 +221,10 @@ localStorage), lo que permite probar la interfaz: `npx next start -p 3100`.
   `-webkit-backdrop-filter`; él ya añade el prefijo para Safari.
 - **Cristal líquido** (`liquid-glass-react`): `GlassLayer` es una capa detrás del
   contenido (se carga solo en el navegador, porque lee `navigator`, y solo cerca de la
-  pantalla). La barra de pestañas y la del descanso la llevan en su JSX; el resto de
-  tarjetas y botones la reciben de `GlassSurfaces` (lista `GLASS_SURFACES`; para que algo
-  lleve cristal, añade su selector ahí). El elemento queda marcado con `data-glass="on"`.
+  pantalla). **Solo va en lo que flota** (spec interfaz R6): la barra de pestañas y la del
+  descanso la llevan en su JSX; las ventanas y el botón del hueco de abajo la reciben de
+  `GlassSurfaces` (lista `GLASS_SURFACES`). Las tarjetas y los botones normales van planos
+  (capa «Diseño profesional» del CSS). El elemento con cristal queda marcado con `data-glass="on"`.
   Reglas: nada dentro del cristal con `mix-blend-mode` (anula el desenfoque); el elemento
   no debe tener su propio `backdrop-filter`; las capas son `span`, así que las reglas
   tipo `.tarjeta span{…}` las alcanzan (por eso se les quita el margen en el CSS).

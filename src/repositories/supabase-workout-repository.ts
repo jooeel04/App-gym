@@ -170,6 +170,17 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
       case "dayNames":
         await must(db.from("programs").update({ day_names: change.dayNames }).eq("id", programId));
         return;
+      case "sessionRemoved":
+        // En una sola transacción: series, ticks y día completado de esa vez.
+        await must(db.rpc("remove_session", { p_program_id: programId, p_week: change.week, p_day: change.day, p_round: change.round }));
+        return;
+      case "sessionMoved":
+        // En una sola transacción: semana, vez y fecha de sus series, ticks y día completado.
+        await must(db.rpc("move_session", {
+          p_program_id: programId, p_week: change.week, p_day: change.day, p_round: change.round,
+          p_to_week: change.toWeek, p_to_round: change.toRound, p_date: change.date,
+        }));
+        return;
       case "dayRemoved":
         // En una sola transacción: ejercicios (y sus series), días completados, nombre y calendario.
         await must(db.rpc("remove_routine_day", { p_program_id: programId, p_day: change.day, p_day_names: change.dayNames, p_schedule: change.schedule }));

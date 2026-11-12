@@ -490,6 +490,37 @@ function createActions({ model, stats, calendar, sync, showToast, setWeek, setDa
       model.setWeekdays(d, weekdays);
     },
 
+    // ---- Historial: editar y borrar un entreno ----
+    // Abre en Hoy un entreno pasado (su semana, día y vez) para cambiar series; lo que se
+    // anote se guarda con su fecha.
+    editSession({ week, day, round, date }: { week: number; day: number; round: number; date: string }) {
+      choosePastDate(date < todayISO() ? date : null);
+      model.ensureWeeks(week);
+      setWeek(week);
+      setDay(day);
+      setRound(round);
+      goTo("/entrenar");
+      showToast("Editando " + model.dayName(day) + " del " + formatShortDate(date));
+    },
+
+    // Borra un entreno entero (p. ej. marcado sin querer): deja de contar como hecho.
+    async deleteSession({ week, day, round, date }: { week: number; day: number; round: number; date: string }) {
+      if (!await askConfirm({ title: "¿Borrar el entreno?", text: "Se borrarán todas las series de " + model.dayName(day) + " del " + formatShortDate(date) + ". No se puede deshacer.", action: "Borrar entreno", danger: true })) return false;
+      model.removeSession(week, day, round);
+      if (isActive(week, day, round)) setActiveWorkout(null);
+      clearSessionStart(week, day, round);
+      showToast("Entreno borrado");
+      return true;
+    },
+
+    // Cambia la fecha de un entreno (hasta hoy). Devuelve si se pudo.
+    moveSession({ week, day, round }: { week: number; day: number; round: number }, date: string) {
+      if (!isISODate(date) || date > todayISO() || (model.startDate && date < model.startDate)) return false;
+      model.moveSession(week, day, round, date);
+      showToast(model.dayName(day) + " pasado al " + formatShortDate(date));
+      return true;
+    },
+
     // ---- Días de rutina ----
     addDay(name: string) {
       const d = model.addDay(name);

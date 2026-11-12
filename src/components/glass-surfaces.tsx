@@ -4,19 +4,12 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { GlassLayer, glassAllowed } from "./glass-layer";
 
-// Tarjetas y botones que llevan cristal líquido. No van las filas de las listas, los
-// días del calendario ni otros elementos pequeños y numerosos (cada cristal cuesta).
-export const GLASS_SURFACES = [
-  // Tarjetas
-  ".chart", ".hero", ".stat-tile", ".perm-card", ".pending-card", ".routine-day", ".exprog",
-  ".set-account", ".set-box", ".modal", ".streak-pill",
-  // Botones
-  "button.primary", ".set-done", ".finish-workout", ".focus-check", ".tool-btn", ".settings-btn",
-  ".quiet", ".daychip", ".set-chip", ".stepper-ctl button", ".modal-actions button", ".wizard-opt",
-  ".plates-open", ".stepper-plates", ".dock-continue",
-].join(",");
+// Lo que lleva cristal líquido: solo lo que flota por encima del contenido (spec interfaz
+// R6), las ventanas y el botón del hueco de abajo. La barra de pestañas y la del descanso
+// llevan el suyo en su JSX. Las tarjetas y los botones normales van planos.
+export const GLASS_SURFACES = [".modal", ".set-done", ".dock-continue"].join(",");
 
-// Pone el cristal en todas las tarjetas y botones de la pantalla sin tocar cada
+// Pone el cristal en lo que flota (GLASS_SURFACES) sin tocar cada
 // componente: a cada uno le añade al final un hueco (`.glass-slot`, fuera del flujo y
 // detrás del contenido) donde pinta GlassLayer. Si React vacía el elemento al cambiar
 // su texto, el hueco se vuelve a poner; si el elemento desaparece, se quita.

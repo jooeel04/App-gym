@@ -87,6 +87,10 @@ export type WorkoutChange =
   | { type: "schedule"; schedule: WeekSchedule; startDate: string | null }
   | { type: "body"; date: string; metrics: BodyMetrics | null }
   | { type: "dayNames"; dayNames: Record<string, string> }
+  // Entreno borrado entero (series, ticks y día completado de esa vez).
+  | { type: "sessionRemoved"; week: number; day: number; round: number }
+  // Entreno movido a otra fecha (y, si es de otra semana, a esa semana y a la vez `toRound`).
+  | { type: "sessionMoved"; week: number; day: number; round: number; toWeek: number; toRound: number; date: string }
   // Día de rutina borrado con todo lo suyo; lleva cómo quedan los nombres y el calendario.
   | { type: "dayRemoved"; day: number; dayNames: Record<string, string>; schedule: WeekSchedule }
   | { type: "logsCleared" }

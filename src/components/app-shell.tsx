@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
@@ -182,18 +181,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <>
       <div className="app">
-        <header className="topbar">
-          <a className="brand" href="/entrenar" aria-label="Inicio" onClick={onNavClick(0)}>
-            <Image className="brand-icon brand-logo" src="/fitgym-azul-mark.png" width={96} height={96} alt="" priority />
-            <span><span className="brand-word">FITGYM</span><span className="brand-sub">TU ENTRENO</span></span>
-          </a>
-          {(sync.offline || sync.pending > 0) && (
+        {/* Sin cabecera con el logo (spec interfaz R7): cada pestaña empieza por su título.
+            Arriba solo sale el aviso de sincronización cuando hace falta. */}
+        {(sync.offline || sync.pending > 0) && (
+          <div className="topbar">
             <span className={"syncpill" + (sync.offline ? " offline" : "")} role="status">
               {sync.offline ? "Sin conexión" : "Guardando…"}
               {sync.offline && sync.pending > 0 && " · " + sync.pending + (sync.pending === 1 ? " cambio por enviar" : " cambios por enviar")}
             </span>
-          )}
-        </header>
+          </div>
+        )}
         <main ref={mainRef}>
           {ready
             ? (

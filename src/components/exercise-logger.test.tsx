@@ -9,7 +9,8 @@ import { RestTimerBar } from "./rest-timer";
 
 // Hoy (miércoles) toca Empujes: su primer ejercicio, sin registros anteriores.
 const MILITAR = BASE_ROUTINE.find((x) => x.day === 3)!;
-const chip = (n: number) => screen.getByRole("tab", { name: new RegExp("Serie " + n) });
+// El número de la fila de la serie n en la tabla; su etiqueta dice cómo está ("Serie 1: ahora").
+const chip = (n: number) => screen.getByLabelText(new RegExp("^Serie " + n + ":"));
 
 describe("Hoy · anotar una serie se puede deshacer", () => {
   let vibrate: ReturnType<typeof vi.fn>;
@@ -22,14 +23,14 @@ describe("Hoy · anotar una serie se puede deshacer", () => {
 
   const logFirstSet = () => {
     renderWithWorkout(<><ExerciseLogger exercise={MILITAR} superset={null} /><RestTimerBar /></>);
-    expect(chip(1)).toHaveTextContent("ahora");
+    expect(chip(1)).toHaveAttribute("aria-label", expect.stringContaining("ahora"));
     fireEvent.click(screen.getByRole("button", { name: /Serie hecha/ }));
   };
 
   it("al anotar, vibra un instante y ofrece deshacer junto al botón", () => {
     logFirstSet();
     expect(vibrate).toHaveBeenCalledTimes(1);
-    expect(chip(1)).toHaveTextContent("× 6");
+    expect(chip(1)).toHaveAttribute("aria-label", expect.stringContaining("× 6"));
     const undo = screen.getByRole("status");
     expect(undo).toHaveTextContent("Serie 1 anotada");
     expect(within(undo).getByRole("button", { name: "Deshacer" })).toBeInTheDocument();
@@ -39,7 +40,7 @@ describe("Hoy · anotar una serie se puede deshacer", () => {
     logFirstSet();
     expect(screen.getByRole("timer")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Deshacer" }));
-    expect(chip(1)).toHaveTextContent("ahora");
+    expect(chip(1)).toHaveAttribute("aria-label", expect.stringContaining("ahora"));
     expect(screen.queryByRole("timer")).not.toBeInTheDocument();
     expect(screen.queryByText("Serie 1 anotada")).not.toBeInTheDocument();
   });
@@ -52,7 +53,7 @@ describe("Hoy · anotar una serie se puede deshacer", () => {
     fireEvent.change(reps, { target: { value: "8" } });
     fireEvent.click(screen.getByRole("button", { name: /Serie hecha/ }));
     fireEvent.click(screen.getByRole("button", { name: "Deshacer" }));
-    expect(chip(1)).toHaveTextContent("ahora");
+    expect(chip(1)).toHaveAttribute("aria-label", expect.stringContaining("ahora"));
     expect(screen.getByRole("spinbutton", { name: /carga en kg/ })).toHaveValue(20);
     expect(screen.getByRole("spinbutton", { name: /repeticiones/ })).toHaveValue(8);
   });
@@ -64,7 +65,7 @@ describe("Hoy · anotar una serie se puede deshacer", () => {
     expect(screen.getByText("Serie 1 anotada")).toBeInTheDocument();
     act(() => { vi.advanceTimersByTime(6500); });
     expect(screen.queryByText("Serie 1 anotada")).not.toBeInTheDocument();
-    expect(chip(1)).toHaveTextContent("× 6");
+    expect(chip(1)).toHaveAttribute("aria-label", expect.stringContaining("× 6"));
   });
 });
 
@@ -93,20 +94,20 @@ describe("Hoy · todo se anota en la misma tarjeta (spec hoy R2, R4–R6)", () =
   it("«Añadir calentamiento» añade una serie C1 que se anota con los mismos botones", () => {
     renderWithWorkout(<ExerciseLogger exercise={MILITAR} superset={null} />);
     fireEvent.click(screen.getByRole("button", { name: /Añadir calentamiento/ }));
-    const c1 = screen.getByRole("tab", { name: /Calent\. 1/ });
-    expect(c1).toHaveAttribute("aria-selected", "true");
+    const c1 = () => screen.getByLabelText(/^Calentamiento 1:/);
+    expect(c1()).toHaveAttribute("aria-label", "Calentamiento 1: ahora");
     fireEvent.change(screen.getByLabelText(/calentamiento 1, carga/), { target: { value: "20" } });
     fireEvent.change(screen.getByLabelText(/calentamiento 1, repeticiones/), { target: { value: "12" } });
     fireEvent.click(screen.getByRole("button", { name: /Serie hecha/ }));
-    expect(c1).toHaveTextContent("20 × 12");
+    expect(c1()).toHaveAttribute("aria-label", "Calentamiento 1: 20 × 12");
     // El calentamiento no cuenta como serie de trabajo: la serie 1 sigue por hacer.
-    expect(chip(1)).toHaveTextContent("ahora");
+    expect(chip(1)).toHaveAttribute("aria-label", expect.stringContaining("ahora"));
   });
 
   it("como mucho tres series de calentamiento", () => {
     renderWithWorkout(<ExerciseLogger exercise={MILITAR} superset={null} />);
     for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole("button", { name: /Añadir calentamiento/ }));
-    expect(screen.getByRole("tab", { name: /Calent\. 3/ })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Calentamiento 3:/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Añadir calentamiento/ })).not.toBeInTheDocument();
   });
 
@@ -122,7 +123,7 @@ describe("Hoy · todo se anota en la misma tarjeta (spec hoy R2, R4–R6)", () =
   it("«Igual que la última vez» rellena las series vacías con lo de aquel día", () => {
     renderWithWorkout(<ExerciseLogger exercise={PRESS} superset={null} />);
     fireEvent.click(screen.getByRole("button", { name: /Igual que la última vez/ }));
-    for (const n of [1, 2, 3]) expect(chip(n)).toHaveTextContent("55 × 8");
+    for (const n of [1, 2, 3]) expect(chip(n)).toHaveAttribute("aria-label", expect.stringContaining("55 × 8"));
     expect(screen.queryByRole("button", { name: /Igual que la última vez/ })).not.toBeInTheDocument();
   });
 });
@@ -157,5 +158,27 @@ describe("Hoy · nuevo récord por peso", () => {
     expect(screen.getByTestId("toast")).not.toHaveTextContent(/récord/);
     log("32.5", "5");
     expect(screen.getByTestId("toast")).toHaveTextContent("¡Nuevo récord en " + MILITAR.name + "! 32,5 kg × 5");
+  });
+});
+
+// Spec hoy R20: la tabla de series (como en Hevy o Strong).
+describe("Hoy · la tabla de series", () => {
+  beforeEach(freezeToday);
+  afterEach(() => vi.useRealTimers());
+
+  it("cada serie con «Anterior», carga, reps y ✓; el ✓ de otra fila vacía la guarda con lo propuesto (R20)", () => {
+    renderWithWorkout(<><ExerciseLogger exercise={PRESS} superset={null} /><RestTimerBar /></>);
+    const table = screen.getByRole("group", { name: "Series de " + PRESS.name });
+    expect(within(table).getByText("Anterior")).toBeInTheDocument();
+    expect(Array.from(table.querySelectorAll(".series-prev")).map((c) => c.textContent)).toEqual(["55×8", "55×8", "55×8"]);
+    // La 1 es la actual (se escribe en ella); la 3 viene propuesta en gris.
+    expect(chip(1)).toHaveAttribute("aria-label", "Serie 1: ahora");
+    expect(chip(3)).toHaveAttribute("aria-label", "Serie 3: vacía");
+    fireEvent.click(within(table).getByRole("button", { name: "Guardar serie 3 con lo propuesto" }));
+    expect(chip(3)).toHaveAttribute("aria-label", "Serie 3: 55 × 8");
+    expect(within(table).getByRole("img", { name: "Serie 3 hecha" })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Serie 3 anotada");
+    // La actual sigue siendo la 1.
+    expect(chip(1)).toHaveAttribute("aria-label", "Serie 1: ahora");
   });
 });

@@ -65,14 +65,19 @@ const describeEntry = (e: SetEntry) => (e.weight?.trim() ? e.weight.replace(".",
 const isWarmup = (s: number) => WARMUP_SETS.includes(s);
 // "Calentamiento 1" o "Serie 3", para títulos y avisos.
 const setName = (s: number) => (isWarmup(s) ? "Calentamiento " + (WARMUP_SETS.indexOf(s) + 1) : "Serie " + s);
+// Número corto de la fila: "C1" (calentamiento) o "3".
+const setLabel = (s: number) => (isWarmup(s) ? "C" + (WARMUP_SETS.indexOf(s) + 1) : String(s));
+const kgText = (v?: string | number | null) => (v === undefined || v === null || String(v).trim() === "" ? "" : String(v).replace(".", ","));
 
 // Segundos que se ofrece deshacer la última serie anotada.
 const UNDO_MS = 6000;
 
-// Fichas de las series (calentamiento, hechas, la actual y las que faltan) y la serie
-// elegida para anotar. Tras anotar una, durante unos segundos se puede deshacer (por si
-// se tocó sin querer o con otro número): vuelve a como estaba y, si empezó el descanso, lo
-// para. La serie se vuelve a abrir con lo que se acababa de poner, para corregir solo lo que falle.
+// Tabla de series (como en Hevy o Strong): una fila por serie con su número, lo que se hizo
+// la vez anterior, la carga, las repeticiones y ✓. La fila que toca se puede escribir
+// (`SetEditor`); las demás se ven (`SetRow`) y su ✓ las guarda con lo propuesto. Tras anotar
+// una, durante unos segundos se puede deshacer (por si se tocó sin querer o con otro
+// número): vuelve a como estaba y, si empezó el descanso, lo para; la serie se vuelve a abrir
+// con lo que se acababa de poner, para corregir solo lo que falle.
 function SetLogger({ exercise: x }: { exercise: Exercise }) {
   const { model, stats, week, day, round, actions } = useWorkout();
   const last = stats.lastBefore(x, week, round);
@@ -91,12 +96,42 @@ function SetLogger({ exercise: x }: { exercise: Exercise }) {
     const e = model.getEntry(week, day, x.id, s, round);
     return !e.weight && !e.reps && last.sets.some((r) => r.set === s);
   });
+  const oldOf = (s: number) => (isWarmup(s) ? undefined : last?.sets.find((r) => r.set === s));
+
+  // Lo propuesto para una serie vacía: la carga de la serie anterior de hoy o la de esa serie
+  // la última vez; las repeticiones de la última vez o el mínimo del rango. Calentamiento: vacío.
+  const proposal = (s: number): SetEntry => {
+    if (isWarmup(s)) return {};
+    const old = oldOf(s);
+    return {
+      weight: suggestedWeight(range(s - 1).map((p) => model.getEntry(week, day, x.id, p, round).weight), old),
+      reps: old?.reps != null ? String(old.reps) : String(parseRepRange(x.target)?.min ?? ""),
+    };
+  };
 
   useEffect(() => {
     if (!undo) return;
     const timer = setTimeout(() => setUndo(null), UNDO_MS);
     return () => clearTimeout(timer);
   }, [undo]);
+
+  // Guarda una serie: carga, nota y por último las repeticiones (con ellas empieza el descanso).
+  const save = (s: number, next: SetEntry) => {
+    if (!next.reps?.trim()) return;
+    // Antes lo pedía el primer toque en un ejercicio; ahora se entra con él ya abierto.
+    void requestPermissions();
+    const e = model.getEntry(week, day, x.id, s, round);
+    const prev = { weight: e.weight, reps: e.reps, note: e.note };
+    const saved = { weight: next.weight?.trim() ?? "", reps: next.reps.trim(), note: (next.note ?? e.note ?? "").trim() };
+    if (saved.weight !== (e.weight ?? "").trim()) actions.setEntry(week, day, x.id, s, "weight", saved.weight, round);
+    if (saved.note !== (e.note ?? "").trim()) actions.setEntry(week, day, x.id, s, "note", saved.note, round);
+    actions.setEntry(week, day, x.id, s, "reps", saved.reps, round);
+    // Un toque de vibración confirma que se ha guardado (Android; iPhone no vibra desde la web).
+    if ("vibrate" in navigator) navigator.vibrate(12);
+    setPick(null);
+    setDraft(null);
+    setUndo({ set: s, prev, saved });
+  };
 
   const revert = () => {
     if (!undo) return;
@@ -115,18 +150,8 @@ function SetLogger({ exercise: x }: { exercise: Exercise }) {
     setWarmups(warmups + 1);
   };
 
-  const chip = (s: number) => {
-    const e = model.getEntry(week, day, x.id, s, round);
-    const logged = hasReps(e);
-    const label = isWarmup(s) ? "Calent. " + (WARMUP_SETS.indexOf(s) + 1) : "Serie " + s + (x.optionalLast && s === x.sets ? " (opc.)" : "");
-    return (
-      <button key={s} type="button" role="tab" aria-selected={s === current}
-        className={"set-chip" + (isWarmup(s) ? " warmup" : "") + (logged ? " done" : "") + (s === current ? " current" : "")} onClick={() => setPick(s)}>
-        <small>{label}</small>
-        <b>{logged ? describeEntry(e) : s === current ? "ahora" : "—"}</b>
-      </button>
-    );
-  };
+  const name = (s: number) => setName(s) + (x.optionalLast && s === x.sets ? " (opcional)" : "");
+  const rows = [...WARMUP_SETS.slice(0, warmups), ...sets];
 
   return (
     <>
@@ -135,19 +160,19 @@ function SetLogger({ exercise: x }: { exercise: Exercise }) {
           <RepeatIcon />Igual que la última vez <small>({last.date ? formatShortDate(last.date) : "semana " + last.week})</small>
         </button>
       )}
-      <div className="set-chips" role="tablist" aria-label="Series">
-        {WARMUP_SETS.slice(0, warmups).map(chip)}
-        {sets.map(chip)}
+      <div className="series-table" role="group" aria-label={"Series de " + x.name}>
+        <div className="series-head" aria-hidden="true"><span>Serie</span><span>Anterior</span><span>kg</span><span>Reps</span><span /></div>
+        {rows.map((s) => (s === current
+          ? <SetEditor key={s + (draft?.set === s ? "-draft" : "")} exercise={x} set={s} name={name(s)} old={oldOf(s)}
+              start={draft?.set === s ? draft.entry : hasReps(model.getEntry(week, day, x.id, s, round)) ? {} : proposal(s)}
+              picked={pick !== null} onSave={(next) => save(s, next)} />
+          : <SetRow key={s} exercise={x} set={s} name={name(s)} old={oldOf(s)} proposal={proposal(s)}
+              onPick={() => setPick(s)} onQuickSave={() => save(s, proposal(s))} />))}
       </div>
+      {!current && <p className="set-alldone"><CheckIcon /> Todas las series anotadas. Toca un número para cambiar su serie.</p>}
       {warmups < WARMUP_SETS.length && (
         <button type="button" className="add-warmup" onClick={addWarmup}><PlusIcon />Añadir calentamiento</button>
       )}
-      {current
-        ? <SetStepper key={current + (draft?.set === current ? "-draft" : "")} exercise={x} set={current}
-            old={isWarmup(current) ? undefined : last?.sets.find((r) => r.set === current)}
-            draft={draft?.set === current ? draft.entry : undefined} picked={pick !== null}
-            onSaved={(prev, saved) => { setPick(null); setDraft(null); setUndo({ set: current, prev, saved }); }} />
-        : <p className="set-alldone"><CheckIcon /> Todas las series anotadas. Toca una para cambiarla.</p>}
       {undo && (
         <InDock>
           <p className="set-undo" role="status">
@@ -160,88 +185,92 @@ function SetLogger({ exercise: x }: { exercise: Exercise }) {
   );
 }
 
+// Lo que se hizo en esa serie la vez anterior, en corto ("65×9").
+const prevText = (old?: SetResult) => (old ? (old.weight !== null ? kgText(old.weight) : "") + "×" + (old.reps ?? "—") : "—");
+
+// Una fila de la tabla que no es la actual: hecha (verde, con sus números) o vacía (con lo
+// propuesto en gris). Al tocar su número pasa a ser la actual; su ✓ la guarda tal cual viene.
+function SetRow({ exercise: x, set: s, name, old, proposal, onPick, onQuickSave }: {
+  exercise: Exercise; set: number; name: string; old?: SetResult; proposal: SetEntry; onPick: () => void; onQuickSave: () => void;
+}) {
+  const { model, week, day, round } = useWorkout();
+  const e = model.getEntry(week, day, x.id, s, round);
+  const done = hasReps(e);
+  return (
+    <div className={"series-row" + (isWarmup(s) ? " warmup" : "") + (done ? " done" : "")}>
+      <button type="button" className="series-num" aria-label={name + ": " + (done ? describeEntry(e) : "vacía")} onClick={onPick}>{setLabel(s)}</button>
+      <span className="series-prev">{prevText(old)}</span>
+      <span className={"series-val" + (done ? "" : " ghost")}>{kgText(done ? e.weight : proposal.weight) || "—"}</span>
+      <span className={"series-val" + (done ? "" : " ghost")}>{(done ? e.reps : proposal.reps) || "—"}</span>
+      {done
+        ? <span className="series-check on" role="img" aria-label={name + " hecha"}><CheckIcon /></span>
+        : <button type="button" className="series-check" aria-label={"Guardar " + name.toLowerCase() + " con lo propuesto"} disabled={!proposal.reps} onClick={onQuickSave}><CheckIcon /></button>}
+      {e.note && <p className="series-row-note"><PencilIcon />{e.note}</p>}
+    </div>
+  );
+}
+
 // Para sumar o restar a un número escrito (vacío cuenta como 0, nunca baja de 0).
 const bump = (v: string, d: number) => String(Math.max(0, Math.round(((Number(v) || 0) + d) * 100) / 100));
 
-// Carga, repeticiones y nota de una serie con botones grandes. Una serie de trabajo
-// empieza con lo propuesto (peso de la serie anterior o de la última vez; repeticiones de
-// la última vez o el mínimo del rango; tras deshacer, lo que se acababa de poner); el
-// calentamiento, vacío. Se guarda al pulsar "Serie hecha".
-function SetStepper({ exercise: x, set: s, old, draft, picked, onSaved }: {
-  exercise: Exercise; set: number; old?: SetResult; draft?: SetEntry; picked: boolean; onSaved: (prev: SetEntry, saved: SetEntry) => void;
+// La fila que toca: carga y repeticiones para escribir (empiezan con lo propuesto o, tras
+// deshacer, con lo que se acababa de poner; el calentamiento, vacío), y debajo −/+ de carga y
+// repeticiones, «Discos» y «Nota». Se guarda con su ✓ o con «Serie hecha», abajo.
+function SetEditor({ exercise: x, set: s, name, old, start, picked, onSave }: {
+  exercise: Exercise; set: number; name: string; old?: SetResult; start: SetEntry; picked: boolean; onSave: (next: SetEntry) => void;
 }) {
-  const { model, week, day, round, rest, actions } = useWorkout();
+  const { model, week, day, round, rest } = useWorkout();
   const e = model.getEntry(week, day, x.id, s, round);
   const saved = hasReps(e);
-  const warmup = isWarmup(s);
   const filled = (v?: string | null) => (v?.trim() ? v : null);
-  const [kg, setKg] = useState(() => filled(draft?.weight) ?? filled(e.weight)
-    ?? (warmup ? "" : suggestedWeight(range(s - 1).map((p) => model.getEntry(week, day, x.id, p, round).weight), old)));
-  const [reps, setReps] = useState(() => filled(draft?.reps) ?? filled(e.reps)
-    ?? (warmup ? "" : old?.reps != null ? String(old.reps) : String(parseRepRange(x.target)?.min ?? "")));
-  const [note, setNote] = useState(() => draft?.note ?? e.note ?? "");
-  const [noteOpen, setNoteOpen] = useState(!!(draft?.note ?? e.note));
+  const [kg, setKg] = useState(() => filled(start.weight) ?? filled(e.weight) ?? "");
+  const [reps, setReps] = useState(() => filled(start.reps) ?? filled(e.reps) ?? "");
+  const [note, setNote] = useState(() => start.note ?? e.note ?? "");
+  const [noteOpen, setNoteOpen] = useState(!!(start.note ?? e.note));
   const [plates, setPlates] = useState(false);
-  const title = setName(s);
-  const name = x.name + ", " + title.toLowerCase();
-
-  const save = () => {
-    if (!reps.trim()) return;
-    // Antes lo pedía el primer toque en un ejercicio; ahora se entra con él ya abierto.
-    void requestPermissions();
-    const prev = { weight: e.weight, reps: e.reps, note: e.note };
-    if (kg.trim() !== (e.weight ?? "").trim()) actions.setEntry(week, day, x.id, s, "weight", kg.trim(), round);
-    if (note.trim() !== (e.note ?? "").trim()) actions.setEntry(week, day, x.id, s, "note", note.trim(), round);
-    actions.setEntry(week, day, x.id, s, "reps", reps.trim(), round);
-    // Un toque de vibración confirma que se ha guardado (Android; iPhone no vibra desde la web).
-    if ("vibrate" in navigator) navigator.vibrate(12);
-    onSaved(prev, { weight: kg.trim(), reps: reps.trim(), note: note.trim() });
-  };
+  const label = x.name + ", " + setName(s).toLowerCase();
+  const save = () => onSave({ weight: kg, reps, note });
+  const what = (Number(kg) > 0 ? String(Number(kg)).replace(".", ",") + " " : "") + "× " + reps.trim();
 
   return (
     <>
-      <div className={"stepper-card" + (warmup ? " warmup" : "")}>
-        <div className="stepper-title">{title}{saved && <span> · anotada</span>}</div>
-        <div className="stepper">
-          <span>Carga</span>
-          <div className="stepper-ctl">
-            <button type="button" aria-label="Quitar 2,5 kg" onClick={() => setKg(bump(kg, -2.5))}><MinusIcon /></button>
-            <label className="stepper-val">
-              <input type="number" inputMode="decimal" min="0" step="0.5" placeholder="—" value={kg} aria-label={name + ", carga en kg"} onChange={(ev) => setKg(ev.target.value)} />
-              <small>kg</small>
-            </label>
-            <button type="button" aria-label="Añadir 2,5 kg" onClick={() => setKg(bump(kg, 2.5))}><PlusIcon /></button>
-          </div>
-        </div>
-        <div className="stepper">
-          <span>Repeticiones</span>
-          <div className="stepper-ctl">
-            <button type="button" aria-label="Una repetición menos" onClick={() => setReps(bump(reps, -1))}><MinusIcon /></button>
-            <label className="stepper-val">
-              <input type="number" inputMode="numeric" min="0" step="1" placeholder="—" value={reps} aria-label={name + ", repeticiones"} onChange={(ev) => setReps(ev.target.value)} />
-            </label>
-            <button type="button" aria-label="Una repetición más" onClick={() => setReps(bump(reps, 1))}><PlusIcon /></button>
-          </div>
-        </div>
+      <div className={"series-row current" + (isWarmup(s) ? " warmup" : "") + (saved ? " done" : "")}>
+        <span className="series-num" role="img" aria-label={name + ": " + (saved ? describeEntry(e) : "ahora")}>{setLabel(s)}</span>
+        <span className="series-prev">{prevText(old)}</span>
+        <input className="series-input" type="number" inputMode="decimal" min="0" step="0.5" placeholder="—" value={kg} aria-label={label + ", carga en kg"} onChange={(ev) => setKg(ev.target.value)} />
+        <input className="series-input" type="number" inputMode="numeric" min="0" step="1" placeholder="—" value={reps} aria-label={label + ", repeticiones"} onChange={(ev) => setReps(ev.target.value)} />
+        <button type="button" className="series-check" aria-label={(saved ? "Guardar cambios de la " : "Guardar la ") + setName(s).toLowerCase()} disabled={!reps.trim()} onClick={save}><CheckIcon /></button>
+      </div>
+      <div className="series-tools">
+        <span className="series-tool-pair">
+          <button type="button" aria-label="Quitar 2,5 kg" onClick={() => setKg(bump(kg, -2.5))}><MinusIcon /></button>
+          <small>kg</small>
+          <button type="button" aria-label="Añadir 2,5 kg" onClick={() => setKg(bump(kg, 2.5))}><PlusIcon /></button>
+        </span>
+        <span className="series-tool-pair">
+          <button type="button" aria-label="Una repetición menos" onClick={() => setReps(bump(reps, -1))}><MinusIcon /></button>
+          <small>reps</small>
+          <button type="button" aria-label="Una repetición más" onClick={() => setReps(bump(reps, 1))}><PlusIcon /></button>
+        </span>
         {Number(kg) > 0 && (
-          <button type="button" className="stepper-plates" aria-label={"Calcular discos para " + String(Number(kg)).replace(".", ",") + " kg"} onClick={() => setPlates(true)}>
-            <DumbbellIcon /><span>Calcular discos</span><b>{String(Number(kg)).replace(".", ",")} kg</b>
+          <button type="button" className="series-tool" aria-label={"Calcular discos para " + String(Number(kg)).replace(".", ",") + " kg"} onClick={() => setPlates(true)}>
+            <DumbbellIcon />Discos
           </button>
         )}
-        {plates && <PlateCalculator initialTotal={kg} onClose={() => setPlates(false)} />}
-        {old && <p className="stepper-prev">La última vez: {old.weight != null ? String(old.weight).replace(".", ",") + " kg × " : "× "}{old.reps ?? "—"}</p>}
-        {noteOpen
-          ? <input className="stepper-note" type="text" maxLength={160} placeholder="Cómo fue esta serie" aria-label={"Nota de la " + title.toLowerCase()}
-              value={note} onChange={(ev) => setNote(ev.target.value)} />
-          : <button type="button" className="stepper-note-btn" onClick={() => setNoteOpen(true)}><PencilIcon />Añadir nota</button>}
+        {!noteOpen && <button type="button" className="series-tool" onClick={() => setNoteOpen(true)}><PencilIcon />Añadir nota</button>}
       </div>
+      {noteOpen && (
+        <input className="series-note" type="text" maxLength={160} placeholder="Cómo fue esta serie" aria-label={"Nota de la " + setName(s).toLowerCase()}
+          value={note} onChange={(ev) => setNote(ev.target.value)} />
+      )}
+      {plates && <PlateCalculator initialTotal={kg} onClose={() => setPlates(false)} />}
       {/* Bajo el pulgar. Durante el descanso en ese sitio está la cuenta atrás, salvo que se
           haya elegido una serie a mano para corregirla. */}
       {(!rest || picked) && (
         <InDock>
           <button type="button" className="set-done" disabled={!reps.trim()} onClick={save}>
             <CheckIcon /><span>{saved ? "Guardar cambios" : "Serie hecha"}</span>
-            {reps.trim() && <b className="set-done-what">{(Number(kg) > 0 ? String(Number(kg)).replace(".", ",") + " " : "") + "× " + reps.trim()}</b>}
+            {reps.trim() && <b className="set-done-what">{what}</b>}
           </button>
         </InDock>
       )}

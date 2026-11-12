@@ -4,7 +4,7 @@ import { requestPermissions } from "@/lib/permissions";
 import { useWorkout } from "@/controllers/workout-controller";
 import { BASE_ROUTINE } from "@/domain/base-routine";
 import { DAY_NAMES, entryKey, exerciseKey } from "@/domain/snapshot";
-import { freezeToday, historySnapshot, PRESS, renderWithWorkout, TODAY } from "../../tests/workout-fixture";
+import { freezeToday, historySnapshot, openNextExercise, PRESS, renderWithWorkout, TODAY } from "../../tests/workout-fixture";
 import { TrainingView } from "./training-view";
 
 // El navegador todavía no ha preguntado por los permisos.
@@ -99,6 +99,7 @@ describe("Hoy · el aviso de permisos va al final", () => {
 
   it("la tarjeta sale después de la tarjeta de anotar", () => {
     renderWithWorkout(<TrainingView />);
+    openNextExercise();
     const logButton = screen.getByRole("button", { name: /Serie hecha/ });
     const card = screen.getByText("Activa los avisos");
     expect(logButton.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -107,6 +108,7 @@ describe("Hoy · el aviso de permisos va al final", () => {
   it("«Serie hecha» pide los permisos de los avisos", () => {
     vi.mocked(requestPermissions).mockClear();
     renderWithWorkout(<TrainingView />);
+    openNextExercise();
     fireEvent.click(screen.getByRole("button", { name: /Serie hecha/ }));
     expect(requestPermissions).toHaveBeenCalled();
   });
@@ -158,8 +160,9 @@ describe("Hoy · repetir un día en la misma semana", () => {
     renderWithWorkout(<><TrainingView /><Entries /></>, doneToday());
     fireEvent.click(screen.getByRole("button", { name: "Repetir este día" }));
     expect(screen.getByText(/2\.ª vez esta semana/)).toBeInTheDocument();
+    openNextExercise();
     expect(screen.getByRole("button", { name: new RegExp(MILITAR.name), expanded: true })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Serie 1/ })).toHaveTextContent("ahora");
+    expect(screen.getByLabelText(/^Serie 1:/)).toHaveAttribute("aria-label", expect.stringContaining("ahora"));
     fireEvent.click(screen.getByRole("button", { name: /Serie hecha/ }));
     expect(saved()[entryKey(4, 3, MILITAR.id, 1)]).toMatchObject({ weight: "30", reps: "8" });
     expect(saved()[entryKey(4, 3, MILITAR.id, 1, 2)]).toMatchObject({ date: TODAY });
@@ -170,7 +173,8 @@ describe("Hoy · repetir un día en la misma semana", () => {
     fireEvent.click(screen.getByRole("button", { name: /Hacer otro día/ }));
     fireEvent.click(screen.getByRole("button", { name: DAY_NAMES[3] }));
     expect(screen.getByText(/2\.ª vez esta semana/)).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Serie 1/ })).toHaveTextContent("ahora");
+    openNextExercise();
+    expect(screen.getByLabelText(/^Serie 1:/)).toHaveAttribute("aria-label", expect.stringContaining("ahora"));
   });
 });
 
@@ -184,6 +188,7 @@ describe("Hoy · apuntar otra fecha", () => {
     fireEvent.change(screen.getByLabelText("Fecha"), { target: { value: "2026-10-20" } });
     fireEvent.click(screen.getByRole("button", { name: DAY_NAMES[2] }));
     expect(screen.getByText(/Apuntando el martes 20 oct/)).toBeInTheDocument();
+    openNextExercise();
     fireEvent.click(screen.getByRole("button", { name: /Serie hecha/ }));
     expect(saved()[entryKey(3, 2, SENTADILLA.id, 1)]).toMatchObject({ date: "2026-10-20" });
     fireEvent.click(screen.getByRole("button", { name: /Volver a hoy/ }));
@@ -195,7 +200,7 @@ describe("Hoy · las series de la última vez en la lista", () => {
   beforeEach(freezeToday);
   afterEach(() => vi.useRealTimers());
 
-  it("la lista no enseña series y al abrir solo sale la última vez de la tarjeta de anotar (R19)", () => {
+  it("la lista no enseña series; al abrir, lo de la última vez está en la columna «Anterior» (R19)", () => {
     const snap = historySnapshot();
     snap.entries[entryKey(3, 1, PRESS.id, 3)] = { weight: "52.5", reps: "10", date: "2026-10-19" };
     renderWithWorkout(<TrainingView />, snap);
@@ -204,9 +209,11 @@ describe("Hoy · las series de la última vez en la lista", () => {
     const row = screen.getByRole("button", { name: new RegExp(PRESS.name) });
     expect(row).not.toHaveTextContent("×8");
     expect(row).not.toHaveTextContent("última vez");
-    // El press es el primero: ya está abierto.
+    // Al tocarlo se abre.
+    fireEvent.click(row);
     expect(row).toHaveAttribute("aria-expanded", "true");
     expect(screen.queryByText(/^Última vez:/)).not.toBeInTheDocument();
-    expect(screen.getByText(/^La última vez:/)).toHaveTextContent("La última vez: 55 kg × 8");
+    const table = screen.getByRole("group", { name: "Series de " + PRESS.name });
+    expect(Array.from(table.querySelectorAll(".series-prev")).map((c) => c.textContent)).toEqual(["55×8", "55×8", "52,5×10"]);
   });
 });

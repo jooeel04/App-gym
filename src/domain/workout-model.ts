@@ -1,5 +1,5 @@
 import type { WorkoutRepository } from "@/repositories/workout-repository";
-import { isISODate, mondayOf } from "./calendar";
+import { daysBetween, isISODate, mondayOf } from "./calendar";
 import { blankSnapshot, dayKey, DEFAULT_DAY_NAMES, DEFAULT_SCHEDULE, DEFAULT_WEEKS, entryKey, exerciseKey, isLogged, MAX_DAY_NAME, MAX_DAYS, MAX_ROUNDS, normalizeSchedule, parseKey, roundOf } from "./snapshot";
 import type { BodyMetrics, Exercise, NewExerciseInput, SetEntry, SetField, WeekSchedule, WorkoutChange, WorkoutSnapshot } from "./types";
 
@@ -296,10 +296,10 @@ export class WorkoutModel {
   }
 
   // Fechas en que se marcaron ejercicios a mano, por semana y día de rutina.
-  checkedDates(): { week: number; day: number; date: string }[] {
+  checkedDates(): { week: number; day: number; round: number; id: number; date: string }[] {
     return Object.entries(this.checked).map(([k, date]) => {
-      const [week, day] = parseKey(k);
-      return { week, day, date };
+      const [week, day, id] = parseKey(k);
+      return { week, day, round: roundOf(k, 3), id, date };
     });
   }
 
@@ -310,6 +310,51 @@ export class WorkoutModel {
     const required = exercise.sets - (exercise.optionalLast ? 1 : 0);
     for (let s = 1; s <= required; s++) if (!isLogged(this.getEntry(w, d, exercise.id, s, r))) return false;
     return true;
+  }
+
+  // Borra un entreno entero (la vez `r` del día `d` en la semana `w`): sus series, ticks y
+  // día completado. Para quitar lo marcado sin querer.
+  removeSession(w: number, d: number, r: number) {
+    const sizeOf = { entries: 4, checked: 3, completed: 2 };
+    const keep = <T,>(source: Record<string, T>, size: number) => Object.fromEntries(Object.entries(source).filter(([k]) => {
+      const [week, day] = parseKey(k);
+      return !(week === w && day === d && roundOf(k, size) === r);
+    }));
+    this.state.entries = keep(this.state.entries, sizeOf.entries);
+    this.state.checked = keep(this.checked, sizeOf.checked);
+    this.state.completed = keep(this.state.completed, sizeOf.completed);
+    this.commit({ type: "sessionRemoved", week: w, day: d, round: r });
+  }
+
+  // Cambia la fecha de un entreno entero (la vez `r` del día `d` en la semana `w`). Si la
+  // fecha cae en otra semana del ciclo, el entreno pasa a esa semana en la primera vez libre
+  // de ese día. Fechas no válidas o anteriores a la semana 1 se ignoran.
+  moveSession(w: number, d: number, r: number, date: string) {
+    const start = this.startDate;
+    if (!isISODate(date) || !start || date < start) return;
+    const toWeek = Math.floor(daysBetween(start, date) / 7) + 1;
+    const hasData = (week: number) => [this.state.entries, this.checked, this.state.completed]
+      .some((source) => Object.keys(source).some((k) => { const [kw, kd] = parseKey(k); return kw === week && kd === d; }));
+    const toRound = toWeek === w ? r : hasData(toWeek) ? Math.min(this.lastRound(toWeek, d) + 1, MAX_ROUNDS) : 1;
+    const mine = (k: string, size: number) => { const [kw, kd] = parseKey(k); return kw === w && kd === d && roundOf(k, size) === r; };
+    const entries: Record<string, SetEntry> = {}, checked: Record<string, string> = {}, completed: Record<string, boolean> = {};
+    Object.entries(this.state.entries).forEach(([k, e]) => {
+      if (!mine(k, 4)) { entries[k] = e; return; }
+      const [, , id, s] = parseKey(k);
+      entries[entryKey(toWeek, d, id, s, toRound)] = { ...e, date };
+    });
+    Object.entries(this.checked).forEach(([k, v]) => {
+      if (!mine(k, 3)) { checked[k] = v; return; }
+      checked[exerciseKey(toWeek, d, parseKey(k)[2], toRound)] = date;
+    });
+    Object.entries(this.state.completed).forEach(([k, v]) => {
+      if (!mine(k, 2)) { completed[k] = v; return; }
+      completed[dayKey(toWeek, d, toRound)] = v;
+    });
+    this.state.entries = entries;
+    this.state.checked = checked;
+    this.state.completed = completed;
+    this.commit({ type: "sessionMoved", week: w, day: d, round: r, toWeek, toRound, date });
   }
 
   // ---- Días completados ----

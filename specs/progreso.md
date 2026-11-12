@@ -12,7 +12,9 @@ medidas del cuerpo.
 - `src/components/exercise-progress.tsx` — `ExerciseProgress` (un ejercicio por fila, por
   día de rutina) y `ExerciseRow` (la fila desplegable con la última vez, el récord y la
   gráfica).
-- `src/components/activity-calendar.tsx` — calendario de actividad.
+- `src/components/activity-calendar.tsx` — calendario de actividad (con «Editar» y «Borrar entreno» del día).
+- `src/components/workout-history.tsx` — `WorkoutHistory`: historial de entrenos y su detalle.
+- `src/domain/workout-diary.ts` — `WorkoutDiary`: lo anotado por fecha (`days`, `activity`) y por entreno (`workouts`).
 - `src/domain/workout-stats.ts` — `WorkoutStats`: sesiones de cada ejercicio
   (`session`, `exerciseHistory`), récords (`record`, `records`).
 - `src/domain/progression.ts` — `progressTrend`: los puntos de la gráfica y el cambio con
@@ -64,6 +66,52 @@ aviso de «¡Nuevo récord!» solo sale al subir de peso.
 - **R5** El récord es el día de más peso, con todas sus series; a igual peso gana el de
   más repeticiones en total. → `src/domain/workout-stats.test.ts`,
   `src/components/exercise-progress.test.tsx`
+
+### Historial de entrenos (editar y borrar)
+
+**Qué hace:** en Progreso hay un «Historial», del más reciente al más antiguo, con una
+tarjeta por entreno: día de rutina, fecha, ejercicios, series, kilos movidos y los récords
+que se consiguieron ese día. Al tocar una tarjeta se abre el detalle con todas las series y
+dos botones: **«Editar»** abre ese entreno en Hoy (con su fecha: lo que se anote se guarda
+en ese día) y **«Borrar entreno»** pregunta y, al confirmar, lo quita entero: ya no sale en
+el historial ni en el calendario y deja de contar como hecho (racha, pendientes, récords).
+En el calendario, al tocar un día, cada entreno de ese día tiene los mismos dos botones.
+**Cómo funciona:** un entreno es una vez (`round`) de un día de rutina en una semana.
+`diary.workouts()` los junta con sus series, ticks y la fecha real más reciente.
+`actions.editSession` abre Hoy en esa semana, día y vez con su fecha (como «Apuntar otra
+fecha»); `actions.deleteSession` pide confirmación y llama a `model.removeSession`, que borra
+series, ticks y día completado de esa vez y lo guarda de una vez (función SQL
+`remove_session`).
+**Decisiones:** se borra el entreno entero (no ejercicio a ejercicio) porque lo que se
+quiere quitar es lo marcado sin querer; para cambiar una serie está «Editar». Inspirado en el
+historial de Hevy y Strong.
+**Casos límite:** sin entrenos, el historial invita a ir a Hoy; se ven los 5 últimos y
+«Ver más» enseña 10 más cada vez.
+**Reglas:**
+- **R6** El historial enseña cada entreno (el más reciente primero) con su día, fecha,
+  series y kilos. → `src/domain/workout-diary.test.ts`, `src/components/workout-history.test.tsx`
+- **R7** «Borrar entreno» pregunta y, al confirmar, el entreno desaparece del historial y del
+  calendario y deja de contar como hecho. → `src/domain/workout-model.test.ts`,
+  `src/components/workout-history.test.tsx`
+- **R8** «Editar» abre Hoy con ese entreno, y lo que se anota se guarda con su fecha.
+  → `src/components/workout-history.test.tsx`
+
+### Cambiar la fecha de un entreno
+
+**Qué hace:** en el detalle de un entreno del historial, «Cambiar fecha» enseña un campo de
+fecha (de la semana 1 del ciclo a hoy). Al guardar, todo el entreno pasa a ese día: sale
+en esa fecha del historial y del calendario, y cuenta para la semana de esa fecha (racha y
+pendientes).
+**Cómo funciona:** `actions.moveSession` → `model.moveSession(semana, día, vez, fecha)`:
+cambia la fecha de todas sus series y ticks. Si la fecha cae en otra semana del ciclo, el
+entreno se mueve a esa semana, en la primera vez libre de ese día (`lastRound` + 1, o la 1.ª
+si no hay nada), con su día completado. En Supabase lo hace la función SQL `move_session`
+en una sola transacción.
+**Casos límite:** no se puede elegir una fecha futura ni anterior a la semana 1 (el campo
+no deja y el modelo lo ignora).
+**Reglas:**
+- **R9** «Cambiar fecha» mueve el entreno entero a ese día; si es de otra semana, pasa a
+  esa semana. → `src/domain/workout-model.test.ts`, `src/components/workout-history.test.tsx`
 
 ## Datos
 

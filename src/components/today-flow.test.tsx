@@ -2,7 +2,7 @@ import { fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BASE_ROUTINE } from "@/domain/base-routine";
 import { setActiveWorkout } from "@/lib/active-workout";
-import { freezeToday, PRESS, renderWithWorkout } from "../../tests/workout-fixture";
+import { freezeToday, openNextExercise, PRESS, renderWithWorkout } from "../../tests/workout-fixture";
 import { ContinueWorkout, DOCK_ID } from "./dock";
 import { ExerciseLogger } from "./exercise-logger";
 import { RestTimerBar } from "./rest-timer";
@@ -11,7 +11,8 @@ import { TrainingView } from "./training-view";
 // Spec hoy R8–R12: entras, haces la serie, la apuntas con un toque y sigues.
 // Hoy (miércoles) toca Empujes; su primer ejercicio es el press militar, sin registros.
 const MILITAR = BASE_ROUTINE.find((x) => x.day === 3)!;
-const chip = (n: number) => screen.getByRole("tab", { name: new RegExp("Serie " + n) });
+// El número de la fila de la serie n en la tabla; su etiqueta dice cómo está ("Serie 1: ahora").
+const chip = (n: number) => screen.getByLabelText(new RegExp("^Serie " + n + ":"));
 
 let dock: HTMLElement;
 beforeEach(() => {
@@ -28,14 +29,18 @@ afterEach(() => {
 });
 
 describe("Hoy · entrar y anotar en un toque", () => {
-  it("al entrar, el primer ejercicio sin terminar ya está abierto con su serie (R8)", () => {
+  it("al entrar no hay ningún ejercicio abierto; al tocarlo se abre con su serie lista (R8)", () => {
     renderWithWorkout(<TrainingView />);
+    expect(screen.queryAllByRole("button", { expanded: true }).filter((b) => b.classList.contains("peek-row"))).toEqual([]);
+    expect(within(dock).queryByRole("button", { name: /Serie hecha/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(MILITAR.name) }));
     expect(screen.getByRole("button", { name: new RegExp(MILITAR.name), expanded: true })).toBeInTheDocument();
-    expect(chip(1)).toHaveTextContent("ahora");
+    expect(chip(1)).toHaveAttribute("aria-label", expect.stringContaining("ahora"));
   });
 
   it("«Serie hecha» va en el hueco fijo de abajo y dice lo que va a guardar (R9)", () => {
     renderWithWorkout(<TrainingView />);
+    openNextExercise();
     const button = within(dock).getByRole("button", { name: /Serie hecha/ });
     const reps = (screen.getByLabelText(/serie 1, repeticiones/) as HTMLInputElement).value;
     expect(button).toHaveTextContent("× " + reps);
@@ -45,13 +50,14 @@ describe("Hoy · entrar y anotar en un toque", () => {
 
   it("tras anotar, ahí está el descanso con «Deshacer»; al saltarlo vuelve «Serie hecha» (R10)", () => {
     renderWithWorkout(<><TrainingView /><RestTimerBar /></>);
+    openNextExercise();
     fireEvent.click(within(dock).getByRole("button", { name: /Serie hecha/ }));
     expect(screen.getByRole("timer")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Serie hecha/ })).not.toBeInTheDocument();
     expect(within(dock).getByRole("button", { name: "Deshacer" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Saltar" }));
     expect(within(dock).getByRole("button", { name: /Serie hecha/ })).toBeInTheDocument();
-    expect(chip(2)).toHaveTextContent("ahora");
+    expect(chip(2)).toHaveAttribute("aria-label", expect.stringContaining("ahora"));
   });
 });
 
@@ -59,6 +65,7 @@ describe("Hoy · volver al entreno desde otra pestaña (R11)", () => {
   it("con un entreno en curso, «Seguir entreno» lleva a Hoy", () => {
     window.history.replaceState(null, "", "/progreso");
     renderWithWorkout(<><TrainingView /><RestTimerBar /><ContinueWorkout onToday={false} /></>);
+    openNextExercise();
     expect(screen.queryByRole("button", { name: /Seguir entreno/ })).not.toBeInTheDocument();
     fireEvent.click(within(dock).getByRole("button", { name: /Serie hecha/ }));
     // Mientras hay descanso, en ese sitio está el descanso.
@@ -72,6 +79,7 @@ describe("Hoy · volver al entreno desde otra pestaña (R11)", () => {
 
   it("en Hoy no sale (ya está «Serie hecha»)", () => {
     renderWithWorkout(<><TrainingView /><RestTimerBar /><ContinueWorkout onToday /></>);
+    openNextExercise();
     fireEvent.click(within(dock).getByRole("button", { name: /Serie hecha/ }));
     fireEvent.click(screen.getByRole("button", { name: "Saltar" }));
     expect(screen.queryByRole("button", { name: /Seguir entreno/ })).not.toBeInTheDocument();

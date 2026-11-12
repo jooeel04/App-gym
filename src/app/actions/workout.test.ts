@@ -51,3 +51,29 @@ describe("Guardar días de rutina propios y el calendario nuevo", () => {
     expect(repository.apply).not.toHaveBeenCalled();
   });
 });
+
+// Spec datos R4: borrar un entreno entero.
+describe("Borrar un entreno", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("acepta una vez válida y rechaza las que no lo son", async () => {
+    await applyWorkoutChanges([{ type: "sessionRemoved", week: 3, day: 1, round: 2 }], null);
+    expect(repository.apply).toHaveBeenCalledTimes(1);
+    for (const bad of [{ week: 0, day: 1, round: 1 }, { week: 3, day: 8, round: 1 }, { week: 3, day: 1, round: 0 }, { week: 3, day: 1 }]) {
+      await expect(applyWorkoutChanges([{ type: "sessionRemoved", ...bad }], null)).rejects.toThrow("Cambios no válidos");
+    }
+  });
+});
+
+describe("Mover un entreno a otra fecha", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("acepta un cambio válido y rechaza semanas, veces o fechas raras (R4)", async () => {
+    const ok = { type: "sessionMoved", week: 3, day: 1, round: 1, toWeek: 2, toRound: 2, date: "2026-10-14" };
+    await applyWorkoutChanges([ok], null);
+    expect(repository.apply).toHaveBeenCalledTimes(1);
+    for (const bad of [{ toWeek: 0 }, { toRound: 21 }, { date: "14/10/2026" }, { day: 9 }]) {
+      await expect(applyWorkoutChanges([{ ...ok, ...bad }], null)).rejects.toThrow("Cambios no válidos");
+    }
+  });
+});

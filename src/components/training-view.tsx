@@ -38,8 +38,10 @@ export function TrainingView() {
   const exDone = list.filter((x) => model.isExerciseDone(week, day, x, round)).length;
   // Con apodo, la app se dirige a la persona: "Joel, hoy toca".
   const you = (text: string) => (nickname ? nickname + ", " + text.charAt(0).toLowerCase() + text.slice(1) : text);
-  const label = (live ? you("Entreno en curso") : done ? (nickname ? "¡Hecho, " + nickname + "!" : "¡Hecho!")
-    : logDate ? you("Apuntando el " + formatShortDate(logDate))
+  // Con una fecha pasada: «Editando» si ese entreno ya tenía algo, «Apuntando» si es nuevo.
+  const label = (live ? you("Entreno en curso")
+    : logDate ? you((done || exDone > 0 ? "Editando el " : "Apuntando el ") + formatShortDate(logDate))
+    : done ? (nickname ? "¡Hecho, " + nickname + "!" : "¡Hecho!")
     : planned && planned < today ? you("Para hacer hoy · era el " + formatShortDate(planned))
     : picked && planned !== today ? you("Vas a hacer") : you("Hoy toca"))
     + (round > 1 ? " · " + round + ".ª vez esta semana" : "");
@@ -126,14 +128,14 @@ export function TrainingView() {
   );
 }
 
-// Ejercicios del día en pantalla. Al entrar ya está abierto el primero sin terminar (para
-// anotar sin tocar nada más); al tocar otro se abre ese (uno cada vez) y, al terminar el
-// abierto, se abre solo el siguiente que falte.
+// Ejercicios del día en pantalla. Al entrar no hay ninguno abierto (spec hoy R8): se toca el
+// que se va a hacer y se abre ese (uno cada vez); al terminar el abierto, se abre solo el
+// siguiente que falte.
 function TodayList({ done }: { done: boolean }) {
   const { model, week, day, round } = useWorkout();
   const list = model.exercisesOfDay(day);
   const isDone = (id: number | null) => list.some((x) => x.id === id && model.isExerciseDone(week, day, x, round));
-  const [openId, setOpenId] = useState<number | null>(() => (done ? null : list.find((x) => !model.isExerciseDone(week, day, x, round))?.id ?? null));
+  const [openId, setOpenId] = useState<number | null>(null);
   const [openWasDone, setOpenWasDone] = useState(false);
   const ref = useRef<HTMLElement>(null);
   // El abierto acaba de quedar hecho: se pasa al siguiente que falte.
@@ -141,15 +143,11 @@ function TodayList({ done }: { done: boolean }) {
     if (!openWasDone) setOpenId(list.find((x) => !model.isExerciseDone(week, day, x, round))?.id ?? null);
     setOpenWasDone(false);
   }
-  // Al abrir uno, su cabecera se coloca arriba para ver las series. Al entrar solo se
-  // desplaza si el abierto queda en la mitad de abajo (si no, se ve la cabecera del día).
-  const mounted = useRef(false);
+  // Al abrir uno, su cabecera se coloca arriba para ver las series.
   useEffect(() => {
-    const first = !mounted.current;
-    mounted.current = true;
     if (openId === null) return;
     const item = ref.current?.querySelector(".peek-item.open");
-    if (!item || (first && item.getBoundingClientRect().top < window.innerHeight / 2)) return;
+    if (!item) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     item.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
   }, [openId]);
@@ -162,7 +160,7 @@ function TodayList({ done }: { done: boolean }) {
   };
 
   return (
-    <section className="chart peek" ref={ref}>
+    <section className="chart peek" ref={ref} style={{ "--dc": "var(--day" + day + ")" } as React.CSSProperties}>
       <h3>{done ? "Lo que hiciste" : "Lo que vas a hacer"}</h3>
       <p className="peek-hint">Toca un ejercicio para anotar tus series.</p>
       {list.map((x, i) => {

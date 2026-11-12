@@ -57,6 +57,20 @@ la app (`normalizeSchedule`) y en SQL.
 - **R3** La Server Action acepta días 1–7, nombres de 1 a 30 letras y listas de días de la
   semana (también el formato antiguo), y rechaza lo demás. → `src/app/actions/workout.test.ts`
 
+### Borrar un entreno entero o cambiarle la fecha
+
+**Qué hace:** quita una vez de un día de rutina en una semana (ver `specs/progreso.md`,
+historial): sus series, ticks y el día completado. O lo lleva a otra fecha (y, si cae en otra
+semana, a esa semana y a la primera vez libre de ese día).
+**Cómo funciona:** cambio `sessionRemoved` (`week`, `day`, `round`); en Supabase, la función
+SQL `remove_session` borra las filas de `set_logs` y `completed_days` de esa vez en **una
+sola transacción** (security invoker: RLS solo deja tocar el programa propio). Cambio
+`sessionMoved` (`week`, `day`, `round`, `toWeek`, `toRound`, `date`): la función
+`move_session` cambia semana, vez y fecha de esas filas también de una vez.
+**Reglas:**
+- **R4** La Server Action acepta `sessionRemoved` y `sessionMoved` con semana 1–520, día
+  1–7, vez 1–20 y fecha válida, y rechaza lo demás. → `src/app/actions/workout.test.ts`
+
 ## Datos
 
 - `set_logs`: (`program_id`, `week`, `day`, `round`, `exercise_local_id`, `set_number`) →
