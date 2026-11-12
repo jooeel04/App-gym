@@ -38,6 +38,7 @@ export type WeekSchedule = Record<string, number[]>;
 // body:      fecha → peso corporal y medidas de ese día
 // dayNames:  día de rutina → su nombre (qué días existen)
 // dayColors: día de rutina → su color elegido (de DAY_COLORS; sin él, el de siempre)
+// watchKcal: fecha → kcal que dijo el reloj ese día
 export interface WorkoutSnapshot {
   version: 1;
   weeksCount: number;
@@ -52,6 +53,8 @@ export interface WorkoutSnapshot {
   dayNames?: Record<string, string>;
   // Color elegido de cada día ("3" → "rojo"); los que no están, el de siempre.
   dayColors?: Record<string, string>;
+  // Kcal del reloj de cada fecha ("2026-10-28" → 320).
+  watchKcal?: Record<string, number>;
 }
 
 // Peso corporal (kg) y medidas (cm) de un día. Todos opcionales.
@@ -91,6 +94,8 @@ export type WorkoutChange =
   | { type: "body"; date: string; metrics: BodyMetrics | null }
   | { type: "dayNames"; dayNames: Record<string, string> }
   | { type: "dayColors"; dayColors: Record<string, string> }
+  // Kcal del reloj de una fecha (null: se borran).
+  | { type: "watchKcal"; date: string; kcal: number | null }
   // Entreno borrado entero (series, ticks y día completado de esa vez).
   | { type: "sessionRemoved"; week: number; day: number; round: number }
   // Entreno movido a otra fecha (y, si es de otra semana, a esa semana y a la vez `toRound`).

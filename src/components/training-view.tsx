@@ -8,19 +8,20 @@ import type { Exercise } from "@/domain/types";
 import type { SetResult } from "@/domain/workout-stats";
 import { notifyState, requestPermissions, subscribePermission, type NotifyState } from "@/lib/permissions";
 import { ExerciseLogger } from "./exercise-logger";
-import { ArrowIcon, BellIcon, CalendarIcon, CheckIcon, ChevronIcon, FlameIcon, RepeatIcon, SleepIcon, WarningIcon } from "./icons";
+import { DailyQuote, RaiseCard } from "./today-extras";
+import { WeekPlanner } from "./week-planner";
+import { ArrowIcon, BellIcon, CheckIcon, ChevronIcon, FlameIcon, RepeatIcon, SleepIcon } from "./icons";
 
 export const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
 
 // Vista "Hoy": qué toca hoy en grande (con lo que llevas hecho) y la lista de ejercicios:
 // al tocar uno se despliega para anotar sus series con botones + / −. Debajo de la cabecera,
-// una fila «Hoy · Repetir · Otro día»; lo que quedó pendiente está dentro de «Otro día»
-// (que avisa con un número), para que la pantalla quede limpia. Es la única forma de anotar: para corregir se toca la serie.
+// una fila «Hoy · Repetir». Para elegir otro día (o lo que quedó pendiente) se toca un día de
+// «Esta semana» (WeekPlanner), para que la pantalla quede limpia. Es la única forma de anotar: para corregir se toca la serie.
 export function TrainingView() {
   const { model, calendar, today, week, day, round, logDate, picked, active, nickname, actions } = useWorkout();
-  const [otherDay, setOtherDay] = useState(false);
-  // Fecha elegida en «Hacer otro día» ("" = hoy).
-  const [when, setWhen] = useState("");
+  // «Hoy puedes subir peso» pide a la lista que abra un ejercicio (n: para repetir el mismo).
+  const [openRequest, setOpenRequest] = useState<{ id: number; n: number } | null>(null);
   const done = model.isDayCompleted(week, day, round);
   const planned = calendar.plannedDate(week, day, round);
   const list = model.exercisesOfDay(day);
@@ -29,9 +30,6 @@ export function TrainingView() {
   if (!today) return null;
 
   const resting = !picked && calendar.sessionsOn(today).length === 0;
-  // El día en pantalla no se ofrece como pendiente; en un día de descanso no hay día en
-  // pantalla (week/day apuntan al último de la semana), así que sí sale.
-  const missed = calendar.missedSessions(today).filter((s) => resting || !(s.week === week && s.day === day && s.round === round));
   const totalSets = list.reduce((n, x) => n + x.sets, 0);
   const exDone = list.filter((x) => model.isExerciseDone(week, day, x, round)).length;
   // Con apodo, la app se dirige a la persona: "Joel, hoy toca".
@@ -43,22 +41,18 @@ export function TrainingView() {
     : planned && planned < today ? you("Para hacer hoy · era el " + formatShortDate(planned))
     : picked && planned !== today ? you("Vas a hacer") : you("Hoy toca"))
     + (round > 1 ? " · " + round + ".ª vez esta semana" : "");
-  const pickDay = (d: number) => {
-    if (when && when < today) actions.logPastDay(when, d);
-    else actions.selectDay(d);
-    setOtherDay(false);
-    setWhen("");
-  };
 
   return (
     <section className="view active">
       <div className="pagehead">
         <div>
           <div className="eyebrow">{formatLongDate(today)}</div>
-          <h1>Hoy</h1>
+          <h1 className="sr-only">Hoy</h1>
         </div>
         {model.startDate && <StreakPill today={today} />}
       </div>
+      <DailyQuote />
+      <WeekPlanner today={today} />
 
       {resting ? <RestCard /> : (
         <section className="hero" style={{ "--hero": "var(--day" + day + ")", "--p": (list.length ? exDone / list.length : 0) * 100 + "%" } as React.CSSProperties}>
@@ -74,49 +68,21 @@ export function TrainingView() {
           {live && !done && <button type="button" className="finish-workout" onClick={actions.finishWorkout}>Terminar entreno</button>}
         </section>
       )}
-      {!resting && list.length > 0 && <TodayList key={week + "-" + day + "-" + round} done={done} />}
+      {!resting && list.length > 0 && (
+        <>
+          <RaiseCard onOpen={(id) => setOpenRequest((r) => ({ id, n: (r?.n ?? 0) + 1 }))} />
+          <TodayList key={week + "-" + day + "-" + round} done={done} openRequest={openRequest} />
+        </>
+      )}
 
-      {/* Una fila de botones iguales: volver a hoy, repetir el día y hacer otro día. Textos
-          cortos a la vista; el nombre completo, para el lector de pantalla (spec hoy R27). */}
+      {/* Una fila de botones iguales: volver a hoy y repetir el día. Textos cortos a la vista;
+          el nombre completo, para el lector de pantalla (spec hoy R27). */}
       <div className="today-actions">
         {picked && <button type="button" aria-label="Volver a hoy" onClick={actions.goToToday}><ArrowIcon dir="left" />Hoy</button>}
         {!resting && done && list.length > 0 && round < MAX_ROUNDS && (
           <button type="button" aria-label="Repetir este día" onClick={() => actions.repeatDay(week, day)}><RepeatIcon />Repetir</button>
         )}
-        <button type="button" className={otherDay ? "on" : undefined} aria-expanded={otherDay} onClick={() => setOtherDay(!otherDay)}
-          aria-label={"Hacer otro día" + (missed.length ? ", " + missed.length + (missed.length === 1 ? " pendiente" : " pendientes") : "")}>
-          <CalendarIcon />Otro día{missed.length > 0 && <span className="pending-badge">{missed.length}</span>}
-        </button>
       </div>
-      {otherDay && missed.length > 0 && (
-        <div className="pending-list">
-          <div className="pending-title">Pendientes</div>
-          {missed.map((s) => (
-            <div className="pending-card" key={s.week + "|" + s.day + "|" + s.round}>
-              <div><b><WarningIcon /> {model.dayName(s.day)}</b><span>Era el {formatLongDate(s.date).toLowerCase()}</span></div>
-              <button type="button" aria-label={"Hacer hoy " + model.dayName(s.day)} onClick={() => { actions.recoverSession(s); setOtherDay(false); }}>Hacer hoy</button>
-            </div>
-          ))}
-        </div>
-      )}
-      {otherDay && (
-        <>
-          {/* Para apuntar un entreno de un día pasado: primero la fecha, luego el día. */}
-          <label className="log-date">
-            <span>Fecha</span>
-            <input type="date" value={when || today} min={model.startDate ?? undefined} max={today}
-              onChange={(ev) => setWhen(ev.target.value)} />
-          </label>
-          <div className="days">
-            {model.days.map((d) => (
-              <button key={d} className={"day" + (d === day && !resting ? " active" : "")} onClick={() => pickDay(d)}>
-                <i className="swatch" style={{ background: "var(--day" + d + ")" }} /><b>{model.dayName(d)}</b>{model.hasLoggedSets(week, d) && <i className="dot" />}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-
 
       <PermissionCard />
     </section>
@@ -126,13 +92,22 @@ export function TrainingView() {
 // Ejercicios del día en pantalla. Al entrar no hay ninguno abierto (spec hoy R8): se toca el
 // que se va a hacer y se abre ese (uno cada vez); al terminar el abierto, se abre solo el
 // siguiente que falte.
-function TodayList({ done }: { done: boolean }) {
+function TodayList({ done, openRequest }: { done: boolean; openRequest: { id: number; n: number } | null }) {
   const { model, week, day, round } = useWorkout();
   const list = model.exercisesOfDay(day);
   const isDone = (id: number | null) => list.some((x) => x.id === id && model.isExerciseDone(week, day, x, round));
   const [openId, setOpenId] = useState<number | null>(null);
   const [openWasDone, setOpenWasDone] = useState(false);
   const ref = useRef<HTMLElement>(null);
+  // Un ejercicio pedido desde fuera («Hoy puedes subir peso»): se abre ese.
+  const [seenRequest, setSeenRequest] = useState(openRequest);
+  if (openRequest !== seenRequest) {
+    setSeenRequest(openRequest);
+    if (openRequest) {
+      setOpenId(openRequest.id);
+      setOpenWasDone(isDone(openRequest.id));
+    }
+  }
   // El abierto acaba de quedar hecho: se pasa al siguiente que falte.
   if (openId !== null && isDone(openId) !== openWasDone) {
     if (!openWasDone) setOpenId(list.find((x) => !model.isExerciseDone(week, day, x, round))?.id ?? null);

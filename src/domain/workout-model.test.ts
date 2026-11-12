@@ -112,3 +112,28 @@ describe("Cambiar la fecha de un entreno", () => {
     expect(changes.at(-1)).toEqual({ type: "sessionMoved", week: 3, day: 1, round: 1, toWeek: 2, toRound: 2, date: "2026-10-14" });
   });
 });
+
+// Spec hoy R32: las kcal del reloj, por fecha.
+describe("Calorías del reloj", () => {
+  it("se guardan por fecha, se cambian o se borran, y solo de 1 a 9999", () => {
+    const { model, changes } = setup();
+    expect(model.watchKcal("2026-10-28")).toBeNull();
+    model.setWatchKcal("2026-10-28", 320);
+    expect(model.watchKcal("2026-10-28")).toBe(320);
+    expect(changes.at(-1)).toEqual({ type: "watchKcal", date: "2026-10-28", kcal: 320 });
+    model.setWatchKcal("2026-10-28", 0);
+    model.setWatchKcal("2026-10-28", 10000);
+    model.setWatchKcal("otra cosa", 300);
+    expect(model.watchKcal("2026-10-28")).toBe(320);
+    model.setWatchKcal("2026-10-28", null);
+    expect(model.watchKcal("2026-10-28")).toBeNull();
+    expect(changes.at(-1)).toEqual({ type: "watchKcal", date: "2026-10-28", kcal: null });
+  });
+
+  it("«Borrar registros» también las borra", () => {
+    const { model } = setup();
+    model.setWatchKcal("2026-10-28", 320);
+    model.clearLogs();
+    expect(model.watchKcal("2026-10-28")).toBeNull();
+  });
+});

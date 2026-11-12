@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useWorkout } from "@/controllers/workout-controller";
 import { BASE_ROUTINE } from "@/domain/base-routine";
 import { entryKey } from "@/domain/snapshot";
-import { freezeToday, PRESS, renderWithWorkout } from "../../tests/workout-fixture";
+import { setEnergyPrefs } from "@/lib/preferences";
+import { freezeToday, historySnapshot, PRESS, renderWithWorkout } from "../../tests/workout-fixture";
 import { ActivityCalendar } from "./activity-calendar";
 import { ConfirmDialog } from "./confirm-dialog";
 import { ProgressView } from "./progress-view";
@@ -37,6 +38,12 @@ describe("Progreso · el calendario hace de historial", () => {
     expect(info()).toHaveTextContent("Torso");
     expect(info()).toHaveTextContent("8 series · 3120 kg");
     expect(info()).toHaveTextContent(PRESS.name);
+  });
+
+  it("con peso apuntado, el día tocado enseña las calorías estimadas de cada entreno (R11)", () => {
+    renderWithWorkout(<ActivityCalendar />);
+    fireEvent.click(day(19));
+    expect(info()).toHaveTextContent(/8 series · 3120 kg · ≈ \d+ kcal/);
   });
 
   it("«Cambiar fecha» lleva el entreno entero a ese día y el calendario salta a él (R9)", () => {
@@ -87,5 +94,29 @@ describe("Progreso · el calendario hace de historial", () => {
     expect(day(19)).toHaveAccessibleName(/sin entrenar/);
     expect(entries()[entryKey(3, 1, PRESS.id, 1)]).toBeUndefined();
     expect(entries()[entryKey(2, 1, PRESS.id, 1)]).toBeDefined();
+  });
+});
+
+// Spec progreso R12: kcal del reloj en el calendario.
+describe("Progreso · kcal del reloj en el calendario", () => {
+  beforeEach(freezeToday);
+  afterEach(() => { vi.useRealTimers(); setEnergyPrefs({ watchInput: false }); });
+
+  it("si el día tiene kcal del reloj, salen en vez de la estimación (R12)", () => {
+    const snap = historySnapshot();
+    snap.watchKcal = { "2026-10-19": 410 };
+    renderWithWorkout(<ActivityCalendar />, snap);
+    fireEvent.click(day(19));
+    expect(info()).toHaveTextContent("410 kcal ⌚");
+    expect(info()).not.toHaveTextContent("≈");
+  });
+
+  it("con «Apuntar las kcal del reloj» activado, se pueden poner desde el día tocado (R12)", () => {
+    setEnergyPrefs({ watchInput: true });
+    renderWithWorkout(<ActivityCalendar />);
+    fireEvent.click(day(19));
+    fireEvent.change(within(info()).getByLabelText("kcal del reloj"), { target: { value: "380" } });
+    fireEvent.click(within(info()).getByRole("button", { name: "Guardar kcal" }));
+    expect(info()).toHaveTextContent("380 kcal ⌚");
   });
 });

@@ -64,6 +64,38 @@ la app (`normalizeSchedule`) y en SQL.
 - **R5** La Server Action acepta colores de día solo de `DAY_COLORS` (días 1–7) y rechaza
   lo demás. → `src/app/actions/workout.test.ts`
 
+### Calorías del reloj
+
+**Qué hace:** guarda las kcal que dice el reloj para una fecha (ver `specs/hoy.md`, R32).
+**Cómo funciona:** tabla `watch_energy` (`program_id`, `date`, `kcal` 1–9999), clave
+(`program_id`, `date`), RLS como `body_metrics` (cada uno solo las suyas). Cambio
+`watchKcal` (fecha + kcal, o null para borrar): upsert o delete. «Borrar registros»
+(`logsCleared`) también las borra. `replace_program` recibe `p_watch_kcal` (copias).
+Migración `20261116000000_watch_energy.sql`.
+**Decisiones:** tabla propia (regla 4) y no columna de `body_metrics`: allí cada fila es una
+medida que toma la persona y saldría vacía en «Peso y medidas»; las kcal del reloj son otro
+dato con su propia vida (las escribe el reloj o el atajo).
+**Reglas:**
+- **R6** La Server Action acepta kcal del reloj de 1 a 9999 (o null) con una fecha válida, y
+  rechaza lo demás. → `src/app/actions/workout.test.ts`
+
+### Buzón del atajo de iPhone
+
+**Qué hace:** deja que el atajo de iPhone (sin sesión) guarde kcal del reloj en la cuenta
+dueña de la clave (ver `specs/ajustes.md`, R9–R10).
+**Cómo funciona:** `programs.watch_token_hash` (`text`, `unique`, null = sin atajo):
+SHA-256 en hexadecimal de la clave. `log_watch_kcal(p_token, p_date, p_kcal)` calcula el
+hash, busca el programa y hace upsert en `watch_energy`; devuelve false si la clave no
+existe, las kcal no están en 1–9999 o la fecha no está entre 7 días atrás y mañana.
+Migración `20261117000000_watch_shortcut.sql`.
+**Decisiones:** `security definer` porque el atajo no tiene sesión y RLS no le dejaría
+escribir; para que sea seguro solo escribe en el programa cuya clave coincide, y solo una
+fila de `watch_energy`. Se usa `pg_catalog.sha256` (no hace falta `pgcrypto`). El hash es
+una propiedad del programa → columna, no tabla (regla 2).
+**Reglas:**
+- **R7** `log_watch_kcal` solo guarda con la clave de ese programa y datos válidos.
+  → probada contra Postgres local al aplicar la migración; la ruta, en `src/app/api/reloj/route.test.ts`
+
 ### Borrar un entreno entero o cambiarle la fecha
 
 **Qué hace:** quita una vez de un día de rutina en una semana (ver `specs/progreso.md`,
@@ -86,6 +118,8 @@ sola transacción** (security invoker: RLS solo deja tocar el programa propio). 
 - `completed_days`: (`program_id`, `week`, `day`, `round`).
 - `programs`: `schedule` (día → días de la semana), `day_names` (día → nombre) y
   `day_colors` (día → color).
+- `watch_energy`: (`program_id`, `date`) → `kcal` del reloj.
+- `programs.watch_token_hash`: SHA-256 de la clave del atajo de iPhone (null = sin atajo).
 
 ## Pendiente
 

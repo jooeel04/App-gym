@@ -4,16 +4,24 @@ import { useWorkout } from "@/controllers/workout-controller";
 import { formatLongDate } from "@/domain/calendar";
 import { closeOnBackdrop } from "./backdrop";
 import { Delta } from "./exercise-progress";
-import { PartyIcon, StrongIcon, TrendUpIcon, TrophyIcon } from "./icons";
+import { FlameIcon, PartyIcon, StrongIcon, TrendUpIcon, TrophyIcon } from "./icons";
+import { useKcalOf } from "./use-workout-kcal";
+import { WatchKcalInput } from "./watch-kcal-input";
 
 const fmt = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 1 });
 
 // Resumen al completar un día o terminar el entreno en curso: duración, series, carga
-// movida, récords batidos y cómo fue cada ejercicio frente a la última vez.
+// movida, calorías estimadas, récords batidos y cómo fue cada ejercicio frente a la última vez.
 export function DaySummary() {
-  const { summary, model, stats, records, today, nickname, actions } = useWorkout();
-  if (!summary) return null;
-  const { week, day, round, minutes } = summary;
+  const { summary } = useWorkout();
+  return summary ? <Summary {...summary} /> : null;
+}
+
+function Summary({ week, day, round, minutes, date }: { week: number; day: number; round: number; minutes: number | null; date: string }) {
+  const { model, stats, records, today, nickname, actions } = useWorkout();
+  const kcal = useKcalOf()(week, day, round);
+  // Las del reloj, si se apuntaron (spec hoy R32): mandan sobre la estimación.
+  const watch = model.watchKcal(date);
   const tally = stats.day(week, day, round);
   const done = model.exercisesOfDay(day).flatMap((x) => {
     const now = stats.session(x, week, round);
@@ -46,6 +54,17 @@ export function DaySummary() {
           <div><strong>{tally.n}</strong><span>Series</span></div>
           <div><strong>{fmt(volume)} kg</strong><span>Carga movida</span>{prevVolume !== null && volume > 0 && <Delta value={volume - prevVolume} unit=" kg" />}</div>
           <div><strong>{reps}</strong><span>Repeticiones</span></div>
+        </div>
+        <div className="summary-kcal">
+          {watch ? <b><FlameIcon /> {watch} kcal ⌚</b> : kcal && <b><FlameIcon /> ≈ {kcal.total} kcal</b>}
+          {watch && kcal && <small>Estimación: ≈ {kcal.total} kcal</small>}
+          {!watch && kcal && (
+            <ul aria-label="Calorías de cada ejercicio">
+              {kcal.each.map((x) => <li key={x.name}><span>{x.name}</span><span>≈ {x.kcal} kcal</span></li>)}
+            </ul>
+          )}
+          {!watch && !kcal && <p className="summary-kcal-hint">Apunta tu peso en Progreso para ver las calorías</p>}
+          <WatchKcalInput date={date} />
         </div>
         {prs.length > 0 && (
           <div className="summary-prs">

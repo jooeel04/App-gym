@@ -6,7 +6,9 @@ import { addDays, formatLongDate, formatShortDate, parseISODate, toISODate, WEEK
 import type { SetEntry } from "@/domain/types";
 import type { Workout } from "@/domain/workout-diary";
 import { fmt } from "./exercise-progress";
-import { ArrowIcon, PencilIcon } from "./icons";
+import { ArrowIcon, FlameIcon, PencilIcon } from "./icons";
+import { useKcalOf } from "./use-workout-kcal";
+import { WatchKcalInput } from "./watch-kcal-input";
 
 function describeSet(e: SetEntry) {
   const load = e.weight ? e.weight.replace(".", ",") + " kg" : "";
@@ -26,6 +28,7 @@ function dotBackground(days: number[]) {
 // se ve debajo qué se entrenó: cada ejercicio con sus series.
 export function ActivityCalendar() {
   const { model, diary, today } = useWorkout();
+  const kcalOf = useKcalOf();
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   if (!today) return null;
@@ -42,6 +45,8 @@ export function ActivityCalendar() {
   const selSessions = diary.days().find((d) => d.date === sel)?.sessions ?? [];
   // Entrenos de ese día, para «Editar», «Cambiar fecha» y «Borrar entreno».
   const workouts = diary.workouts().filter((w) => w.date === sel);
+  // Kcal del reloj de ese día (spec progreso R12): mandan sobre la estimación.
+  const watch = model.watchKcal(sel);
   // Tras cambiar la fecha de un entreno, el calendario salta a ese día (y a su mes).
   const show = (date: string) => {
     const d = parseISODate(date);
@@ -77,6 +82,8 @@ export function ActivityCalendar() {
       <div className="calinfo" aria-live="polite" key={sel}>
         <strong>{formatLongDate(sel)}</strong>
         {selDays.length === 0 && <span className="calinfo-empty">Sin entrenar</span>}
+        {watch && <span className="calinfo-kcal"><FlameIcon /> {watch} kcal ⌚</span>}
+        {workouts.length > 0 && <WatchKcalInput key={sel} date={sel} />}
         {selDays.map((d) => {
           const sessions = selSessions.filter((s) => s.day === d);
           return (
@@ -89,7 +96,10 @@ export function ActivityCalendar() {
                     // Lo que antes decía el historial: series y kilos de ese día de rutina.
                     const mine = workouts.filter((w) => w.day === d);
                     const sets = mine.reduce((n, w) => n + w.sets, 0), kg = mine.reduce((n, w) => n + w.volume, 0);
-                    return sets > 0 && <small className="calinfo-total">{sets} {sets === 1 ? "serie" : "series"}{kg > 0 && " · " + fmt(kg) + " kg"}</small>;
+                    // Calorías estimadas (spec progreso R11), si hay peso apuntado.
+                    const kcal = mine.map((w) => kcalOf(w.week, w.day, w.round));
+                    const total = kcal.every(Boolean) ? kcal.reduce((n, k) => n + k!.total, 0) : 0;
+                    return sets > 0 && <small className="calinfo-total">{sets} {sets === 1 ? "serie" : "series"}{kg > 0 && " · " + fmt(kg) + " kg"}{!watch && total > 0 && " · ≈ " + total + " kcal"}</small>;
                   })()}
                   {(() => {
                     // Si se hizo otro día del que tocaba, se indica cuándo tocaba.

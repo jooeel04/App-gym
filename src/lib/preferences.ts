@@ -88,3 +88,33 @@ export function setPlatePrefs(prefs: PlatePrefs) {
   }
   window.dispatchEvent(new Event(PREFS_EVENT));
 }
+
+// Calorías (spec ajustes R8): si se apuntan a mano las kcal del reloj.
+export interface EnergyPrefs {
+  watchInput: boolean;
+}
+
+const ENERGY_KEY = "rutina:energy";
+export const DEFAULT_ENERGY: EnergyPrefs = { watchInput: false };
+let cachedEnergy: EnergyPrefs | null = null;
+
+export function getEnergyPrefs(): EnergyPrefs {
+  if (cachedEnergy) return cachedEnergy;
+  try {
+    const saved = JSON.parse(localStorage.getItem(ENERGY_KEY) ?? "null") as Partial<EnergyPrefs> | null;
+    cachedEnergy = { ...DEFAULT_ENERGY, ...saved };
+  } catch {
+    cachedEnergy = DEFAULT_ENERGY;
+  }
+  return cachedEnergy;
+}
+
+export function setEnergyPrefs(prefs: EnergyPrefs) {
+  cachedEnergy = prefs;
+  try {
+    localStorage.setItem(ENERGY_KEY, JSON.stringify(prefs));
+  } catch {
+    // Sin almacenamiento la preferencia dura hasta cerrar la app.
+  }
+  window.dispatchEvent(new Event(PREFS_EVENT));
+}

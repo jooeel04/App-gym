@@ -1,5 +1,6 @@
 import type { WorkoutRepository } from "@/repositories/workout-repository";
 import { defaultDayColor, isDayColor, type DayColor } from "./day-colors";
+import { isWatchKcal } from "./energy";
 import { daysBetween, isISODate, mondayOf } from "./calendar";
 import { blankSnapshot, dayKey, DEFAULT_DAY_NAMES, DEFAULT_SCHEDULE, DEFAULT_WEEKS, entryKey, exerciseKey, isLogged, MAX_DAY_NAME, MAX_DAYS, MAX_ROUNDS, normalizeSchedule, parseKey, roundOf } from "./snapshot";
 import type { BodyMetrics, Exercise, NewExerciseInput, SetEntry, SetField, WeekSchedule, WorkoutChange, WorkoutSnapshot } from "./types";
@@ -478,6 +479,12 @@ export class WorkoutModel {
       .map(([date, metrics]) => ({ date, metrics }));
   }
 
+  // Último peso corporal apuntado (kg), o null si no hay ninguno.
+  latestBodyWeight(): number | null {
+    const withWeight = this.bodyLog().filter((b) => (b.metrics.weight ?? 0) > 0);
+    return withWeight.at(-1)?.metrics.weight ?? null;
+  }
+
   // Guarda las medidas de un día (null o vacías: las borra).
   setBodyMetrics(date: string, metrics: BodyMetrics | null) {
     if (!isISODate(date)) return;
@@ -497,12 +504,30 @@ export class WorkoutModel {
     this.commit({ type: "replaced" });
   }
 
-  // Borra registros, ticks, días completados y medidas; conserva la rutina y el número de semanas.
+  // ---- Calorías del reloj (spec hoy R32) ----
+
+  // Kcal que dijo el reloj en esa fecha, o null.
+  watchKcal(date: string): number | null {
+    return this.state.watchKcal?.[date] ?? null;
+  }
+
+  // Guarda las kcal del reloj de una fecha (de 1 a 9999); null las borra.
+  setWatchKcal(date: string, kcal: number | null) {
+    if (!isISODate(date) || (kcal !== null && !isWatchKcal(kcal))) return;
+    const all = { ...this.state.watchKcal };
+    if (kcal === null) delete all[date];
+    else all[date] = kcal;
+    this.state.watchKcal = all;
+    this.commit({ type: "watchKcal", date, kcal });
+  }
+
+  // Borra registros, ticks, días completados, medidas y kcal del reloj; conserva la rutina y el número de semanas.
   clearLogs() {
     this.state.entries = {};
     this.state.checked = {};
     this.state.completed = {};
     this.state.body = {};
+    this.state.watchKcal = {};
     this.commit({ type: "logsCleared" });
   }
 }

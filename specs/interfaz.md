@@ -47,7 +47,9 @@ tendencia tienen dirección (`ArrowIcon dir`, `TriangleIcon dir`). `GoogleIcon` 
 
 ### Títulos y etiquetas
 
-**Qué hace:** cada pestaña lleva solo su título. En Hoy, encima, la fecha en letra normal.
+**Qué hace:** cada pestaña lleva solo su título. En Hoy no se ve el título: arriba va la
+fecha en letra normal (con la racha) y debajo la frase del día; el título «Hoy» sigue para
+el lector de pantalla (clase `sr-only`).
 Las etiquetas pequeñas no van en mayúsculas.
 **Decisiones:** las etiquetas en mayúsculas sobre cada título y la numeración «01, 02»
 eran adorno sin información (salía en todas las pantallas). Los códigos para compartir

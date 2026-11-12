@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { progressTrend, suggestNext } from "./progression";
+import { progressTrend, raiseTargets, suggestNext } from "./progression";
 import type { Exercise } from "./types";
 import type { ExerciseSession } from "./workout-stats";
 
@@ -68,5 +68,26 @@ describe("suggestNext · el salto depende del material (spec hoy R23–R24)", ()
   it("con barra, el doble del disco más pequeño del gym (R24)", () => {
     expect(suggestNext(exercise("Press banca con barra"), allMax(60))!.weight).toBe(62.5);
     expect(suggestNext(exercise("Press banca con barra"), allMax(60), 2.5)!.weight).toBe(65);
+  });
+});
+
+// Spec hoy R34: «Hoy puedes subir peso» junta los ejercicios con consejo de subir.
+describe("raiseTargets · los ejercicios en los que toca subir", () => {
+  const curl = { ...exercise("Curl de bíceps con mancuernas"), id: 1 };
+  const press = { ...exercise("Press banca con barra"), id: 2 };
+  const remo = { ...exercise("Remo en polea baja"), id: 3 };
+  const sinMax = (kg: number) => session(1, [[kg, 10], [kg, 9], [kg, 9]]);
+
+  it("solo los que llegaron al máximo la última vez, con el peso de antes y el nuevo", () => {
+    const last = new Map([[1, allMax(16)], [2, allMax(60)], [3, sinMax(30)]]);
+    expect(raiseTargets([curl, press, remo], (x) => last.get(x.id) ?? null)).toEqual([
+      { exercise: curl, from: 16, to: 18 },
+      { exercise: press, from: 60, to: 62.5 },
+    ]);
+  });
+
+  it("como mucho 3", () => {
+    const many = [1, 2, 3, 4, 5].map((id) => ({ ...exercise("Press banca con barra"), id }));
+    expect(raiseTargets(many, () => allMax(50))).toHaveLength(3);
   });
 });

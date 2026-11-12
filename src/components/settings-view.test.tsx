@@ -14,6 +14,12 @@ const account = vi.hoisted(() => ({
   deleteAccount: vi.fn(async () => ({ ok: true })),
 }));
 vi.mock("@/app/actions/account", () => account);
+const watch = vi.hoisted(() => ({
+  watchTokenStatus: vi.fn(async () => ({ ok: true, data: false })),
+  createWatchToken: vi.fn(async () => ({ ok: true, data: "CLAVE-DE-PRUEBA" })),
+  deleteWatchToken: vi.fn(async () => ({ ok: true, data: null })),
+}));
+vi.mock("@/app/actions/watch", () => watch);
 
 const open = (label: RegExp) => fireEvent.click(screen.getByRole("button", { name: label }));
 
@@ -111,5 +117,53 @@ describe("Ajustes · cuenta y privacidad", () => {
     renderWithWorkout(<SettingsView />);
     expect(screen.queryByRole("button", { name: /Cambiar contraseña/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Borrar cuenta/ })).not.toBeInTheDocument();
+  });
+});
+
+// Spec ajustes R8: «Apuntar las kcal del reloj» activa el campo del reloj.
+describe("Ajustes · calorías", () => {
+  it("el interruptor guarda si se apuntan las kcal del reloj", async () => {
+    const { getEnergyPrefs } = await import("@/lib/preferences");
+    renderWithWorkout(<SettingsView />);
+    open(/Calorías/);
+    const toggle = screen.getByRole("switch", { name: /Apuntar las kcal del reloj/ });
+    expect(toggle).not.toBeChecked();
+    fireEvent.click(toggle);
+    expect(toggle).toBeChecked();
+    expect(getEnergyPrefs().watchInput).toBe(true);
+    fireEvent.click(toggle);
+    expect(getEnergyPrefs().watchInput).toBe(false);
+  });
+});
+
+// Spec ajustes R9: la clave del atajo de iPhone.
+describe("Ajustes · atajo de iPhone", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("sin cuenta (modo local) no sale", () => {
+    renderWithWorkout(<SettingsView />);
+    open(/Calorías/);
+    expect(screen.queryByRole("button", { name: "Crear mi clave" })).not.toBeInTheDocument();
+  });
+
+  it("«Crear mi clave» enseña la clave y los pasos; «Borrar clave» la quita (R9)", async () => {
+    renderWithWorkout(<SettingsView />, undefined, "cloud");
+    open(/Calorías/);
+    fireEvent.click(await screen.findByRole("button", { name: "Crear mi clave" }));
+    expect(await screen.findByText("CLAVE-DE-PRUEBA")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Pasos del atajo" })).toHaveTextContent("/api/reloj");
+    expect(screen.getByRole("button", { name: "Copiar clave" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Borrar clave" }));
+    await waitFor(() => expect(watch.deleteWatchToken).toHaveBeenCalled());
+    expect(await screen.findByRole("button", { name: "Crear mi clave" })).toBeInTheDocument();
+    expect(screen.queryByText("CLAVE-DE-PRUEBA")).not.toBeInTheDocument();
+  });
+
+  it("con una clave ya creada dice que está activa, sin enseñarla", async () => {
+    watch.watchTokenStatus.mockResolvedValueOnce({ ok: true, data: true });
+    renderWithWorkout(<SettingsView />, undefined, "cloud");
+    open(/Calorías/);
+    expect(await screen.findByText("Tienes una clave activa")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Crear otra" })).toBeInTheDocument();
   });
 });

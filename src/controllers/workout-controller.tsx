@@ -43,6 +43,8 @@ export interface DaySummaryInfo {
   day: number;
   round: number;
   minutes: number | null;
+  // Fecha del entreno (hoy o la elegida al apuntar otro día): la de las kcal del reloj.
+  date: string;
 }
 
 interface WorkoutContextValue {
@@ -271,7 +273,7 @@ function createActions({ model, stats, calendar, sync, showToast, setWeek, setDa
     const started = isActive(w, d, r) ? getActiveWorkout()!.startedAt : readSessionStart(w, d, r);
     clearSessionStart(w, d, r);
     if (isActive(w, d, r)) setActiveWorkout(null);
-    setSummary({ week: w, day: d, round: r, minutes: pastDate ? null : minutesSince(started) });
+    setSummary({ week: w, day: d, round: r, minutes: pastDate ? null : minutesSince(started), date: logDateNow() });
   };
 
   // Mientras se escribe en una serie el día no se da por completado (con el peso de la
@@ -451,7 +453,7 @@ function createActions({ model, stats, calendar, sync, showToast, setWeek, setDa
       setActiveWorkout(null);
       clearSessionStart(w, d, r);
       setRest(null);
-      setSummary({ week: w, day: d, round: r, minutes: minutesSince(a.startedAt) });
+      setSummary({ week: w, day: d, round: r, minutes: minutesSince(a.startedAt), date: todayISO() });
     },
 
     // ---- Descanso entre series ----
@@ -533,6 +535,11 @@ function createActions({ model, stats, calendar, sync, showToast, setWeek, setDa
       model.renameDay(d, name);
       showToast("Nombre cambiado");
       return true;
+    },
+
+    // Kcal del reloj de una fecha (spec hoy R32); null o vacío las borra.
+    setWatchKcal(date: string, kcal: number | null) {
+      model.setWatchKcal(date, kcal);
     },
 
     // Color del día (spec rutina R7): cambia al momento en toda la app.

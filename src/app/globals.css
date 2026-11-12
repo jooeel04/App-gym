@@ -940,11 +940,11 @@ button,.nav,.daychip{-webkit-user-select:none;user-select:none;-webkit-touch-cal
 .today-actions button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 10px;border:0;border-radius:12px;
   background:var(--s2);color:var(--text);font:inherit;font-size:calc(14px * var(--fs));font-weight:700;white-space:nowrap}
 .today-actions .ico{flex:none;width:18px;height:18px;color:var(--accent)}
-.today-actions button.on{background:var(--accent-bg);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent-line)}
+
 .today-actions button:active{transform:scale(.97)}
 @media (prefers-reduced-motion:reduce){.today-actions button:active{transform:none}}
-.today-actions .pending-badge{margin-left:2px;min-width:20px;padding:2px 6px;text-align:center}
-.pending-badge{display:inline-block;margin-left:8px;padding:3px 8px;border-radius:999px;background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn-text);font-size:max(11px, calc(11px * var(--fs)));font-weight:850;vertical-align:middle}
+
+
 .pending-list{margin:2px 0 10px}
 .pending-title{margin:0 2px 8px;color:var(--muted);font-size:max(11px, calc(11px * var(--fs)));font-weight:850;letter-spacing:.08em;text-transform:uppercase}
 
@@ -1200,10 +1200,9 @@ body:has(.dock>*):has(.restbar) .toast{bottom:calc(236px + env(safe-area-inset-b
 body:is(:has(.dock>*),:has(.restbar)) .device-card{display:none}
 /* «Deshacer» flota sobre la tarjeta: fondo propio con desenfoque para leerse bien. */
 .dock .set-undo{background:var(--s2);border-color:var(--line2)}
-/* «Hacer otro día»: la fecha (hoy o una pasada) antes de elegir el día de rutina. */
-.log-date{display:flex;align-items:center;gap:10px;margin:12px 0 0;color:var(--muted);font-size:max(11px, calc(12px * var(--fs)));font-weight:800}
-.log-date input{-webkit-appearance:none;appearance:none;flex:1;min-width:0;max-width:220px;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--line2);background:var(--s1);color:var(--text);font:inherit;font-weight:700;text-align:left}
-.log-date input::-webkit-date-and-time-value{text-align:left}
+
+
+
 /* Botones del ejercicio abierto en Hoy: al menos 44 px para el dedo, y la fecha de «Igual que
    la última vez» del mismo tamaño que el botón (como <small> salía a 9 px). */
 .repeat-last,.focus-check{min-height:44px}
@@ -1419,3 +1418,78 @@ body::before{background:radial-gradient(120% 55% at 50% -12%,var(--glow),transpa
 .day-color-list button{display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:var(--swatch);color:#fff}
 .day-color-list button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--s),0 0 0 4px var(--swatch)}
 .day-color-list .ico{width:20px;height:20px}
+
+/* ===== Resumen: calorías estimadas (spec hoy R31), como «Frente a la última vez» ===== */
+.summary-kcal{display:grid;gap:6px;margin-top:8px;padding:12px;border-radius:14px;background:var(--s0);border:1px solid var(--line);text-align:left;font-size:max(11px, calc(12px * var(--fs)))}
+.summary-kcal>b{display:flex;align-items:center;gap:6px;font-size:calc(15px * var(--fs))}
+.summary-kcal>b .ico{width:18px;height:18px;color:var(--warn-text)}
+.summary-kcal ul{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.summary-kcal li{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding-top:6px;border-top:1px solid var(--hair)}
+.summary-kcal li>span:first-child{min-width:0;color:var(--soft)}
+.summary-kcal li>span:last-child{flex:none;font-variant-numeric:tabular-nums}
+.summary-kcal-hint{margin:8px 0 0;color:var(--muted);font-size:max(11px, calc(12px * var(--fs)))}
+
+/* ===== Kcal del reloj (spec hoy R32, progreso R12) ===== */
+.summary-kcal>small{color:var(--muted);font-size:max(11px, calc(12px * var(--fs)))}
+.watch-kcal{display:flex;align-items:flex-end;gap:8px;margin-top:6px}
+.watch-kcal label{flex:1;display:grid;gap:4px;color:var(--muted);font-size:max(11px, calc(12px * var(--fs)));font-weight:700}
+.watch-kcal input{width:100%;min-height:44px;padding:0 12px;border:1px solid var(--line2);border-radius:10px;background:var(--bg);color:var(--text);font:inherit;font-size:calc(16px * var(--fs));font-variant-numeric:tabular-nums}
+.watch-kcal button{flex:none;min-height:44px;padding:0 14px;border:0;border-radius:12px;background:var(--accent);color:#fff;font:inherit;font-weight:750}
+.watch-kcal button:disabled{opacity:.5}
+.calinfo-kcal{display:flex;align-items:center;gap:6px;font-weight:750;font-size:max(11px, calc(13px * var(--fs)))}
+.calinfo-kcal .ico{width:16px;height:16px;color:var(--warn-text)}
+
+/* ===== Ajustes · atajo de iPhone (spec ajustes R9) ===== */
+.watch-shortcut{display:grid;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--hair)}
+.watch-token{display:block;padding:10px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line2);font-size:max(11px, calc(13px * var(--fs)));word-break:break-all;user-select:all}
+.watch-steps{display:grid;gap:6px;margin:4px 0 0;padding-left:20px;color:var(--soft);font-size:max(11px, calc(13px * var(--fs)))}
+.watch-steps code{word-break:break-all}
+.watch-actions{display:flex;flex-wrap:wrap;gap:8px}
+.watch-actions button{flex:1 1 140px}
+
+/* ===== Hoy · frase, esta semana, la última vez y «Hoy puedes subir» (spec hoy R33–R36) ===== */
+.daily-quote{margin:-4px 0 16px;text-align:center;color:var(--text);font-size:calc(15px * var(--fs));font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.week-strip-card,.raise-card{background:var(--s);border-radius:var(--r);padding:14px 16px;margin-bottom:14px}
+.week-strip-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.week-strip-head h3{flex:1;margin:0;font-size:calc(15px * var(--fs))}
+.week-strip-count{color:var(--muted);font-size:max(11px, calc(13px * var(--fs)));font-weight:700;font-variant-numeric:tabular-nums}
+.week-strip-streak{display:inline-flex;align-items:center;gap:3px;color:var(--warn-text);font-weight:800;font-size:max(11px, calc(13px * var(--fs)))}
+.week-strip-streak .ico{width:15px;height:15px}
+.week-dots{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:0;padding:0;list-style:none}
+.raise-card h3{display:flex;align-items:center;gap:6px;margin:0 0 4px;font-size:calc(15px * var(--fs))}
+.raise-card h3 .ico{width:18px;height:18px;color:var(--ok)}
+.raise-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;padding:0;border:0;border-top:1px solid var(--hair);background:none;color:var(--text);font:inherit;text-align:left}
+.raise-row span{min-width:0;font-size:max(11px, calc(14px * var(--fs)))}
+.raise-row b{flex:none;color:var(--ok);font-variant-numeric:tabular-nums}
+.raise-row:active{background:var(--s2)}
+
+/* Solo para el lector de pantalla (p. ej. el título «Hoy», que no se ve: spec interfaz). */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ===== Hoy · «Esta semana» clicable con el panel de cada día (spec hoy R37) ===== */
+.week-dots li{display:grid;place-items:center;min-width:0}
+/* 7 días de al menos 44 px de toque: sin hueco entre ellos y con menos margen a los lados. */
+.week-dots{gap:0}
+.week-strip-card{padding-left:12px;padding-right:12px}
+button.week-dot{width:100%;min-width:0;height:44px;padding:0;border:0;background:transparent;font:inherit;font-size:max(11px, calc(12px * var(--fs)));font-weight:800;color:var(--muted)}
+button.week-dot>span{display:grid;place-items:center;width:36px;height:36px;border-radius:50%}
+button.week-dot.done>span{background:var(--dot);color:#fff}
+button.week-dot.todo>span{box-shadow:inset 0 0 0 2px var(--dot);color:var(--text)}
+button.week-dot.rest>span{background:var(--s2)}
+button.week-dot.today>span{outline:2px solid var(--accent);outline-offset:2px}
+button.week-dot.selected>span{transform:scale(1.08)}
+.week-pending{min-height:32px;padding:0 10px;border:0;border-radius:999px;background:var(--warn-bg);color:var(--warn-text);font:inherit;font-size:max(11px, calc(12px * var(--fs)));font-weight:800}
+.week-pending.on{box-shadow:inset 0 0 0 1px var(--warn-text)}
+.day-panel{display:grid;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--hair)}
+.day-panel-title{font-size:calc(14px * var(--fs))}
+.day-panel-main{display:grid;gap:8px}
+.day-panel-btn{min-height:44px;border:0;border-radius:12px;background:var(--s2);color:var(--text);font:inherit;font-weight:750;box-shadow:inset 4px 0 0 var(--dc)}
+.day-panel-btn.primary-ish{background:var(--dc);color:#fff;box-shadow:none}
+.day-panel-sub{color:var(--muted);font-size:max(11px, calc(12px * var(--fs)));font-weight:700}
+.day-panel-chips{display:flex;flex-wrap:wrap;gap:6px}
+.day-chip{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border:0;border-radius:999px;background:var(--s2);color:var(--text);font:inherit;font-size:max(11px, calc(13px * var(--fs)));font-weight:700}
+.day-chip .swatch{width:10px;height:10px;border-radius:50%}
+.day-panel-link{justify-self:start;min-height:44px;padding:0;border:0;background:none;color:var(--accent);font:inherit;font-weight:700}
+.day-panel-date{display:grid;gap:4px;color:var(--muted);font-size:max(11px, calc(12px * var(--fs)));font-weight:700}
+.day-panel-date input{min-height:44px;padding:0 12px;border:1px solid var(--line2);border-radius:10px;background:var(--bg);color:var(--text);font:inherit}
+.week-strip-card .pending-list{margin:0}

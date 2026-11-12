@@ -43,6 +43,16 @@ export function suggestNext(x: Exercise, last: ExerciseSession | null, smallestP
   return { kind: "reps", weight, reps: Math.min(minReps + 1, range.max), text: "Mantén " + kg(weight) + " e intenta " + Math.min(minReps + 1, range.max) + " reps (máx. " + range.max + ")" };
 }
 
+// «Hoy puedes subir peso» (spec hoy R34): los ejercicios cuyo consejo es subir, con el peso de
+// la última vez y el nuevo. Como mucho `max`, en el orden de la lista.
+export function raiseTargets(list: Exercise[], lastOf: (x: Exercise) => ExerciseSession | null, smallestPlate?: number, max = 3) {
+  return list.flatMap((x) => {
+    const last = lastOf(x);
+    const tip = suggestNext(x, last, smallestPlate);
+    return tip?.kind === "increase" && last?.topWeight != null ? [{ exercise: x, from: last.topWeight, to: tip.weight }] : [];
+  }).slice(0, max);
+}
+
 export interface TrendPoint {
   week: number;
   round: number;

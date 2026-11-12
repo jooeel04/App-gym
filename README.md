@@ -47,6 +47,8 @@ En el SQL Editor del proyecto, ejecuta en orden los archivos de `supabase/migrat
 15. `20261113000000_routine_days.sql` (días de rutina propios hasta 7, un día en varios días de la semana y el máximo con sus series en Social)
 16. `20261114000000_remove_session.sql` (borrar un entreno entero o cambiarle la fecha desde el historial o el calendario de Progreso)
 17. `20261115000000_day_colors.sql` (color de cada día de rutina a tu gusto)
+18. `20261116000000_watch_energy.sql` (kcal del reloj por fecha)
+19. `20261117000000_watch_shortcut.sql` (clave del atajo de iPhone y buzón de las kcal del Apple Watch)
 
 Las fotos de cómo se hace cada ejercicio (`public/ejercicios`) son de
 [Free Exercise DB](https://github.com/yuhonas/free-exercise-db), de dominio público (Unlicense).

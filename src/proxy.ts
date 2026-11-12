@@ -8,5 +8,5 @@ export async function proxy(request: NextRequest) {
 export const config = {
   // Excluye estáticos, iconos, manifest, service worker y el envío de recordatorios y
   // avisos del descanso (los llama Supabase con su secreto, sin sesión de usuario).
-  matcher: ["/((?!api/reminders|api/rest-alerts|_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  matcher: ["/((?!api/reminders|api/rest-alerts|api/reloj|_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };

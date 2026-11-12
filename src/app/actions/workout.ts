@@ -2,6 +2,7 @@
 
 import { isISODate } from "@/domain/calendar";
 import { isDayColor } from "@/domain/day-colors";
+import { isWatchKcal } from "@/domain/energy";
 import { isValidSnapshot, MAX_DAY_NAME, MAX_DAYS, MAX_ROUNDS } from "@/domain/snapshot";
 import { isExercise, isInt, isText } from "@/domain/validation";
 import { BODY_FIELDS, type WorkoutChange, type WorkoutSnapshot } from "@/domain/types";
@@ -82,6 +83,8 @@ function isWorkoutChange(c: unknown): c is WorkoutChange {
       return isDayNames(x.dayNames);
     case "dayColors":
       return isDayColors(x.dayColors);
+    case "watchKcal":
+      return isISODate(x.date) && (x.kcal === null || isWatchKcal(x.kcal));
     case "sessionRemoved":
       return isInt(x.week, 1, 520) && isInt(x.day, 1, MAX_DAYS) && isInt(x.round, 1, MAX_ROUNDS);
     case "sessionMoved":

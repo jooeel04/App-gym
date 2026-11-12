@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { blankSnapshot, dayKey, entryKey, exerciseKey, normalizeSchedule, parseKey, roundOf } from "@/domain/snapshot";
 import { isISODate } from "@/domain/calendar";
+import { isWatchKcal } from "@/domain/energy";
 import { BODY_FIELDS, type BodyMetrics, type Exercise, type SetEntry, type WorkoutChange, type WorkoutSnapshot } from "@/domain/types";
 import type { WorkoutRepository } from "./workout-repository";
 
@@ -58,11 +59,12 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
     this.programId = program.id;
 
     const id = program.id;
-    const [exercises, logs, completed, body] = await Promise.all([
+    const [exercises, logs, completed, body, watch] = await Promise.all([
       must<ExerciseRow[]>(this.db.from("exercises").select("local_id, day, position, group_name, name, note, prescription, sets, target, optional_last, custom, superset").eq("program_id", id).order("position")),
       selectAll<LogRow>((from, to) => this.db.from("set_logs").select("week, day, round, exercise_local_id, set_number, weight, reps, note, logged_on").eq("program_id", id).order("week").order("day").range(from, to)),
       must<{ week: number; day: number; round: number }[]>(this.db.from("completed_days").select("week, day, round").eq("program_id", id)),
       must<BodyRow[]>(this.db.from("body_metrics").select("date, " + BODY_FIELDS.join(", ")).eq("program_id", id)),
+      must<{ date: string; kcal: number }[]>(this.db.from("watch_energy").select("date, kcal").eq("program_id", id)),
     ]);
 
     const snapshot = blankSnapshot(exercises.map(fromExerciseRow));
@@ -72,6 +74,7 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
     if (program.day_colors) snapshot.dayColors = program.day_colors;
     if (program.start_date) snapshot.startDate = program.start_date;
     if (body.length) snapshot.body = Object.fromEntries(body.map((r) => [r.date, fromBodyRow(r)]));
+    if (watch.length) snapshot.watchKcal = Object.fromEntries(watch.map((r) => [r.date, r.kcal]));
     const checked: Record<string, string> = {};
     logs.forEach((r) => {
       if (r.set_number === CHECK_SET) checked[exerciseKey(r.week, r.day, r.exercise_local_id, r.round)] = r.logged_on ?? "";
@@ -203,10 +206,17 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
         else await must(db.from("body_metrics").delete().match(key));
         return;
       }
+      case "watchKcal": {
+        const key = { program_id: programId, date: change.date };
+        if (change.kcal !== null) await must(db.from("watch_energy").upsert({ ...key, kcal: change.kcal }, { onConflict: "program_id,date" }));
+        else await must(db.from("watch_energy").delete().match(key));
+        return;
+      }
       case "logsCleared":
         await must(db.from("set_logs").delete().eq("program_id", programId));
         await must(db.from("completed_days").delete().eq("program_id", programId));
         await must(db.from("body_metrics").delete().eq("program_id", programId));
+        await must(db.from("watch_energy").delete().eq("program_id", programId));
         return;
     }
   }
@@ -309,6 +319,7 @@ function toProgramPayload(snapshot: WorkoutSnapshot) {
     p_schedule: snapshot.schedule ? normalizeSchedule(snapshot.schedule) : null, p_start_date: isISODate(snapshot.startDate) ? snapshot.startDate : null,
     p_day_names: snapshot.dayNames ?? null,
     p_day_colors: snapshot.dayColors ?? null,
+    p_watch_kcal: Object.entries(snapshot.watchKcal ?? {}).filter(([date, kcal]) => isISODate(date) && isWatchKcal(kcal)).map(([date, kcal]) => ({ date, kcal })),
     p_body: Object.entries(snapshot.body ?? {}).filter(([date]) => isISODate(date)).map(([date, m]) => ({ date, ...toBodyColumns(m) })),
   };
 }

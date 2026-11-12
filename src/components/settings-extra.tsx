@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { changeEmail, changePassword, deleteAccount, getLiftPrivacy, saveLiftPrivacy } from "@/app/actions/account";
+import { createWatchToken, deleteWatchToken, watchTokenStatus } from "@/app/actions/watch";
 import { useWorkout } from "@/controllers/workout-controller";
 import { APP_VERSION, BUILD_DATE, NOVEDADES } from "@/lib/novedades";
-import { ALL_PLATES, BAR_OPTIONS, DEFAULT_PLATES, getPlatePrefs, setPlatePrefs, subscribePrefs } from "@/lib/preferences";
+import { ALL_PLATES, BAR_OPTIONS, DEFAULT_ENERGY, DEFAULT_PLATES, getEnergyPrefs, getPlatePrefs, setEnergyPrefs, setPlatePrefs, subscribePrefs } from "@/lib/preferences";
 import { getTextSize, setTextSize, subscribeTheme, type TextSize } from "@/lib/theme";
-import { DumbbellIcon, InfoIcon, LockIcon, MailIcon, ShieldIcon, TextSizeIcon, TrashIcon } from "./icons";
+import { DumbbellIcon, FlameIcon, InfoIcon, LockIcon, MailIcon, ShieldIcon, TextSizeIcon, TrashIcon } from "./icons";
 import { PlateCalculator } from "./plate-calculator";
 import { Row } from "./settings-rows";
 
@@ -94,6 +95,70 @@ export function PlatesRow({ open, onToggle }: RowProps) {
         ))}
       </div>
     </Row>
+  );
+}
+
+// Calorías (spec ajustes R8): si se apuntan a mano las kcal del reloj. Sin activarlo, solo
+// se ve la estimación.
+export function EnergyRow({ open, onToggle, cloud }: RowProps & { cloud: boolean }) {
+  const prefs = useSyncExternalStore(subscribePrefs, getEnergyPrefs, () => DEFAULT_ENERGY);
+  return (
+    <Row icon={<FlameIcon />} label="Calorías" value={prefs.watchInput ? "Con el reloj" : "Estimadas"} open={open} onClick={onToggle}>
+      <label className="switch-row">
+        <span><b>Apuntar las kcal del reloj</b><small>En el resumen del entreno y en el calendario</small></span>
+        <input type="checkbox" role="switch" className="switch" checked={prefs.watchInput} onChange={(e) => setEnergyPrefs({ ...prefs, watchInput: e.target.checked })} />
+      </label>
+      <p className="set-hint">Sin reloj, la app estima las calorías con tu peso y tus series (≈).</p>
+      {cloud && <WatchShortcut />}
+    </Row>
+  );
+}
+
+// Atajo de iPhone (spec ajustes R9): crea la clave de la cuenta y enseña los pasos para que
+// el atajo mande solo las kcal del Apple Watch a /api/reloj. La clave se ve una sola vez.
+function WatchShortcut() {
+  const [active, setActive] = useState<boolean | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<Message>(null);
+  useEffect(() => {
+    watchTokenStatus().then((res) => setActive(res.ok ? !!res.data : false)).catch(() => setActive(false));
+  }, []);
+  const run = async (create: boolean) => {
+    setBusy(true);
+    setMessage(null);
+    const res = await (create ? createWatchToken() : deleteWatchToken()).catch(() => ({ ok: false, data: null, error: "Sin conexión. Inténtalo de nuevo." }));
+    setBusy(false);
+    if (!res.ok) { setMessage({ ok: false, text: res.error ?? "No se pudo guardar." }); return; }
+    setActive(create);
+    setToken(create ? (res.data as string) : null);
+  };
+  const copy = () => { void navigator.clipboard?.writeText(token ?? "").then(() => setMessage({ ok: true, text: "Clave copiada" })); };
+  const url = (typeof window === "undefined" ? "" : window.location.origin) + "/api/reloj";
+  return (
+    <div className="watch-shortcut">
+      <div className="set-sub">Atajo de iPhone</div>
+      <p className="set-hint">Con un atajo, las kcal del Apple Watch llegan solas al acabar cada entreno.</p>
+      {token ? (
+        <>
+          <p className="set-hint">Tu clave (solo se enseña ahora; guárdala en el atajo):</p>
+          <code className="watch-token">{token}</code>
+          <button type="button" className="settings-btn" onClick={copy}>Copiar clave</button>
+          <ol className="watch-steps" aria-label="Pasos del atajo">
+            <li>Abre <b>Atajos</b> → <b>Automatización</b> → <b>+</b>.</li>
+            <li>Elige <b>Entreno de Apple Watch</b> → <b>Termina</b> → <b>Ejecutar inmediatamente</b> → <b>Nuevo atajo en blanco</b>.</li>
+            <li>Añade <b>Buscar muestras de salud</b>: tipo <b>Energía activa</b>, fecha de inicio <b>en las últimas 2 horas</b>.</li>
+            <li>Añade <b>Calcular estadísticas</b> → <b>Suma</b>.</li>
+            <li>Añade <b>Obtener contenido de URL</b>: <code>{url}</code>, método <b>POST</b>, encabezado <b>Authorization</b> = <code>Bearer</code> + espacio + tu clave, cuerpo <b>JSON</b> con <b>kcal</b> = la suma.</li>
+          </ol>
+        </>
+      ) : active ? <p className="perm-ok" role="status">Tienes una clave activa</p> : null}
+      <div className="watch-actions">
+        {active !== null && <button type="button" className="settings-btn" disabled={busy} onClick={() => { void run(true); }}>{active ? "Crear otra" : "Crear mi clave"}</button>}
+        {active && <button type="button" className="remove-ex" disabled={busy} onClick={() => { void run(false); }}>Borrar clave</button>}
+      </div>
+      <Feedback message={message} />
+    </div>
   );
 }
 

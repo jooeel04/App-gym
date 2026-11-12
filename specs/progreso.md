@@ -71,7 +71,8 @@ aviso de «¡Nuevo récord!» solo sale al subir de peso.
 
 **Qué hace:** el calendario del mes marca con un punto de color cada día entrenado. Al
 tocar un día se ve debajo cada entreno de ese día: su día de rutina con **«8 series · 3120
-kg»**, cada ejercicio con sus series y tres botones: **«Editar»** abre ese entreno en Hoy
+kg · ≈ 320 kcal»** (las calorías, si hay peso apuntado), cada ejercicio con sus series y tres
+botones: **«Editar»** abre ese entreno en Hoy
 (con su fecha: lo que se anote se guarda en ese día), **«Cambiar fecha»** (ver abajo) y
 **«Borrar entreno»**, que pregunta y, al confirmar, lo quita entero: ya no sale en el
 calendario y deja de contar como hecho (racha, pendientes, récords).
@@ -97,6 +98,11 @@ cambia de mes con las flechas.
 - **R10** Progreso no tiene «Historial»; al tocar un día del calendario, cada entreno
   enseña sus series y kilos. → `src/domain/workout-diary.test.ts`,
   `src/components/activity-calendar.test.tsx`
+- **R11** Con peso corporal apuntado, el día tocado también enseña «≈ N kcal» de cada
+  entreno (ver `specs/hoy.md`, R31). → `src/components/activity-calendar.test.tsx`
+- **R12** Si ese día tiene kcal del reloj, enseña «N kcal ⌚» en vez de la estimación; con
+  «Apuntar las kcal del reloj» activado, el día tocado tiene un campo para ponerlas o
+  cambiarlas. → `src/components/activity-calendar.test.tsx`
 
 ### Cambiar la fecha de un entreno
 

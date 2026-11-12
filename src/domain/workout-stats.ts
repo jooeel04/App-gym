@@ -88,6 +88,15 @@ export class WorkoutStats {
     };
   }
 
+  // Series de trabajo de cada ejercicio de un entreno (para las calorías, spec hoy R31): las
+  // anotadas o, si se marcó con el tick sin series, las previstas. Sin nada, no sale.
+  workSets(w: number, d: number, r = 1): { exercise: Exercise; sets: number }[] {
+    return this.model.exercisesOfDay(d).flatMap((x) => {
+      const sets = this.session(x, w, r)?.sets.length ?? (this.model.isExerciseChecked(w, d, x.id, r) ? x.sets : 0);
+      return sets > 0 ? [{ exercise: x, sets }] : [];
+    });
+  }
+
   // Cada vez que se anotó el ejercicio (semana y vez), de la más antigua a la más reciente.
   exerciseHistory(x: Exercise): ExerciseSession[] {
     const history: ExerciseSession[] = [];

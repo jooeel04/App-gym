@@ -73,6 +73,30 @@ describe("Guardar el color de los días", () => {
   });
 });
 
+// Spec datos R6: kcal del reloj por fecha.
+describe("Guardar las kcal del reloj", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("acepta de 1 a 9999 kcal (o null) con una fecha válida", async () => {
+    await applyWorkoutChanges([
+      { type: "watchKcal", date: "2026-10-28", kcal: 320 },
+      { type: "watchKcal", date: "2026-10-28", kcal: null },
+    ], null);
+    expect(repository.apply).toHaveBeenCalledTimes(2);
+  });
+
+  it("rechaza kcal fuera de rango, con decimales o fechas raras", async () => {
+    for (const bad of [
+      { type: "watchKcal", date: "2026-10-28", kcal: 0 },
+      { type: "watchKcal", date: "2026-10-28", kcal: 10000 },
+      { type: "watchKcal", date: "2026-10-28", kcal: 12.5 },
+      { type: "watchKcal", date: "28/10/2026", kcal: 300 },
+      { type: "watchKcal", date: "2026-10-28" },
+    ]) await expect(applyWorkoutChanges([bad], null)).rejects.toThrow("Cambios no válidos");
+    expect(repository.apply).not.toHaveBeenCalled();
+  });
+});
+
 // Spec datos R4: borrar un entreno entero.
 describe("Borrar un entreno", () => {
   beforeEach(() => vi.clearAllMocks());

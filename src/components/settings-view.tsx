@@ -10,7 +10,7 @@ import { BellIcon, CheckIcon, ClockIcon, DownloadIcon, GoogleIcon, LogoutIcon, M
 import { GoogleRow } from "./google-row";
 import { cleanNickname } from "@/lib/nickname";
 import { ReminderRow } from "./reminder-settings";
-import { DeleteAccountRow, EmailRow, PasswordRow, PlatesRow, PrivacyRow, TextSizeRow, VersionRow } from "./settings-extra";
+import { DeleteAccountRow, EmailRow, EnergyRow, PasswordRow, PlatesRow, PrivacyRow, TextSizeRow, VersionRow } from "./settings-extra";
 import { Group, Row } from "./settings-rows";
 
 const PERMISSION_LABEL: Record<NotifyState, string> = {
@@ -146,6 +146,7 @@ export function SettingsView() {
             )}
           </Row>
           <PlatesRow open={open === "plates"} onToggle={toggle("plates")} />
+          <EnergyRow open={open === "energy"} onToggle={toggle("energy")} cloud={cloud} />
         </Group>
 
         <Group title="App">

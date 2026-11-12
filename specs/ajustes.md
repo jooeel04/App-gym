@@ -15,7 +15,10 @@ spec documenta la **cuenta**; el resto se irá añadiendo cuando se toque.
 - `src/app/auth/confirm/route.ts` — vuelta de los enlaces de los correos.
 - `src/app/auth/google/route.ts` — vuelta de Google (entrar o conectar).
 - `src/components/google-row.tsx` — fila «Entrar con Google» de Ajustes → Cuenta.
-- `src/components/settings-extra.tsx` — `PlatesRow`: barra, discos y «Abrir calculadora».
+- `src/components/settings-extra.tsx` — `PlatesRow`: barra, discos y «Abrir calculadora»;
+  `EnergyRow` y `WatchShortcut`: calorías y atajo de iPhone.
+- `src/app/actions/watch.ts` y `src/app/api/reloj/route.ts` — clave del atajo y buzón que
+  recibe sus kcal.
 - `src/lib/supabase/proxy.ts` — refresca la sesión y manda a `/login` si no hay.
 
 ## Funcionalidades
@@ -91,6 +94,45 @@ está activado»; el Google de otra cuenta vuelve con `identity_already_exists` 
 - **R5** Ajustes ofrece «Conectar con Google» si la cuenta no lo tiene, dice «Google
   conectado» si lo tiene, y avisa si falla o si ese Google ya tiene otra cuenta.
   → `src/components/google-row.test.tsx`, `src/app/auth/google/route.test.ts`
+
+### Calorías
+
+**Qué hace:** en Ajustes → Calorías se activa **«Apuntar las kcal del reloj»**: el resumen
+del entreno y el calendario de Progreso tienen entonces un campo para escribir las kcal que
+dice el Apple Watch (u otro reloj). Sin activarlo, solo se ve la estimación.
+**Cómo funciona:** `EnergyRow` (en `settings-extra.tsx`) guarda la preferencia en el
+dispositivo (`getEnergyPrefs` / `setEnergyPrefs` en `src/lib/preferences.ts`), como el
+descanso.
+**Reglas:**
+- **R8** «Apuntar las kcal del reloj» activa o quita el campo del reloj.
+  → `src/components/settings-view.test.tsx`
+
+### Atajo de iPhone (kcal del Apple Watch solas)
+
+**Qué hace:** con cuenta, en Ajustes → Calorías → «Atajo de iPhone», **«Crear mi clave»**
+enseña una clave secreta (una sola vez, con «Copiar») y los pasos para crear en la app
+Atajos una automatización: al terminar un entreno del Apple Watch, lee sus kcal en Salud y
+las manda a FitGym. Llegan como las kcal del reloj de ese día (ver `specs/hoy.md`, R32).
+Con una clave creada sale «Tienes una clave activa» con «Crear otra» (la anterior deja de
+valer) y «Borrar clave». Sin cuenta (modo local) no sale.
+**Cómo funciona:** `src/app/actions/watch.ts`: `createWatchToken` genera 32 bytes al
+azar (base64url), guarda solo su SHA-256 en `programs.watch_token_hash` y devuelve la
+clave; `deleteWatchToken` lo pone a null; `watchTokenStatus` dice si hay. El atajo llama a
+`POST /api/reloj` (`src/app/api/reloj/route.ts`) con `Authorization: Bearer <clave>` y
+`{ "kcal": 320, "date": "2026-11-12" }` (sin fecha, hoy en España). La ruta comprueba el
+formato y llama a la función SQL `log_watch_kcal`, que busca el programa por el hash y
+guarda en `watch_energy`. `WatchShortcut` (en `settings-extra.tsx`) pinta la sección.
+**Decisiones:** la clave nunca se guarda en claro (como una contraseña): si se filtra la
+base de datos, no sirve. El atajo no tiene sesión, por eso la escritura va por una función
+`security definer` que solo acepta una clave válida (ver `specs/datos.md`). Redondea las
+kcal (Salud da decimales).
+**Casos límite:** clave mala o borrada → 401; kcal fuera de 1–9999 o fecha rara → 400;
+fechas de más de 7 días atrás o futuras (más de 1 día) no se aceptan.
+**Reglas:**
+- **R9** «Crear mi clave» enseña la clave y los pasos; «Borrar clave» la quita.
+  → `src/app/actions/watch.test.ts`, `src/components/settings-view.test.tsx`
+- **R10** `/api/reloj` guarda las kcal con una clave válida y rechaza las malas o los
+  datos raros. → `src/app/api/reloj/route.test.ts`
 
 ### Calculadora de discos
 

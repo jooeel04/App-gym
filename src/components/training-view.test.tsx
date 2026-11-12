@@ -5,6 +5,7 @@ import { useWorkout } from "@/controllers/workout-controller";
 import { BASE_ROUTINE } from "@/domain/base-routine";
 import { DAY_NAMES, entryKey, exerciseKey } from "@/domain/snapshot";
 import { freezeToday, historySnapshot, openNextExercise, PRESS, renderWithWorkout, TODAY } from "../../tests/workout-fixture";
+import { QUOTES } from "@/domain/daily-quote";
 import { TrainingView } from "./training-view";
 
 // El navegador todavía no ha preguntado por los permisos.
@@ -49,19 +50,18 @@ describe("Hoy · los días pendientes no ocupan la pantalla principal", () => {
   beforeEach(freezeToday);
   afterEach(() => vi.useRealTimers());
 
-  it("no se ven de entrada: «Hacer otro día» avisa de cuántos hay", () => {
+  it("no se ven de entrada: «Esta semana» avisa con «N pendientes»", () => {
     renderWithWorkout(<TrainingView />);
-    expect(screen.queryByText(/Te quedó pendiente/)).not.toBeInTheDocument();
-    const button = screen.getByRole("button", { name: /^Hacer otro día, \d+ pendientes$/ });
-    // A la vista, «Otro día» con el número en un globo.
-    expect(button).toHaveTextContent(/^Otro día\d+$/);
+    expect(screen.queryByText("Pendientes")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^\d+ pendientes?$/ })).toBeInTheDocument();
   });
 
-  it("al abrir «Hacer otro día» aparecen los pendientes con «Hacer hoy»", () => {
+  it("al tocar «N pendientes» aparecen con «Hacer hoy»", () => {
     renderWithWorkout(<TrainingView />);
-    fireEvent.click(screen.getByRole("button", { name: /Hacer otro día/ }));
+    const pending = screen.getByRole("button", { name: /^\d+ pendientes?$/ });
+    const count = Number(/\d+/.exec(pending.textContent ?? "")?.[0]);
+    fireEvent.click(pending);
     expect(screen.getByText("Pendientes")).toBeInTheDocument();
-    const count = Number(/(\d+) pendientes/.exec(screen.getByRole("button", { name: /Hacer otro día/ }).getAttribute("aria-label") ?? "")?.[1]);
     const buttons = screen.getAllByRole("button", { name: /^Hacer hoy / });
     expect(buttons).toHaveLength(count);
     const name = buttons[0].getAttribute("aria-label")!.replace("Hacer hoy ", "");
@@ -121,9 +121,9 @@ describe("Hoy · pendientes en un día de descanso", () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  it("el viernes que no se hizo sale en «Hacer otro día» con «Hacer hoy»", () => {
+  it("el viernes que no se hizo sale en los pendientes con «Hacer hoy»", () => {
     renderWithWorkout(<TrainingView />);
-    fireEvent.click(screen.getByRole("button", { name: /Hacer otro día/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^\d+ pendientes?$/ }));
     // El de ayer, no solo el de la semana pasada.
     expect(screen.getByText("Era el viernes, 30 de octubre")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Hacer hoy " + DAY_NAMES[5] }).length).toBeGreaterThan(0);
@@ -140,6 +140,8 @@ function Entries() {
   const { model } = useWorkout();
   return <output data-testid="entries">{JSON.stringify(model.snapshot.entries)}</output>;
 }
+// Toca un día de «Esta semana» por su fecha («martes 27 oct») y abre su panel.
+const stripDay = (date: string) => fireEvent.click(screen.getByRole("button", { name: new RegExp("^" + date + ":") }));
 const saved = () => JSON.parse(screen.getByTestId("entries").textContent ?? "{}") as Record<string, { weight?: string; reps?: string; date?: string }>;
 
 // Empujes de esta semana ya hecho (marcado entero con el tick, más una serie del militar).
@@ -151,28 +153,28 @@ function doneToday() {
   return snap;
 }
 
-describe("Hoy · «Hoy», «Repetir» y «Otro día» en la misma fila (R27)", () => {
+describe("Hoy · «Hoy» y «Repetir» en la misma fila, sin «Otro día» (R27)", () => {
   beforeEach(freezeToday);
   afterEach(() => vi.useRealTimers());
 
-  // La fila de botones: la que contiene «Hacer otro día».
-  const row = () => screen.getByRole("button", { name: /Hacer otro día/ }).parentElement!;
+  const row = () => document.querySelector(".today-actions") as HTMLElement;
 
-  it("va justo debajo de la lista de ejercicios", () => {
+  it("no hay botón «Otro día»", () => {
     renderWithWorkout(<TrainingView />);
+    expect(screen.queryByRole("button", { name: /otro día/i })).not.toBeInTheDocument();
+  });
+
+  it("con el día hecho, «Repetir» está en la fila, justo debajo de la lista", () => {
+    renderWithWorkout(<TrainingView />, doneToday());
+    expect(within(row()).getByRole("button", { name: "Repetir este día" })).toHaveTextContent(/^Repetir$/);
     const list = screen.getByRole("button", { name: new RegExp(MILITAR.name) }).closest("section")!;
     expect(row().previousElementSibling).toBe(list);
   });
 
-  it("con el día hecho, «Repetir» está en la fila", () => {
-    renderWithWorkout(<TrainingView />, doneToday());
-    expect(within(row()).getByRole("button", { name: "Repetir este día" })).toHaveTextContent(/^Repetir$/);
-  });
-
-  it("tras elegir otro día, «Hoy» está en la fila y vuelve a lo de hoy", () => {
+  it("tras elegir otro día en la tira, «Hoy» está en la fila y vuelve a lo de hoy", () => {
     renderWithWorkout(<TrainingView />);
-    fireEvent.click(screen.getByRole("button", { name: /Hacer otro día/ }));
-    fireEvent.click(screen.getByRole("button", { name: DAY_NAMES[2] }));
+    stripDay("martes 27 oct");
+    fireEvent.click(screen.getByRole("button", { name: "Hacer " + DAY_NAMES[2] + " hoy" }));
     const back = within(row()).getByRole("button", { name: "Volver a hoy" });
     expect(back).toHaveTextContent(/^Hoy$/);
     fireEvent.click(back);
@@ -196,10 +198,10 @@ describe("Hoy · repetir un día en la misma semana", () => {
     expect(saved()[entryKey(4, 3, MILITAR.id, 1, 2)]).toMatchObject({ date: TODAY });
   });
 
-  it("en «Hacer otro día», elegir un día ya hecho esta semana abre una tanda nueva (R16)", () => {
+  it("en «Esta semana», elegir un día ya hecho esta semana abre una tanda nueva (R16)", () => {
     renderWithWorkout(<TrainingView />, doneToday());
-    fireEvent.click(screen.getByRole("button", { name: /Hacer otro día/ }));
-    fireEvent.click(screen.getByRole("button", { name: DAY_NAMES[3] }));
+    stripDay("miércoles 28 oct");
+    fireEvent.click(within(screen.getByRole("group", { name: "Otra rutina" })).getByRole("button", { name: DAY_NAMES[3] }));
     expect(screen.getByText(/2\.ª vez esta semana/)).toBeInTheDocument();
     openNextExercise();
     expect(screen.getByLabelText(/^Serie 1:/)).toHaveAttribute("aria-label", expect.stringContaining("ahora"));
@@ -212,9 +214,10 @@ describe("Hoy · apuntar otra fecha", () => {
 
   it("lo anotado se guarda con la fecha elegida y en la semana de esa fecha (R18)", () => {
     renderWithWorkout(<><TrainingView /><Entries /></>);
-    fireEvent.click(screen.getByRole("button", { name: /Hacer otro día/ }));
-    fireEvent.change(screen.getByLabelText("Fecha"), { target: { value: "2026-10-20" } });
-    fireEvent.click(screen.getByRole("button", { name: DAY_NAMES[2] }));
+    stripDay("miércoles 28 oct");
+    fireEvent.click(screen.getByRole("button", { name: "Otra fecha…" }));
+    fireEvent.change(screen.getByLabelText("Otra fecha"), { target: { value: "2026-10-20" } });
+    fireEvent.click(within(screen.getByRole("group", { name: "Otra rutina" })).getByRole("button", { name: DAY_NAMES[2] }));
     expect(screen.getByText(/Apuntando el martes 20 oct/)).toBeInTheDocument();
     openNextExercise();
     fireEvent.click(screen.getByRole("button", { name: /Serie hecha/ }));
@@ -232,8 +235,8 @@ describe("Hoy · las series de la última vez en la lista", () => {
     const snap = historySnapshot();
     snap.entries[entryKey(3, 1, PRESS.id, 3)] = { weight: "52.5", reps: "10", date: "2026-10-19" };
     renderWithWorkout(<TrainingView />, snap);
-    fireEvent.click(screen.getByRole("button", { name: /Hacer otro día/ }));
-    fireEvent.click(screen.getByRole("button", { name: DAY_NAMES[1] }));
+    stripDay("miércoles 28 oct");
+    fireEvent.click(within(screen.getByRole("group", { name: "Otra rutina" })).getByRole("button", { name: DAY_NAMES[1] }));
     const row = screen.getByRole("button", { name: new RegExp(PRESS.name) });
     expect(row).not.toHaveTextContent("×8");
     expect(row).not.toHaveTextContent("última vez");
@@ -243,5 +246,102 @@ describe("Hoy · las series de la última vez en la lista", () => {
     expect(screen.queryByText(/^Última vez:/)).not.toBeInTheDocument();
     const table = screen.getByRole("group", { name: "Series de " + PRESS.name });
     expect(Array.from(table.querySelectorAll(".series-prev")).map((c) => c.textContent)).toEqual(["55×8", "55×8", "52,5×10"]);
+  });
+});
+
+// Spec hoy R33–R35: la frase, la semana y «Hoy puedes subir».
+describe("Hoy · frase, tu semana y «Hoy puedes subir»", () => {
+  beforeEach(freezeToday);
+  afterEach(() => vi.useRealTimers());
+
+  it("enseña una de las frases y no cambia al volver a pintar Hoy (R35)", () => {
+    const { unmount } = renderWithWorkout(<TrainingView />);
+    const quote = document.querySelector(".daily-quote")!.textContent!;
+    expect(QUOTES).toContain(quote);
+    unmount();
+    renderWithWorkout(<TrainingView />);
+    expect(document.querySelector(".daily-quote")).toHaveTextContent(quote);
+  });
+
+  it("«Esta semana» va encima de la tarjeta del día y enseña los 7 días, hoy marcado, y cuántos entrenos llevas (R33)", () => {
+    renderWithWorkout(<TrainingView />);
+    const week = screen.getByRole("list", { name: "Esta semana" });
+    expect(week.closest("section")!.nextElementSibling).toHaveClass("hero");
+    const days = within(week).getAllByRole("listitem");
+    expect(days).toHaveLength(7);
+    expect(days[2]).toHaveAttribute("aria-current", "date");
+    expect(within(days[2]).getByRole("button")).toHaveAccessibleName(/miércoles.*toca/i);
+    expect(screen.getByText(/^\d+ de \d+$/)).toBeInTheDocument();
+  });
+
+  it("«Hoy puedes subir peso» lista los de consejo de subir y al tocar uno se abre (R34)", () => {
+    const snap = historySnapshot();
+    // La semana pasada el press militar llegó al máximo (8) en sus 3 series con 20 kg.
+    [1, 2, 3].forEach((s) => { snap.entries[entryKey(3, 3, MILITAR.id, s)] = { weight: "20", reps: "8", date: "2026-10-21" }; });
+    renderWithWorkout(<TrainingView />, snap);
+    const card = screen.getByRole("region", { name: "Hoy puedes subir peso" });
+    const row = within(card).getByRole("button", { name: new RegExp(MILITAR.name) });
+    expect(row).toHaveTextContent("20 → 22 kg");
+    fireEvent.click(row);
+    expect(screen.getByRole("button", { name: new RegExp(MILITAR.name), expanded: true })).toBeInTheDocument();
+  });
+
+  it("sin nada que subir, «Hoy puedes subir peso» no sale (R34)", () => {
+    renderWithWorkout(<TrainingView />);
+    expect(screen.queryByRole("region", { name: "Hoy puedes subir peso" })).not.toBeInTheDocument();
+  });
+});
+
+// Spec interfaz «Títulos y etiquetas»: en Hoy el título no se ve, pero el lector de pantalla
+// lo sigue leyendo.
+describe("Hoy · título solo para el lector de pantalla", () => {
+  beforeEach(freezeToday);
+  afterEach(() => vi.useRealTimers());
+
+  it("el título «Hoy» existe pero va oculto a la vista", () => {
+    renderWithWorkout(<TrainingView />);
+    expect(screen.getByRole("heading", { level: 1, name: "Hoy" })).toHaveClass("sr-only");
+  });
+});
+
+// Spec hoy R37: cada día de «Esta semana» abre su panel (lo que antes era «Otro día»). Hoy es
+// miércoles 28 oct (Empujes); el lunes 26 tocaba Torso y el martes 27 Pierna, sin hacer.
+describe("Hoy · el panel de cada día de «Esta semana» (R37)", () => {
+  beforeEach(freezeToday);
+  afterEach(() => vi.useRealTimers());
+
+  it("un día pasado que falta ofrece recuperarlo hoy", () => {
+    renderWithWorkout(<TrainingView />);
+    stripDay("lunes 26 oct");
+    fireEvent.click(screen.getByRole("button", { name: "Hacer " + DAY_NAMES[1] + " hoy" }));
+    expect(screen.getByRole("heading", { level: 2, name: DAY_NAMES[1] })).toBeInTheDocument();
+  });
+
+  it("un día que viene ofrece adelantarlo hoy", () => {
+    renderWithWorkout(<TrainingView />);
+    stripDay("jueves 29 oct");
+    fireEvent.click(screen.getByRole("button", { name: "Hacer " + DAY_NAMES[4] + " hoy" }));
+    expect(screen.getByRole("heading", { level: 2, name: DAY_NAMES[4] })).toBeInTheDocument();
+  });
+
+  it("un día entrenado ofrece editarlo", () => {
+    renderWithWorkout(<TrainingView />, doneToday());
+    stripDay("miércoles 28 oct");
+    expect(screen.getByRole("button", { name: "Editar " + DAY_NAMES[3] })).toBeInTheDocument();
+  });
+
+  it("en un día pasado, «Otra rutina» la apunta con esa fecha", () => {
+    renderWithWorkout(<TrainingView />);
+    stripDay("martes 27 oct");
+    fireEvent.click(within(screen.getByRole("group", { name: "Otra rutina" })).getByRole("button", { name: DAY_NAMES[5] }));
+    expect(screen.getByText(/Apuntando el martes 27 oct/)).toBeInTheDocument();
+  });
+
+  it("al tocar el mismo día otra vez, el panel se cierra", () => {
+    renderWithWorkout(<TrainingView />);
+    stripDay("martes 27 oct");
+    expect(screen.getByRole("group", { name: "Otra rutina" })).toBeInTheDocument();
+    stripDay("martes 27 oct");
+    expect(screen.queryByRole("group", { name: "Otra rutina" })).not.toBeInTheDocument();
   });
 });
