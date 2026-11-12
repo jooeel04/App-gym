@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { addDays, formatLongDate, formatShortDate, parseISODate, toISODate, WEEKDAY_SHORT, WEEKDAYS, weekdayOf } from "@/domain/calendar";
-import { DAY_NAMES } from "@/domain/snapshot";
 import type { SetEntry } from "@/domain/types";
 import { ArrowIcon, PencilIcon } from "./icons";
 
@@ -24,7 +23,7 @@ function dotBackground(days: number[]) {
 // que se hizo (series anotadas o ejercicios marcados con el tick). Al tocar un día
 // se ve debajo qué se entrenó: cada ejercicio con sus series.
 export function ActivityCalendar() {
-  const { diary, today } = useWorkout();
+  const { model, diary, today } = useWorkout();
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   if (!today) return null;
@@ -56,7 +55,7 @@ export function ActivityCalendar() {
         {Array.from({ length: daysInMonth }, (_, i) => {
           const date = addDays(first, i);
           const done = Array.from(activity.get(date) ?? []).sort();
-          const label = formatLongDate(date) + ": " + (done.length ? done.map((d) => DAY_NAMES[d]).join(", ") : "sin entrenar");
+          const label = formatLongDate(date) + ": " + (done.length ? done.map((d) => model.dayName(d)).join(", ") : "sin entrenar");
           return (
             <button type="button" className={"calday" + (date === today ? " today" : "") + (date === sel ? " selected" : "")} key={date} title={label} aria-label={label} aria-pressed={date === sel} onClick={() => setSelected(date)}>
               <i className={"caldot" + (done.length ? " done" : "")} style={done.length ? { background: dotBackground(done) } : undefined} />
@@ -75,18 +74,19 @@ export function ActivityCalendar() {
               <div className="calinfo-row">
                 <i className="caldot done" style={{ background: "var(--day" + d + ")" }} />
                 <span>
-                  <b>{DAY_NAMES[d]}</b>
+                  <b>{model.dayName(d)}</b>
                   {(() => {
                     // Si se hizo otro día del que tocaba, se indica cuándo tocaba.
-                    const moved = sessions.filter((s) => s.plannedDate && s.plannedDate !== sel)
-                      .map((s) => (s.plannedDate! < sel ? "Hecho más tarde" : "Adelantado") + " · era el " + formatShortDate(s.plannedDate!));
+                    // Si se repitió en la misma semana, qué vez fue.
+                    const moved = sessions.filter((s) => s.round > 1 || (s.plannedDate && s.plannedDate !== sel))
+                      .map((s) => (s.round > 1 ? s.round + ".ª vez esa semana" : (s.plannedDate! < sel ? "Hecho más tarde" : "Adelantado") + " · era el " + formatShortDate(s.plannedDate!)));
                     if (sessions.every((s) => s.exercises.length === 0)) moved.push("Marcado como hecho");
                     return moved.length > 0 && <small>{moved.join(" · ")}</small>;
                   })()}
                 </span>
               </div>
-              {sessions.flatMap((s) => s.exercises).map(({ exercise, sets }) => (
-                <div className="diary-ex" key={exercise.id}>
+              {sessions.flatMap((s) => s.exercises.map((x) => ({ ...x, round: s.round }))).map(({ exercise, sets, round }) => (
+                <div className="diary-ex" key={round + "-" + exercise.id}>
                   <span>{exercise.name}</span>
                   <span>{sets.map(({ set, entry }) => <i key={set} title={entry.note || undefined}>{describeSet(entry)}{entry.note && <PencilIcon className="note-mark" />}</i>)}</span>
                 </div>

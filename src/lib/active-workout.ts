@@ -5,6 +5,8 @@
 export interface ActiveWorkout {
   week: number;
   day: number;
+  // Vez del día en esa semana (sin ella, la 1.ª: entrenos guardados antes de existir).
+  round?: number;
   startedAt: number;
 }
 

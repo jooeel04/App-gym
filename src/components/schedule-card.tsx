@@ -4,22 +4,21 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useWorkout } from "@/controllers/workout-controller";
 import { addDays, formatShortDate, mondayOf, WEEKDAY_NAMES, WEEKDAY_SHORT, WEEKDAYS, weekdayOf } from "@/domain/calendar";
-import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { WeekSchedule } from "@/domain/types";
 import { closeOnBackdrop } from "./backdrop";
 import { CheckIcon, MinusIcon, PlusIcon, SettingsIcon, SleepIcon } from "./icons";
 
-// Planes rápidos: día de rutina (1-5) → día de la semana (0 = sin día fijo).
+// Planes rápidos para los 5 días de siempre: día de rutina → días de la semana ([] = sin día fijo).
 const PRESETS: { label: string; schedule: WeekSchedule }[] = [
-  { label: "Lunes a viernes", schedule: { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 } },
-  { label: "Martes a sábado", schedule: { 1: 2, 2: 3, 3: 4, 4: 5, 5: 6 } },
-  { label: "Miércoles libre", schedule: { 1: 1, 2: 2, 3: 4, 4: 5, 5: 6 } },
-  { label: "Jueves libre", schedule: { 1: 1, 2: 2, 3: 3, 4: 5, 5: 6 } },
-  { label: "Libre miércoles y sábado", schedule: { 1: 1, 2: 2, 3: 4, 4: 5, 5: 7 } },
-  { label: "Lun, mié, vie y finde", schedule: { 1: 1, 2: 3, 3: 5, 4: 6, 5: 7 } },
-  { label: "Días alternos", schedule: { 1: 1, 2: 3, 3: 5, 4: 7, 5: 0 } },
-  { label: "4 días", schedule: { 1: 1, 2: 2, 3: 4, 4: 5, 5: 0 } },
-  { label: "3 días", schedule: { 1: 1, 2: 3, 3: 5, 4: 0, 5: 0 } },
+  { label: "Lunes a viernes", schedule: { 1: [1], 2: [2], 3: [3], 4: [4], 5: [5] } },
+  { label: "Martes a sábado", schedule: { 1: [2], 2: [3], 3: [4], 4: [5], 5: [6] } },
+  { label: "Miércoles libre", schedule: { 1: [1], 2: [2], 3: [4], 4: [5], 5: [6] } },
+  { label: "Jueves libre", schedule: { 1: [1], 2: [2], 3: [3], 4: [5], 5: [6] } },
+  { label: "Libre miércoles y sábado", schedule: { 1: [1], 2: [2], 3: [4], 4: [5], 5: [7] } },
+  { label: "Lun, mié, vie y finde", schedule: { 1: [1], 2: [3], 3: [5], 4: [6], 5: [7] } },
+  { label: "Días alternos", schedule: { 1: [1], 2: [3], 3: [5], 4: [7], 5: [] } },
+  { label: "4 días", schedule: { 1: [1], 2: [2], 3: [4], 4: [5], 5: [] } },
+  { label: "3 días", schedule: { 1: [1], 2: [3], 3: [5], 4: [], 5: [] } },
 ];
 
 // Fondo de un día de la semana: el color de su rutina (repartido si hay varias).
@@ -39,8 +38,8 @@ export function ScheduleCard() {
   const [picking, setPicking] = useState<number | null>(null);
   const [settings, setSettings] = useState(false);
   const schedule = model.schedule;
-  const trainingDays = WEEKDAYS.filter((wd) => DAYS.some((d) => schedule[d] === wd)).length;
-  const unscheduled = DAYS.filter((d) => !schedule[d]);
+  const trainingDays = WEEKDAYS.filter((wd) => model.days.some((d) => schedule[d].includes(wd))).length;
+  const unscheduled = model.days.filter((d) => !schedule[d].length);
 
   return (
     <section className="chart planner">
@@ -51,11 +50,11 @@ export function ScheduleCard() {
       <p className="planner-hint">Toca un día para elegir qué rutina haces.</p>
       <div className="week-strip">
         {WEEKDAYS.map((wd) => {
-          const routines = DAYS.filter((d) => schedule[d] === wd);
+          const routines = model.days.filter((d) => schedule[d].includes(wd));
           const isToday = today !== null && weekdayOf(today) === wd;
           return (
             <button key={wd} type="button" className={"wk-day" + (routines.length ? " train" : " rest") + (isToday ? " today" : "")}
-              aria-label={capitalize(WEEKDAY_NAMES[wd]) + ": " + (routines.length ? routines.map((d) => DAY_NAMES[d]).join(" y ") : "descanso")}
+              aria-label={capitalize(WEEKDAY_NAMES[wd]) + ": " + (routines.length ? routines.map((d) => model.dayName(d)).join(" y ") : "descanso")}
               style={routines.length ? { background: dayColor(routines) } : undefined}
               onClick={() => setPicking(wd)}>
               <b aria-hidden="true">{WEEKDAY_SHORT[wd]}</b>
@@ -66,7 +65,7 @@ export function ScheduleCard() {
         })}
       </div>
       {unscheduled.length > 0 && (
-        <p className="schedule-note">Sin día fijo: {unscheduled.map((d) => DAY_NAMES[d]).join(", ")}. Puedes hacerlos cuando quieras desde Hoy.</p>
+        <p className="schedule-note">Sin día fijo: {unscheduled.map((d) => model.dayName(d)).join(", ")}. Puedes hacerlos cuando quieras desde Hoy.</p>
       )}
 
       <button type="button" className="settings-btn" onClick={() => setSettings(true)}><SettingsIcon />Cambiar mis días</button>
@@ -80,7 +79,8 @@ export function ScheduleCard() {
 function WeekSettings({ onClose }: { onClose: () => void }) {
   const { model, actions } = useWorkout();
   const schedule = model.schedule;
-  const activePreset = PRESETS.find((p) => DAYS.every((d) => p.schedule[d] === schedule[d]));
+  const same = (a: number[] = [], b: number[] = []) => a.join() === b.join();
+  const activePreset = PRESETS.find((p) => model.days.every((d) => same(p.schedule[d], schedule[d])));
   // Fuera de las pestañas (su contenedor se desplaza), si no la ventana no queda fija en pantalla.
   return createPortal(
     <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="weekSettingsTitle" {...closeOnBackdrop(onClose)}>
@@ -94,7 +94,7 @@ function WeekSettings({ onClose }: { onClose: () => void }) {
               <button key={p.label} type="button" className={"preset" + (p === activePreset ? " active" : "")}
                 onClick={() => actions.applySchedulePreset(p.schedule, p.label)}>
                 <span className="preset-dots" aria-hidden="true">
-                  {WEEKDAYS.map((wd) => <i key={wd} className={Object.values(p.schedule).includes(wd) ? "on" : ""} />)}
+                  {WEEKDAYS.map((wd) => <i key={wd} className={Object.values(p.schedule).flat().includes(wd) ? "on" : ""} />)}
                 </span>
                 <span>{p.label}</span>
               </button>
@@ -141,27 +141,29 @@ function CycleWeek() {
   );
 }
 
-// Ventana para elegir qué rutinas se hacen un día de la semana.
+// Ventana para elegir qué rutinas se hacen un día de la semana. Una rutina puede estar en
+// varios días: marcarla aquí la añade sin quitarla de los demás.
 function DaySheet({ weekday, onClose }: { weekday: number; onClose: () => void }) {
   const { model, actions } = useWorkout();
   const schedule = model.schedule;
-  const toggle = (d: number) => actions.setWeekday(d, schedule[d] === weekday ? 0 : weekday);
-  const rest = () => DAYS.filter((d) => schedule[d] === weekday).forEach((d) => actions.setWeekday(d, 0));
+  const toggle = (d: number) => actions.setWeekdays(d, schedule[d].includes(weekday) ? schedule[d].filter((w) => w !== weekday) : [...schedule[d], weekday]);
+  const rest = () => model.days.filter((d) => schedule[d].includes(weekday)).forEach((d) => actions.setWeekdays(d, schedule[d].filter((w) => w !== weekday)));
 
   // Fuera de las pestañas (su contenedor se desplaza), si no la ventana no queda fija en pantalla.
   return createPortal(
     <div className="backdrop open" role="dialog" aria-modal="true" aria-labelledby="daySheetTitle" {...closeOnBackdrop(onClose)}>
       <div className="modal day-sheet">
         <h2 id="daySheetTitle">{capitalize(WEEKDAY_NAMES[weekday])}</h2>
-        <p>¿Qué rutina haces este día? Puedes elegir más de una.</p>
+        <p>¿Qué rutina haces este día? Puedes elegir más de una, y una rutina puede ir varios días.</p>
         <div className="settings-list">
-          {DAYS.map((d) => {
-            const on = schedule[d] === weekday;
-            const elsewhere = !on && schedule[d] ? "ahora el " + WEEKDAY_NAMES[schedule[d]] : !on ? "sin día fijo" : "";
+          {model.days.map((d) => {
+            const on = schedule[d].includes(weekday);
+            const others = schedule[d].filter((w) => w !== weekday).map((w) => WEEKDAY_NAMES[w]);
+            const where = others.length ? "también el " + others.join(" y el ") : !on ? "sin día fijo" : "";
             return (
               <button key={d} type="button" role="checkbox" aria-checked={on} className={"settings-row routine-pick" + (on ? " on" : "")} onClick={() => toggle(d)}>
                 <span className="row-icon" style={{ background: "var(--day" + d + ")", color: "#fff" }}>{d}</span>
-                <span className="row-text"><strong>{DAY_NAMES[d]}</strong>{elsewhere && <small>{elsewhere}{schedule[d] ? " · se moverá aquí" : ""}</small>}</span>
+                <span className="row-text"><strong>{model.dayName(d)}</strong>{where && <small>{where}</small>}</span>
                 <span className="pick-check" aria-hidden="true">{on && <CheckIcon />}</span>
               </button>
             );

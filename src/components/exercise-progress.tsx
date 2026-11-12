@@ -4,7 +4,7 @@ import { useId, useState } from "react";
 import { navigateTab, useWorkout } from "@/controllers/workout-controller";
 import { formatDayMonth, formatShortDate } from "@/domain/calendar";
 import { progressTrend, type ProgressTrend } from "@/domain/progression";
-import { DAY_NAMES, DAYS } from "@/domain/snapshot";
+
 import type { Exercise } from "@/domain/types";
 import type { SetResult } from "@/domain/workout-stats";
 import { ChevronIcon, TriangleIcon, TrophyIcon } from "./icons";
@@ -23,13 +23,18 @@ export function describeSet(r: SetResult) {
   return r.reps !== null ? kg + " × " + r.reps : kg;
 }
 
-// Valor de la tendencia con su unidad: "69,5 kg" (fuerza) o "6 reps" (peso corporal).
-const valueText = (t: ProgressTrend, v: number) => (t.kind === "strength" ? fmt(v) + " kg" : v + (v === 1 ? " rep" : " reps"));
-const unitFor = (t: ProgressTrend, change: number) => (t.kind === "strength" ? " kg" : Math.abs(change) === 1 ? " rep" : " reps");
+// Las series de una vez, en corto: "55×8 · 55×8 · 52,5×10" ("×6" sin carga).
+export const compactSets = (sets: SetResult[]) => sets
+  .map((r) => (r.weight !== null ? String(r.weight).replace(".", ",") : "") + "×" + (r.reps ?? "—"))
+  .join(" · ");
 
-// Un ejercicio en Progreso: plegado se ve de un vistazo cómo va (fuerza o repeticiones
-// y el cambio con la vez anterior); al tocarlo se despliega con la última vez, el récord
-// y la gráfica de su evolución.
+// Valor de la tendencia con su unidad: "55 kg" (peso máximo) o "6 reps" (peso corporal).
+const valueText = (t: ProgressTrend, v: number) => (t.kind === "weight" ? fmt(v) + " kg" : v + (v === 1 ? " rep" : " reps"));
+const unitFor = (t: ProgressTrend, change: number) => (t.kind === "weight" ? " kg" : Math.abs(change) === 1 ? " rep" : " reps");
+
+// Un ejercicio en Progreso: plegado se ve de un vistazo cómo va (peso máximo o
+// repeticiones y el cambio con la vez anterior); al tocarlo se despliega con la última
+// vez, el récord y la gráfica de su evolución.
 function ExerciseRow({ exercise: x, open, onToggle }: { exercise: Exercise; open: boolean; onToggle: () => void }) {
   const { stats, records } = useWorkout();
   const detailId = useId();
@@ -37,16 +42,16 @@ function ExerciseRow({ exercise: x, open, onToggle }: { exercise: Exercise; open
   const trend = progressTrend(history);
   const last = history[history.length - 1];
   if (!trend || !last) return null;
-  const record = trend.kind === "strength" ? stats.record(x) : null;
+  const weighted = trend.kind === "weight";
+  const record = weighted ? stats.record(x) : null;
   const fresh = records.some((r) => r.exerciseId === x.id);
-  const strength = trend.kind === "strength";
 
   return (
     <article className={"exprog" + (open ? " open" : "")}>
       <button type="button" className="exprog-row" aria-expanded={open} aria-controls={detailId} onClick={onToggle}>
         <span className="exprog-name"><b>{x.name}</b><small>{x.prescription}</small></span>
         <span className="exprog-value">
-          <small>{strength ? "Fuerza" : "Mejor serie"}</small>
+          <small>{weighted ? "Peso máximo" : "Mejor serie"}</small>
           <b>{valueText(trend, trend.last.value)}</b>
           {trend.change !== null && <Delta value={trend.change} unit={unitFor(trend, trend.change)} />}
         </span>
@@ -61,22 +66,22 @@ function ExerciseRow({ exercise: x, open, onToggle }: { exercise: Exercise; open
             </div>
           </div>
           <p className="exprog-info">
-            {strength
-              ? "Fuerza = lo máximo que podrías levantar una vez (1RM), calculado con tus series. Si sube, te estás haciendo más fuerte."
+            {weighted
+              ? "Peso máximo = lo más pesado que levantaste ese día. Si sube, te estás haciendo más fuerte."
               : "Repeticiones de tu mejor serie. Si suben, estás mejorando."}
           </p>
           {record && (
             <p className={"exprog-record" + (fresh ? " fresh" : "")}>
-              <TrophyIcon /> Récord: <b>{fmt(record.best1RM.weight)} kg × {record.best1RM.reps}</b> · fuerza {fmt(Math.round(record.best1RM.value * 2) / 2)} kg
-              {record.best1RM.date && " · " + formatShortDate(record.best1RM.date)}
+              <TrophyIcon /> Récord: <b>{fmt(record.heaviest.weight)} kg</b> · {compactSets(record.sets)}
+              {record.heaviest.date && " · " + formatShortDate(record.heaviest.date)}
               {fresh && <span className="new-tag">¡Nuevo!</span>}
             </p>
           )}
-          <TapLineChart color={"var(--day" + x.day + ")"} caption={(strength ? "Fuerza de " : "Repeticiones de ") + x.name + " por fecha"}
+          <TapLineChart color={"var(--day" + x.day + ")"} caption={(weighted ? "Peso máximo de " : "Repeticiones de ") + x.name + " por fecha"}
             points={trend.points.map((p) => ({
-              key: String(p.week), value: p.value,
-              label: (strength ? "Fuerza " : "") + valueText(trend, p.value),
-              sub: (p.date ? formatShortDate(p.date) : "Semana " + p.week) + " · " + describeSet(p.best),
+              key: p.week + "-" + p.round, value: p.value,
+              label: (weighted ? "Peso máximo " : "") + valueText(trend, p.value),
+              sub: (p.date ? formatShortDate(p.date) : "Semana " + p.week) + " · " + compactSets(p.sets),
               tick: p.date ? formatDayMonth(p.date) : "S" + p.week,
             }))} />
         </div>
@@ -95,7 +100,7 @@ export function ExerciseProgress() {
   const hasData = (x: Exercise) => stats.exerciseHistory(x).length > 0;
   const list = model.exercisesOfDay(day);
   const withData = list.filter(hasData);
-  const started = DAYS.some((d) => model.exercisesOfDay(d).some(hasData));
+  const started = model.days.some((d) => model.exercisesOfDay(d).some(hasData));
 
   return (
     <section className="chart" aria-labelledby={titleId}>
@@ -108,10 +113,10 @@ export function ExerciseProgress() {
       ) : (
         <>
           <div className="daychips" role="tablist" aria-label="Día de rutina">
-            {DAYS.map((d) => (
+            {model.days.map((d) => (
               <button key={d} type="button" role="tab" aria-selected={d === day} className={"daychip" + (d === day ? " active" : "")}
                 onClick={() => { setDay(d); setOpenId(null); }}>
-                <i className="swatch" style={{ background: "var(--day" + d + ")" }} />{DAY_NAMES[d]}
+                <i className="swatch" style={{ background: "var(--day" + d + ")" }} />{model.dayName(d)}
               </button>
             ))}
           </div>

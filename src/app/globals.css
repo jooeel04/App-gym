@@ -1267,3 +1267,25 @@ body:has(.dock>*):has(.restbar) .toast{bottom:calc(236px + env(safe-area-inset-b
 body:is(:has(.dock>*),:has(.restbar)) .device-card{display:none}
 /* «Deshacer» flota sobre la tarjeta: fondo propio con desenfoque para leerse bien. */
 .dock .set-undo{background:color-mix(in srgb,var(--s) 88%,transparent);border-color:var(--line2);backdrop-filter:blur(18px) saturate(140%)}
+/* «Hacer otro día»: la fecha (hoy o una pasada) antes de elegir el día de rutina. */
+.log-date{display:flex;align-items:center;gap:10px;margin:12px 0 0;color:var(--muted);font-size:max(11px, calc(12px * var(--fs)));font-weight:800}
+.log-date input{-webkit-appearance:none;appearance:none;flex:1;min-width:0;max-width:220px;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--line2);background:var(--s1);color:var(--text);font:inherit;font-weight:700;text-align:left}
+.log-date input::-webkit-date-and-time-value{text-align:left}
+/* Botones del ejercicio abierto en Hoy: al menos 44 px para el dedo, y la fecha de «Igual que
+   la última vez» del mismo tamaño que el botón (como <small> salía a 9 px). */
+.repeat-last,.focus-check{min-height:44px}
+.repeat-last small{font-size:inherit}
+/* Días de rutina 6 y 7 (días propios): morado y turquesa, distintos de los cinco de siempre. */
+:root{--day6:#8e63e6;--day7:#1f9fb4}
+:root[data-theme="light"]{--day6:#7a4fd6;--day7:#168ea3}
+/* Rutina: añadir, renombrar y eliminar días (en modo «Editar»). */
+.add-day{width:100%;margin-top:10px;min-height:44px}
+.day-actions{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--hair)}
+.day-actions button{flex:1;min-height:44px}
+.day-name-modal input{width:100%;min-height:44px}
+/* Social: en el ranking de un ejercicio, cada persona es un botón; al tocarlo se ven las
+   series del día de su marca debajo (el recuadro pasa a dos líneas). */
+.lift-full li:has(.lift-person){flex-wrap:wrap;padding:0}
+.lift-person{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:11px 12px;border:0;background:none;color:inherit;font:inherit;text-align:left}
+.lift-person .leader-days{margin-left:auto}
+.lift-full .lift-sets{width:100%;margin:-4px 0 0;padding:0 12px 11px 48px;color:var(--muted);font-size:max(11px, calc(12px * var(--fs)));font-weight:650}

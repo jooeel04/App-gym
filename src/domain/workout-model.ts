@@ -1,6 +1,6 @@
 import type { WorkoutRepository } from "@/repositories/workout-repository";
 import { isISODate, mondayOf } from "./calendar";
-import { blankSnapshot, DAY_NAMES, dayKey, DEFAULT_SCHEDULE, DEFAULT_WEEKS, entryKey, exerciseKey, isLogged, parseKey } from "./snapshot";
+import { blankSnapshot, dayKey, DEFAULT_DAY_NAMES, DEFAULT_SCHEDULE, DEFAULT_WEEKS, entryKey, exerciseKey, isLogged, MAX_DAY_NAME, MAX_DAYS, MAX_ROUNDS, normalizeSchedule, parseKey, roundOf } from "./snapshot";
 import type { BodyMetrics, Exercise, NewExerciseInput, SetEntry, SetField, WeekSchedule, WorkoutChange, WorkoutSnapshot } from "./types";
 
 type Listener = () => void;
@@ -21,6 +21,8 @@ export class WorkoutModel {
   private version = 0;
   private listeners = new Set<Listener>();
   private onSaveError: (error: unknown) => void = () => {};
+  // Última vez de cada día en cada semana ("semana|día" → vez); null = hay que recalcularla.
+  private rounds: Map<string, number> | null = null;
 
   constructor(private readonly repository: WorkoutRepository, private readonly baseRoutine: readonly Exercise[], initial?: WorkoutSnapshot | null) {
     this.state = blankSnapshot(this.copyBaseRoutine());
@@ -37,6 +39,7 @@ export class WorkoutModel {
   getVersion = () => this.version;
 
   private emit() {
+    this.rounds = null;
     this.version++;
     this.listeners.forEach((l) => l());
   }
@@ -71,6 +74,7 @@ export class WorkoutModel {
     const routine = Array.isArray(p.routine) ? p.routine : this.copyBaseRoutine();
     this.state = { ...blankSnapshot(routine), ...p, routine };
     this.state.weeksCount = Math.max(1, Number(this.state.weeksCount) || DEFAULT_WEEKS);
+    this.rounds = null;
   }
 
   private commit(change: WorkoutChange) {
@@ -91,6 +95,62 @@ export class WorkoutModel {
   get weeksCount() { return this.state.weeksCount; }
   get routine(): readonly Exercise[] { return this.state.routine; }
 
+  // ---- Días de rutina ----
+
+  // Nombre de cada día que existe ("1" → "Torso"). Sin guardar, los 5 de siempre.
+  get dayNames(): Record<string, string> {
+    return { ...(this.state.dayNames ?? DEFAULT_DAY_NAMES) };
+  }
+
+  // Días de rutina que existen, en orden (1–7).
+  get days(): number[] {
+    return Object.keys(this.dayNames).map(Number).sort((a, b) => a - b);
+  }
+
+  dayName(d: number) {
+    return this.dayNames[d] ?? "Día " + d;
+  }
+
+  // Crea un día vacío con ese nombre en el número `at` o, sin él, en el primero libre.
+  // Devuelve el número, o
+  // null si el nombre está vacío, ese número ya existe o ya hay MAX_DAYS.
+  addDay(name: string, at?: number): number | null {
+    const clean = name.trim().slice(0, MAX_DAY_NAME);
+    const days = this.days;
+    const free = Array.from({ length: MAX_DAYS }, (_, i) => i + 1).find((d) => !days.includes(d) && (at === undefined || d === at));
+    if (!clean || free === undefined) return null;
+    this.setDayNames({ ...this.dayNames, [free]: clean });
+    return free;
+  }
+
+  renameDay(d: number, name: string) {
+    const clean = name.trim().slice(0, MAX_DAY_NAME);
+    if (!clean || !this.days.includes(d)) return;
+    this.setDayNames({ ...this.dayNames, [d]: clean });
+  }
+
+  // Borra el día con sus ejercicios, series, ticks, días completados y su sitio en el
+  // calendario. El último día que queda no se borra.
+  removeDay(d: number) {
+    if (!this.days.includes(d) || this.days.length <= 1) return;
+    const other = <T,>(source: Record<string, T>) => Object.fromEntries(Object.entries(source).filter(([k]) => parseKey(k)[1] !== d));
+    const dayNames = this.dayNames, schedule = this.schedule;
+    delete dayNames[d];
+    delete schedule[d];
+    this.state.routine = this.state.routine.filter((x) => x.day !== d);
+    this.state.entries = other(this.state.entries);
+    this.state.checked = other(this.checked);
+    this.state.completed = other(this.state.completed);
+    this.state.dayNames = dayNames;
+    this.state.schedule = schedule;
+    this.commit({ type: "dayRemoved", day: d, dayNames, schedule });
+  }
+
+  private setDayNames(dayNames: Record<string, string>) {
+    this.state.dayNames = dayNames;
+    this.commit({ type: "dayNames", dayNames });
+  }
+
   // ---- Rutina ----
 
   exercisesOfDay(d: number) {
@@ -108,7 +168,7 @@ export class WorkoutModel {
   addExercise(day: number, data: NewExerciseInput): Exercise {
     const id = this.state.routine.reduce((max, x) => Math.max(max, Number(x.id) || 0), -1) + 1;
     const exercise: Exercise = {
-      id, day, group: DAY_NAMES[day], name: data.name, note: data.note || "",
+      id, day, group: this.dayName(day), name: data.name, note: data.note || "",
       ...setsAndTarget(data), optionalLast: false, custom: true, superset: !!data.superset,
     };
     this.state.routine = [...this.state.routine, exercise];
@@ -150,14 +210,15 @@ export class WorkoutModel {
   }
 
   // ---- Registros por serie ----
+  // `r` es la vez del día en esa semana: 1 la primera, 2 si se repite… (ver lastRound).
 
-  getEntry(w: number, d: number, id: number, s: number): SetEntry {
-    return this.state.entries[entryKey(w, d, id, s)] ?? {};
+  getEntry(w: number, d: number, id: number, s: number, r = 1): SetEntry {
+    return this.state.entries[entryKey(w, d, id, s, r)] ?? {};
   }
 
   // `today` es la fecha real en que se anota; se conserva la de la primera anotación.
-  setEntryField(w: number, d: number, id: number, s: number, field: SetField, value: string, today: string) {
-    const k = entryKey(w, d, id, s);
+  setEntryField(w: number, d: number, id: number, s: number, field: SetField, value: string, today: string, r = 1) {
+    const k = entryKey(w, d, id, s, r);
     const v: SetEntry = { ...this.state.entries[k], [field]: value };
     const empty = !v.weight && !v.reps && !v.note;
     if (!v.date) v.date = today;
@@ -165,19 +226,53 @@ export class WorkoutModel {
     if (empty) delete entries[k];
     else entries[k] = v;
     this.state.entries = entries;
-    this.commit({ type: "entry", week: w, day: d, exerciseId: id, set: s, entry: empty ? null : v });
+    this.commit({ type: "entry", week: w, day: d, round: r, exerciseId: id, set: s, entry: empty ? null : v });
   }
 
-  // Si el día (semana y día de rutina) tiene alguna serie anotada.
-  hasLoggedSets(w: number, d: number) {
+  // Si el día (semana y día de rutina) tiene alguna serie anotada: en la vez `r` o, sin
+  // ella, en cualquiera.
+  hasLoggedSets(w: number, d: number, r?: number) {
     const prefix = w + "|" + d + "|";
-    return Object.entries(this.state.entries).some(([k, e]) => k.startsWith(prefix) && isLogged(e));
+    return Object.entries(this.state.entries).some(([k, e]) => k.startsWith(prefix) && (r === undefined || roundOf(k, 4) === r) && isLogged(e));
   }
 
-  loggedSets(w: number, d: number, exercise: Exercise) {
+  loggedSets(w: number, d: number, exercise: Exercise, r = 1) {
     let n = 0;
-    for (let s = 1; s <= exercise.sets; s++) if (isLogged(this.getEntry(w, d, exercise.id, s))) n++;
+    for (let s = 1; s <= exercise.sets; s++) if (isLogged(this.getEntry(w, d, exercise.id, s, r))) n++;
     return n;
+  }
+
+  // ---- Veces del mismo día en una semana ----
+
+  // Última vez del día en esa semana con algo anotado, marcado o completado (1 si ninguna).
+  // Se calcula de una pasada para todos los días y se guarda hasta el siguiente cambio
+  // (Progreso lo pregunta para cada semana de cada ejercicio).
+  lastRound(w: number, d: number) {
+    if (!this.rounds) {
+      const rounds = new Map<string, number>();
+      const see = (source: Record<string, unknown>, size: number) => Object.keys(source).forEach((k) => {
+        const [week, day] = parseKey(k), key = dayKey(week, day);
+        rounds.set(key, Math.max(rounds.get(key) ?? 1, roundOf(k, size)));
+      });
+      see(this.state.entries, 4);
+      see(this.checked, 3);
+      see(this.state.completed, 2);
+      this.rounds = rounds;
+    }
+    return this.rounds.get(dayKey(w, d)) ?? 1;
+  }
+
+  // Vez en la que se sigue anotando: la última si está a medias, la siguiente si ya se completó.
+  openRound(w: number, d: number) {
+    const last = this.lastRound(w, d);
+    return this.isDayCompleted(w, d, last) ? Math.min(last + 1, MAX_ROUNDS) : last;
+  }
+
+  // Alguna de las veces del día en esa semana está completada o tiene series.
+  isDayDone(w: number, d: number) {
+    if (this.hasLoggedSets(w, d)) return true;
+    for (let r = this.lastRound(w, d); r >= 1; r--) if (this.isDayCompleted(w, d, r)) return true;
+    return false;
   }
 
   // Ejercicios marcados a mano con el tick: "semana|día|ejercicio" → fecha en que se marcó.
@@ -185,18 +280,18 @@ export class WorkoutModel {
     return this.state.checked ?? {};
   }
 
-  isExerciseChecked(w: number, d: number, id: number) {
-    return exerciseKey(w, d, id) in this.checked;
+  isExerciseChecked(w: number, d: number, id: number, r = 1) {
+    return exerciseKey(w, d, id, r) in this.checked;
   }
 
   // Marca o desmarca a mano un ejercicio (p. ej. si no se pudo hacer). Devuelve el nuevo estado.
-  toggleExerciseChecked(w: number, d: number, id: number, today: string) {
-    const k = exerciseKey(w, d, id), checked = { ...this.checked };
+  toggleExerciseChecked(w: number, d: number, id: number, today: string, r = 1) {
+    const k = exerciseKey(w, d, id, r), checked = { ...this.checked };
     const on = !(k in checked);
     if (on) checked[k] = today;
     else delete checked[k];
     this.state.checked = checked;
-    this.commit({ type: "exerciseChecked", week: w, day: d, exerciseId: id, date: on ? today : null });
+    this.commit({ type: "exerciseChecked", week: w, day: d, round: r, exerciseId: id, date: on ? today : null });
     return on;
   }
 
@@ -210,31 +305,31 @@ export class WorkoutModel {
 
   // Un ejercicio está hecho si se marcó con el tick o si tiene anotadas todas sus
   // series (la opcional no cuenta).
-  isExerciseDone(w: number, d: number, exercise: Exercise) {
-    if (this.isExerciseChecked(w, d, exercise.id)) return true;
+  isExerciseDone(w: number, d: number, exercise: Exercise, r = 1) {
+    if (this.isExerciseChecked(w, d, exercise.id, r)) return true;
     const required = exercise.sets - (exercise.optionalLast ? 1 : 0);
-    for (let s = 1; s <= required; s++) if (!isLogged(this.getEntry(w, d, exercise.id, s))) return false;
+    for (let s = 1; s <= required; s++) if (!isLogged(this.getEntry(w, d, exercise.id, s, r))) return false;
     return true;
   }
 
   // ---- Días completados ----
 
-  isDayCompleted(w: number, d: number) {
-    return !!this.state.completed[dayKey(w, d)];
+  isDayCompleted(w: number, d: number, r = 1) {
+    return !!this.state.completed[dayKey(w, d, r)];
   }
 
   // Marca el día como completado cuando todos sus ejercicios están hechos (y lo
   // desmarca si deja de estarlo). Devuelve true si el día acaba de completarse.
-  syncDayCompleted(w: number, d: number) {
+  syncDayCompleted(w: number, d: number, r = 1) {
     const list = this.exercisesOfDay(d);
-    const done = list.length > 0 && list.every((x) => this.isExerciseDone(w, d, x));
-    if (done === this.isDayCompleted(w, d)) return false;
-    const k = dayKey(w, d);
+    const done = list.length > 0 && list.every((x) => this.isExerciseDone(w, d, x, r));
+    if (done === this.isDayCompleted(w, d, r)) return false;
+    const k = dayKey(w, d, r);
     const completed = { ...this.state.completed };
     if (done) completed[k] = true;
     else delete completed[k];
     this.state.completed = completed;
-    this.commit({ type: "completed", week: w, day: d, done });
+    this.commit({ type: "completed", week: w, day: d, round: r, done });
     return done;
   }
 
@@ -279,26 +374,29 @@ export class WorkoutModel {
 
   // ---- Calendario ----
 
+  // Días de la semana de cada día de rutina que existe (lista vacía = sin día fijo).
+  // Los datos antiguos (un número por día) se leen como una lista de uno.
   get schedule(): WeekSchedule {
-    return { ...DEFAULT_SCHEDULE, ...this.state.schedule };
+    const saved = normalizeSchedule(this.state.schedule ?? DEFAULT_SCHEDULE);
+    return Object.fromEntries(this.days.map((d) => [d, saved[d] ?? []]));
   }
 
-  // Día de la semana (1 = lunes … 7 = domingo) en que se entrena el día de rutina `d`;
-  // 0 = sin día fijo.
-  weekdayFor(d: number) {
-    return this.schedule[d];
+  // Días de la semana (1 = lunes … 7 = domingo) en que se entrena el día de rutina `d`,
+  // en orden: el primero es la 1.ª vez de la semana, el segundo la 2.ª… ([] = sin día fijo).
+  weekdaysFor(d: number): number[] {
+    return this.schedule[d] ?? [];
   }
 
   get startDate(): string | null {
     return this.state.startDate ?? null;
   }
 
-  setWeekday(d: number, weekday: number) {
-    this.setSchedule({ ...this.schedule, [d]: weekday });
+  setWeekdays(d: number, weekdays: number[]) {
+    this.setSchedule({ ...this.schedule, [d]: weekdays });
   }
 
   setSchedule(schedule: WeekSchedule) {
-    this.state.schedule = { ...schedule };
+    this.state.schedule = normalizeSchedule(schedule);
     this.commit({ type: "schedule", schedule: this.schedule, startDate: this.startDate });
   }
 

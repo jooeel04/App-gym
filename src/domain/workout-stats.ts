@@ -1,5 +1,4 @@
-import { estimate1RM } from "./progression";
-import { DAYS, isLogged } from "./snapshot";
+import { isLogged } from "./snapshot";
 import type { Exercise, Tally } from "./types";
 import type { WorkoutModel } from "./workout-model";
 
@@ -14,15 +13,15 @@ export interface SetResult {
   reps: number | null;
 }
 
-// Lo que se hizo en un ejercicio en una semana del ciclo.
+// Lo que se hizo en un ejercicio en una vez de un día de una semana del ciclo.
 export interface ExerciseSession {
   week: number;
+  round: number; // vez del día en esa semana (1, 2…)
   date: string | null; // fecha real más reciente de sus series
   sets: SetResult[];
   topWeight: number | null; // carga máxima
   reps: number; // repeticiones totales
   volume: number; // kg × repeticiones
-  e1rm: number; // mejor 1RM estimado de sus series
 }
 
 function toNumber(v: string | undefined) {
@@ -31,29 +30,30 @@ function toNumber(v: string | undefined) {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
-// Mejor marca de un ejercicio: la serie de más peso y la de mayor 1RM estimado.
+// Mejor marca de un ejercicio: el día de más peso, con sus series.
 export interface PersonalRecord {
   exercise: Exercise;
   heaviest: { weight: number; reps: number | null; week: number; date: string | null };
-  best1RM: { value: number; weight: number; reps: number; week: number; date: string | null };
+  sets: SetResult[]; // todas las series de trabajo de ese día
+  totalReps: number;
 }
 
 // Cálculos de solo lectura sobre el modelo: series anotadas, cargas y repeticiones.
 export class WorkoutStats {
   constructor(private readonly model: WorkoutModel) {}
 
-  day(w: number, d: number): Tally {
+  day(w: number, d: number, r = 1): Tally {
     let n = 0, p = 0;
     this.model.exercisesOfDay(d).forEach((x) => {
       p += x.sets;
-      n += this.model.loggedSets(w, d, x);
+      n += this.model.loggedSets(w, d, x, r);
     });
     return { n, p };
   }
 
   week(w: number): Tally {
     let n = 0, p = 0;
-    DAYS.forEach((d) => { const t = this.day(w, d); n += t.n; p += t.p; });
+    this.model.days.forEach((d) => { const t = this.day(w, d); n += t.n; p += t.p; });
     return { n, p };
   }
 
@@ -65,66 +65,68 @@ export class WorkoutStats {
 
   // ---- Por ejercicio ----
 
-  session(x: Exercise, w: number): ExerciseSession | null {
+  // Lo anotado en un ejercicio en la vez `r` del día en la semana `w`.
+  session(x: Exercise, w: number, r = 1): ExerciseSession | null {
     const sets: SetResult[] = [];
     let date: string | null = null;
     for (let s = 1; s <= x.sets; s++) {
-      const e = this.model.getEntry(w, x.day, x.id, s);
+      const e = this.model.getEntry(w, x.day, x.id, s, r);
       if (!isLogged(e)) continue;
       sets.push({ set: s, weight: toNumber(e.weight), reps: toNumber(e.reps) });
       if (e.date && (!date || e.date > date)) date = e.date;
     }
     if (!sets.length) return null;
-    const weights = sets.map((r) => r.weight).filter((v): v is number => v !== null);
+    const weights = sets.map((v) => v.weight).filter((v): v is number => v !== null);
     return {
       week: w,
+      round: r,
       date,
       sets,
       topWeight: weights.length ? Math.max(...weights) : null,
-      reps: sets.reduce((sum, r) => sum + (r.reps ?? 0), 0),
-      volume: Math.round(sets.reduce((sum, r) => sum + (r.weight ?? 0) * (r.reps ?? 0), 0)),
-      e1rm: Math.max(0, ...sets.map((r) => estimate1RM(r.weight ?? 0, r.reps ?? 0))),
+      reps: sets.reduce((sum, v) => sum + (v.reps ?? 0), 0),
+      volume: Math.round(sets.reduce((sum, v) => sum + (v.weight ?? 0) * (v.reps ?? 0), 0)),
     };
   }
 
-  // Semanas en que se anotó el ejercicio, de la más antigua a la más reciente.
+  // Cada vez que se anotó el ejercicio (semana y vez), de la más antigua a la más reciente.
   exerciseHistory(x: Exercise): ExerciseSession[] {
     const history: ExerciseSession[] = [];
     for (let w = 1; w <= this.model.weeksCount; w++) {
-      const s = this.session(x, w);
-      if (s) history.push(s);
+      const last = this.model.lastRound(w, x.day);
+      for (let r = 1; r <= last; r++) {
+        const s = this.session(x, w, r);
+        if (s) history.push(s);
+      }
     }
     return history;
   }
 
-  // Récord del ejercicio (null si no hay series con carga). `skip` excluye una serie
-  // concreta ("semana|serie"), para comparar una serie recién anotada con lo anterior.
+  // Récord del ejercicio: el día (sesión) en que se levantó más peso, con todas sus
+  // series; a igual peso, el de más repeticiones en total. null si no hay series con
+  // carga. `skip` excluye una serie concreta ("semana|vez|serie"), para comparar una serie
+  // recién anotada con lo anterior.
   record(x: Exercise, skip?: string): PersonalRecord | null {
-    let heaviest: PersonalRecord["heaviest"] | null = null, best: PersonalRecord["best1RM"] | null = null;
-    for (let w = 1; w <= this.model.weeksCount; w++) {
-      for (let s = 1; s <= x.sets; s++) {
-        if (skip === w + "|" + s) continue;
-        const e = this.model.getEntry(w, x.day, x.id, s);
-        const weight = Number(e.weight), reps = Number(e.reps);
-        if (!(weight > 0)) continue;
-        if (!heaviest || weight > heaviest.weight) heaviest = { weight, reps: reps > 0 ? reps : null, week: w, date: e.date ?? null };
-        const value = estimate1RM(weight, reps);
-        if (reps > 0 && (!best || value > best.value)) best = { value, weight, reps, week: w, date: e.date ?? null };
-      }
+    let best: PersonalRecord | null = null;
+    for (const session of this.exerciseHistory(x)) {
+      const sets = session.sets.filter((v) => skip !== [session.week, session.round, v.set].join("|"));
+      const weight = Math.max(0, ...sets.map((v) => v.weight ?? 0));
+      if (!(weight > 0)) continue;
+      const totalReps = sets.reduce((sum, v) => sum + (v.reps ?? 0), 0);
+      if (best && (weight < best.heaviest.weight || (weight === best.heaviest.weight && totalReps <= best.totalReps))) continue;
+      const reps = Math.max(0, ...sets.filter((v) => v.weight === weight).map((v) => v.reps ?? 0)) || null;
+      best = { exercise: x, heaviest: { weight, reps, week: session.week, date: session.date }, sets, totalReps };
     }
-    return heaviest && best ? { exercise: x, heaviest, best1RM: best } : null;
+    return best;
   }
 
   records(): PersonalRecord[] {
     return this.model.routine.map((x) => this.record(x)).filter((r): r is PersonalRecord => r !== null);
   }
 
-  // La última vez que se hizo el ejercicio antes de la semana `w`.
-  lastBefore(x: Exercise, w: number): ExerciseSession | null {
-    for (let prev = w - 1; prev >= 1; prev--) {
-      const s = this.session(x, prev);
-      if (s) return s;
-    }
-    return null;
+  // La última vez que se hizo el ejercicio antes de la vez `r` de la semana `w` (la
+  // anterior de esa misma semana, si se repitió el día).
+  lastBefore(x: Exercise, w: number, r = 1): ExerciseSession | null {
+    const before = this.exerciseHistory(x).filter((s) => s.week < w || (s.week === w && s.round < r));
+    return before[before.length - 1] ?? null;
   }
 }

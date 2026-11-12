@@ -21,6 +21,7 @@ interface Due {
   p256dh: string;
   auth: string;
   routine_day: number | null;
+  routine_name?: string | null; // nombre del día de rutina (los días se pueden renombrar)
   vapid_private: string | null;
   is_test?: boolean; // aviso de prueba pedido desde Ajustes
 }
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
   let sent = 0;
   for (const d of due) {
     if (!d.vapid_private) return Response.json({ sent, error: "Falta la clave privada VAPID en private.settings" }, { status: 500 });
-    const name = d.routine_day ? DAY_NAMES[d.routine_day] : null;
+    const name = d.routine_name ?? (d.routine_day ? DAY_NAMES[d.routine_day] ?? null : null);
     const payload = JSON.stringify(d.is_test
       ? { title: "Prueba de FitGym", body: "¡Funciona! Así te llegará el recordatorio para entrenar.", url: "/ajustes" }
       : {

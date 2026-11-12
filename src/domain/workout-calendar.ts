@@ -1,32 +1,35 @@
 import { addDays, daysBetween, mondayOf, weekdayOf } from "./calendar";
-import { DAYS } from "./snapshot";
 import type { WorkoutModel } from "./workout-model";
 
-// Un día de rutina de una semana del ciclo, con la fecha en que está planificado.
+// Un día de rutina de una semana del ciclo, con la vez que es en esa semana (un día puede
+// ir en varios días de la semana: Torso el lunes es la 1.ª vez y el jueves la 2.ª) y la
+// fecha en que está planificado.
 export interface PlannedSession {
   week: number;
   day: number;
+  round: number;
   date: string;
 }
 
 // Días que se ofrecen para recuperar.
 export const MAKEUP_WINDOW_DAYS = 14;
 
-// Relaciona el ciclo (semana 1…N, día 1…5) con fechas reales a partir de la
-// fecha de inicio y del día de la semana asignado a cada día de rutina.
+// Relaciona el ciclo (semana 1…N, día de rutina y vez) con fechas reales a partir de la
+// fecha de inicio y de los días de la semana asignados a cada día de rutina.
 export class WorkoutCalendar {
   constructor(private readonly model: WorkoutModel) {}
 
-  // Día de rutina con día de la semana asignado (0 = sin día fijo: se entrena cuando se quiera).
+  // Día de rutina con algún día de la semana asignado (si no, se entrena cuando se quiera).
   isScheduled(day: number) {
-    return this.model.weekdayFor(day) >= 1;
+    return this.model.weekdaysFor(day).length > 0;
   }
 
-  plannedDate(week: number, day: number): string | null {
+  // Fecha planificada de la vez `round` del día en esa semana (null si no tiene).
+  plannedDate(week: number, day: number, round = 1): string | null {
     const start = this.model.startDate;
-    if (!start) return null;
-    if (!this.isScheduled(day)) return null;
-    return addDays(start, (week - 1) * 7 + this.model.weekdayFor(day) - 1);
+    const weekday = this.model.weekdaysFor(day)[round - 1];
+    if (!start || !weekday) return null;
+    return addDays(start, (week - 1) * 7 + weekday - 1);
   }
 
   // Semana del ciclo en la que cae una fecha (puede quedar fuera de 1…N).
@@ -36,14 +39,21 @@ export class WorkoutCalendar {
     return Math.floor(daysBetween(start, date) / 7) + 1;
   }
 
+  // Días de rutina (con ejercicios) que tocan cada semana, con su vez y su día de la semana,
+  // en orden de la semana.
+  private slots() {
+    return this.model.days
+      .filter((d) => this.model.exercisesOfDay(d).length > 0)
+      .flatMap((day) => this.model.weekdaysFor(day).map((weekday, i) => ({ day, round: i + 1, weekday })))
+      .sort((a, b) => a.weekday - b.weekday || a.day - b.day);
+  }
+
   // Días de rutina planificados para una fecha.
   sessionsOn(date: string): PlannedSession[] {
     const week = this.cycleWeekOf(date);
     if (week === null || week < 1 || week > this.model.weeksCount) return [];
     const weekday = weekdayOf(date);
-    return DAYS
-      .filter((d) => this.model.weekdayFor(d) === weekday && this.model.exercisesOfDay(d).length > 0)
-      .map((day) => ({ week, day, date }));
+    return this.slots().filter((s) => s.weekday === weekday).map(({ day, round }) => ({ week, day, round, date }));
   }
 
   // Fecha de inicio por defecto: la semana actual del calendario es la última
@@ -51,33 +61,34 @@ export class WorkoutCalendar {
   suggestStartDate(today: string) {
     let lastWeek = 1;
     for (let w = this.model.weeksCount; w > 1; w--) {
-      if (DAYS.some((d) => this.model.hasLoggedSets(w, d))) { lastWeek = w; break; }
+      if (this.model.days.some((d) => this.model.hasLoggedSets(w, d))) { lastWeek = w; break; }
     }
     return addDays(mondayOf(today), -(lastWeek - 1) * 7);
   }
 
-  // Semana y día de rutina que tocan en una fecha, ajustados al ciclo.
-  // En días de descanso devuelve el día de esa semana más cercano por delante.
-  focusFor(date: string): { week: number; day: number } | null {
+  // Semana, día de rutina y vez que tocan en una fecha, ajustados al ciclo.
+  // En días de descanso devuelve el más cercano de esa semana por delante.
+  focusFor(date: string): { week: number; day: number; round: number } | null {
     const raw = this.cycleWeekOf(date);
     if (raw === null) return null;
     const week = Math.min(Math.max(raw, 1), this.model.weeksCount);
     const weekday = weekdayOf(date);
-    const days = DAYS.filter((d) => this.isScheduled(d) && this.model.exercisesOfDay(d).length > 0)
-      .sort((a, b) => this.model.weekdayFor(a) - this.model.weekdayFor(b));
-    const next = days.find((d) => this.model.weekdayFor(d) >= weekday) ?? days[days.length - 1] ?? 1;
-    return { week, day: next };
+    const slots = this.slots();
+    const next = slots.find((s) => s.weekday >= weekday) ?? slots[slots.length - 1];
+    return next ? { week, day: next.day, round: next.round } : { week, day: this.model.days[0] ?? 1, round: 1 };
   }
 
-  isDone(week: number, day: number) {
-    return this.model.isDayCompleted(week, day) || this.model.hasLoggedSets(week, day);
+  // La vez `round` del día en esa semana está hecha (completada o con series).
+  isDone(week: number, day: number, round = 1) {
+    return this.model.isDayCompleted(week, day, round) || this.model.hasLoggedSets(week, day, round);
   }
 
-  // Rachas: semanas seguidas con todos los días de rutina hechos. La semana en
-  // curso suma si ya está completa; si no, no rompe la racha todavía.
+  // Rachas: semanas seguidas con todas las veces de todos los días de rutina hechas. La
+  // semana en curso suma si ya está completa; si no, no rompe la racha todavía.
   streak(today: string): { current: number; best: number; weekDone: number; weekTotal: number } {
-    const days = DAYS.filter((d) => this.isScheduled(d) && this.model.exercisesOfDay(d).length > 0);
-    const complete = (w: number) => days.length > 0 && days.every((d) => this.isDone(w, d));
+    const slots = this.slots();
+    const doneIn = (w: number) => slots.filter((s) => this.isDone(w, s.day, s.round)).length;
+    const complete = (w: number) => slots.length > 0 && doneIn(w) === slots.length;
     const now = Math.min(Math.max(this.cycleWeekOf(today) ?? 1, 1), this.model.weeksCount);
     let current = 0;
     for (let w = complete(now) ? now : now - 1; w >= 1 && complete(w); w--) current++;
@@ -86,7 +97,7 @@ export class WorkoutCalendar {
       run = complete(w) ? run + 1 : 0;
       best = Math.max(best, run);
     }
-    return { current, best, weekDone: days.filter((d) => this.isDone(now, d)).length, weekTotal: days.length };
+    return { current, best, weekDone: doneIn(now), weekTotal: slots.length };
   }
 
   // Días planificados en las últimas dos semanas que no se hicieron.
@@ -94,7 +105,7 @@ export class WorkoutCalendar {
     const missed: PlannedSession[] = [];
     for (let back = windowDays; back >= 1; back--) {
       this.sessionsOn(addDays(today, -back)).forEach((s) => {
-        if (!this.isDone(s.week, s.day)) missed.push(s);
+        if (!this.isDone(s.week, s.day, s.round)) missed.push(s);
       });
     }
     return missed;

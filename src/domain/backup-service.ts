@@ -1,4 +1,4 @@
-import { DAY_NAMES, DAYS, hasAny, isValidSnapshot } from "./snapshot";
+import { hasAny, isValidSnapshot } from "./snapshot";
 import type { WorkoutSnapshot } from "./types";
 import type { WorkoutModel } from "./workout-model";
 
@@ -22,15 +22,18 @@ export class BackupService {
 
   toCsv() {
     const m = this.model;
-    const rows: (string | number)[][] = [["Semana", "Día", "Grupo", "Ejercicio", "Serie", "Carga (kg)", "Repeticiones", "Notas"]];
+    const rows: (string | number)[][] = [["Semana", "Día", "Vez", "Grupo", "Ejercicio", "Serie", "Carga (kg)", "Repeticiones", "Notas"]];
     for (let w = 1; w <= m.weeksCount; w++) {
-      DAYS.forEach((d) => {
-        m.exercisesOfDay(d).forEach((x) => {
-          for (let s = 1; s <= x.sets; s++) {
-            const e = m.getEntry(w, d, x.id, s);
-            if (hasAny(e)) rows.push([w, d, DAY_NAMES[d], x.name, s, e.weight || "", e.reps || "", e.note || ""]);
-          }
-        });
+      m.days.forEach((d) => {
+        // Cada vez que se hizo el día en esa semana (1.ª, 2.ª…).
+        for (let r = 1; r <= m.lastRound(w, d); r++) {
+          m.exercisesOfDay(d).forEach((x) => {
+            for (let s = 1; s <= x.sets; s++) {
+              const e = m.getEntry(w, d, x.id, s, r);
+              if (hasAny(e)) rows.push([w, d, r, m.dayName(d), x.name, s, e.weight || "", e.reps || "", e.note || ""]);
+            }
+          });
+        }
       });
     }
     return "﻿" + rows.map((r) => r.map((v) => '"' + String(v).replace(/"/g, '""') + '"').join(",")).join("\r\n");

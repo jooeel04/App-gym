@@ -5,9 +5,8 @@ import type { ReactNode } from "react";
 import { signOutAction } from "@/app/login/actions";
 import { BackupService } from "@/domain/backup-service";
 import { BASE_ROUTINE } from "@/domain/base-routine";
-import { formatShortDate, todayISO } from "@/domain/calendar";
-import { estimate1RM } from "@/domain/progression";
-import { DAY_NAMES } from "@/domain/snapshot";
+import { formatShortDate, isISODate, todayISO } from "@/domain/calendar";
+import { MAX_DAYS } from "@/domain/snapshot";
 import type { BodyMetrics, NewExerciseInput, SetField, WeekSchedule, WorkoutSnapshot } from "@/domain/types";
 import { WorkoutCalendar, type PlannedSession } from "@/domain/workout-calendar";
 import { WorkoutDiary } from "@/domain/workout-diary";
@@ -42,6 +41,7 @@ export interface RecordHit {
 export interface DaySummaryInfo {
   week: number;
   day: number;
+  round: number;
   minutes: number | null;
 }
 
@@ -63,6 +63,10 @@ interface WorkoutContextValue {
   version: number;
   week: number;
   day: number;
+  // Vez del día en esa semana (1.ª, 2.ª…: un día se puede repetir en la misma semana).
+  round: number;
+  // Fecha pasada que se está apuntando (null = hoy).
+  logDate: string | null;
   // El día lo ha elegido el usuario (no es el que toca hoy según el calendario).
   picked: boolean;
   toast: Toast;
@@ -116,6 +120,8 @@ export function WorkoutProvider({ mode, initialSnapshot, email, children }: Prov
   // null = seguir el día de hoy; un número = elegido por el usuario.
   const [selectedWeek, setWeek] = useState<number | null>(null);
   const [selectedDay, setDay] = useState<number | null>(null);
+  const [selectedRound, setRound] = useState<number | null>(null);
+  const [logDate, setLogDate] = useState<string | null>(null);
   const [toast, setToast] = useState<Toast>({ text: "", visible: false });
   const [showToast] = useState(() => createToaster(setToast));
   const [rest, setRest] = useState<RestTimer | null>(null);
@@ -199,27 +205,34 @@ export function WorkoutProvider({ mode, initialSnapshot, email, children }: Prov
   const stats = useMemo(() => new WorkoutStats(model), [model]);
   const actions = useMemo(
     () => createActions({
-      model, stats, sync, showToast, setWeek, setDay, goTo: navigateTab, setRest, setSummary,
+      model, stats, calendar, sync, showToast, setWeek, setDay, setRound, setLogDate, goTo: navigateTab, setRest, setSummary,
       addRecord: (hit: RecordHit) => setRecords((list) => [...list, hit]),
       account: email, cloud: mode === "cloud",
     }),
-    [model, stats, sync, showToast, email, mode],
+    [model, stats, calendar, sync, showToast, email, mode],
   );
 
   const focus = today ? calendar.focusFor(today) : null;
   const week = Math.min(selectedWeek ?? focus?.week ?? 1, model.weeksCount);
   const day = selectedDay ?? focus?.day ?? 1;
-  const value: WorkoutContextValue = { model, stats, calendar, diary, mode, email, sync: syncStatus, today, ready, loadFailed, version, week, day, picked: selectedDay !== null || selectedWeek !== null, toast, rest, records, summary, active, nickname, nicknameReady: nicknameSynced || !!nickname, actions };
+  // Sin elegir otra, la última vez de ese día con algo anotado.
+  // Sin elegir otra: la vez que toca hoy (un día puede ir en varios días de la semana) o,
+  // si ya se repitió más veces, la última con algo anotado.
+  const round = selectedRound ?? Math.max(selectedDay === null && selectedWeek === null ? focus?.round ?? 1 : 1, model.lastRound(week, day));
+  const value: WorkoutContextValue = { model, stats, calendar, diary, mode, email, sync: syncStatus, today, ready, loadFailed, version, week, day, round, logDate, picked: selectedDay !== null || selectedWeek !== null, toast, rest, records, summary, active, nickname, nicknameReady: nicknameSynced || !!nickname, actions };
   return <WorkoutContext value={value}>{children}</WorkoutContext>;
 }
 
 interface ActionDeps {
   model: WorkoutModel;
   stats: WorkoutStats;
+  calendar: WorkoutCalendar;
   sync: ServerActionWorkoutRepository | null;
   showToast: (text: string, ms?: number, icon?: ToastIcon) => void;
   setWeek: (w: number | null) => void;
   setDay: (d: number | null) => void;
+  setRound: (r: number | null) => void;
+  setLogDate: (date: string | null) => void;
   goTo: (path: string) => void;
   setRest: (rest: RestTimer | null | ((r: RestTimer | null) => RestTimer | null)) => void;
   setSummary: (summary: DaySummaryInfo | null) => void;
@@ -228,10 +241,17 @@ interface ActionDeps {
   cloud: boolean;
 }
 
-function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, setRest, setSummary, addRecord, account, cloud }: ActionDeps) {
+function createActions({ model, stats, calendar, sync, showToast, setWeek, setDay, setRound, setLogDate, goTo, setRest, setSummary, addRecord, account, cloud }: ActionDeps) {
   const backup = new BackupService(model);
   const recordTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const celebrated = new Set<string>();
+  // Fecha pasada que se está apuntando («Apuntar otra fecha»); null = hoy.
+  let pastDate: string | null = null;
+  const logDateNow = () => pastDate ?? todayISO();
+  const choosePastDate = (date: string | null) => {
+    pastDate = date;
+    setLogDate(date);
+  };
 
   const startRest = (seconds: number) => {
     unlockAudio();
@@ -239,66 +259,88 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
   };
 
   const minutesSince = (started: number | null) => (started ? Math.max(1, Math.round((Date.now() - started) / 60000)) : null);
-  const isActive = (w: number, d: number) => {
+  const isActive = (w: number, d: number, r: number) => {
     const a = getActiveWorkout();
-    return !!a && a.week === w && a.day === d;
+    return !!a && a.week === w && a.day === d && (a.round ?? 1) === r;
   };
 
   // Al completar el día se muestra el resumen (con la duración si se conoce) y
   // termina el entreno en curso.
-  const completeDay = (w: number, d: number) => {
-    if (!model.syncDayCompleted(w, d)) return;
-    const started = isActive(w, d) ? getActiveWorkout()!.startedAt : readSessionStart(w, d);
-    clearSessionStart(w, d);
-    if (isActive(w, d)) setActiveWorkout(null);
-    setSummary({ week: w, day: d, minutes: minutesSince(started) });
+  const completeDay = (w: number, d: number, r: number) => {
+    if (!model.syncDayCompleted(w, d, r)) return;
+    const started = isActive(w, d, r) ? getActiveWorkout()!.startedAt : readSessionStart(w, d, r);
+    clearSessionStart(w, d, r);
+    if (isActive(w, d, r)) setActiveWorkout(null);
+    setSummary({ week: w, day: d, round: r, minutes: pastDate ? null : minutesSince(started) });
   };
 
   // Mientras se escribe en una serie el día no se da por completado (con el peso de la
   // última serie ya cuenta como anotada, pero faltan las repeticiones): se espera a
   // cerrar el teclado o tocar fuera.
-  let waiting: [number, number] | null = null;
+  let waiting: [number, number, number] | null = null;
   const typing = () => document.activeElement instanceof HTMLInputElement && !!document.activeElement.closest(".exercise");
-  const completeWhenDone = (w: number, d: number) => {
-    if (typing()) waiting = [w, d];
-    else completeDay(w, d);
+  const completeWhenDone = (w: number, d: number, r: number) => {
+    if (typing()) waiting = [w, d, r];
+    else completeDay(w, d, r);
   };
   // (Solo en el navegador: el controlador también se pinta en el servidor.)
   if (typeof document !== "undefined") document.addEventListener("focusout", () => setTimeout(() => {
     if (!waiting || typing()) return;
-    const [w, d] = waiting;
+    const [w, d, r] = waiting;
     waiting = null;
-    completeDay(w, d);
+    completeDay(w, d, r);
   }, 0));
 
   // Al anotar algo sin entreno en curso, empieza solo (desde la primera anotación).
-  const autoStart = (w: number, d: number) => {
-    if (getActiveWorkout() || model.isDayCompleted(w, d)) return;
-    setActiveWorkout({ week: w, day: d, startedAt: readSessionStart(w, d) ?? Date.now() });
+  // Al apuntar un día pasado no hay entreno en curso.
+  const autoStart = (w: number, d: number, r: number) => {
+    if (pastDate) return;
+    markSessionStart(w, d, r);
+    if (getActiveWorkout() || model.isDayCompleted(w, d, r)) return;
+    setActiveWorkout({ week: w, day: d, round: r, startedAt: readSessionStart(w, d, r) ?? Date.now() });
   };
 
-  // Récord: se comprueba cuando se deja de escribir (1,5 s) para no avisar con
-  // cada tecla; compara el 1RM estimado de la serie con el mejor anterior.
-  const checkRecord = (w: number, d: number, id: number, s: number) => {
-    const key = [w, d, id, s].join("|");
+  // Récord: se comprueba cuando se deja de escribir (1,5 s) para no avisar con cada
+  // tecla; la serie tiene que ser más pesada que la más pesada de antes.
+  const checkRecord = (w: number, d: number, id: number, s: number, r: number) => {
+    const key = [w, d, id, s, r].join("|");
     clearTimeout(recordTimers.get(key));
     recordTimers.set(key, setTimeout(() => {
       const x = model.findExercise(id);
       if (!x || s > x.sets) return;
-      const e = model.getEntry(w, d, id, s);
+      const e = model.getEntry(w, d, id, s, r);
       const weight = Number(e.weight), reps = Number(e.reps);
       if (!(weight > 0 && reps > 0)) return;
-      const previous = stats.record(x, w + "|" + s), value = estimate1RM(weight, reps);
-      const tag = key + ":" + value;
-      if (!previous || value <= previous.best1RM.value + 0.001 || celebrated.has(tag)) return;
+      const previous = stats.record(x, [w, r, s].join("|"));
+      const tag = key + ":" + weight;
+      if (!previous || weight <= previous.heaviest.weight || celebrated.has(tag)) return;
       celebrated.add(tag);
       addRecord({ exerciseId: id, day: d, weight, reps });
       showToast("¡Nuevo récord en " + x.name + "! " + weight.toLocaleString("es-ES") + " kg × " + reps, 3500, "trophy");
     }, 1500));
   };
 
+  // Vuelve a seguir el día de hoy (sin día, vez ni fecha elegidos).
+  const followToday = () => {
+    choosePastDate(null);
+    setWeek(null);
+    setDay(null);
+    setRound(null);
+  };
+
+  // Semana del ciclo de hoy (la que se ve sin elegir nada).
+  const currentWeek = () => Math.min(Math.max(calendar.cycleWeekOf(todayISO()) ?? 1, 1), model.weeksCount);
+
+  // Abre un día de rutina para hoy: si ya se hizo esta semana, en una tanda nueva.
+  const openDay = (d: number) => {
+    choosePastDate(null);
+    setWeek(null);
+    setDay(d);
+    setRound(model.openRound(currentWeek(), d));
+  };
+
   return {
-    selectDay: setDay,
+    selectDay: openDay,
 
     // Guarda el nombre o apodo (en el dispositivo y, con cuenta, en ella y en sus grupos).
     setNickname(name: string) {
@@ -318,17 +360,37 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
     },
 
     startDay(d: number) {
-      setDay(d);
+      openDay(d);
       goTo("/entrenar");
     },
 
-    setEntry(w: number, d: number, id: number, s: number, field: SetField, value: string) {
+    // Vuelve a hacer el día que se está viendo, en una tanda nueva de la misma semana.
+    repeatDay(w: number, d: number) {
+      const r = model.openRound(w, d);
+      setRound(r);
+      showToast(model.dayName(d) + ": " + r + ".ª vez esta semana");
+    },
+
+    // Apunta un día de rutina hecho en una fecha pasada: se guarda con esa fecha y en la
+    // semana del ciclo de esa fecha.
+    logPastDay(date: string, d: number) {
+      const week = isISODate(date) && date < todayISO() ? calendar.cycleWeekOf(date) : null;
+      if (week === null || week < 1) { openDay(d); return; }
+      model.ensureWeeks(week);
+      choosePastDate(date);
+      setWeek(week);
+      setDay(d);
+      setRound(model.openRound(week, d));
+      showToast("Apuntando " + model.dayName(d) + " del " + formatShortDate(date));
+    },
+
+    setEntry(w: number, d: number, id: number, s: number, field: SetField, value: string, r = 1) {
       // Límites de la base de datos: carga hasta 9999,99 kg; repeticiones razonables.
       const max = field === "weight" ? MAX_WEIGHT : field === "reps" ? MAX_REPS : Infinity;
       if (Number(value) > max) { showToast(field === "weight" ? "La carga máxima es 9999 kg" : "Máximo 999 repeticiones"); return; }
-      const before = model.getEntry(w, d, id, s);
-      model.setEntryField(w, d, id, s, field, value, todayISO());
-      if (value.trim()) { markSessionStart(w, d); autoStart(w, d); }
+      const before = model.getEntry(w, d, id, s, r);
+      model.setEntryField(w, d, id, s, field, value, logDateNow(), r);
+      if (value.trim()) autoStart(w, d, r);
       // Al anotar las repeticiones de una serie empieza el descanso, salvo entre los
       // ejercicios de una superserie (se hacen seguidos).
       const x = model.findExercise(id);
@@ -336,37 +398,35 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       const linked = !!x?.superset && list.indexOf(x) < list.length - 1;
       const prefs = getRestPrefs();
       if (field === "reps" && !String(before.reps ?? "").trim() && value.trim() && prefs.enabled && !linked) startRest(prefs.seconds);
-      if (field !== "note") checkRecord(w, d, id, s);
-      completeWhenDone(w, d);
+      if (field !== "note") checkRecord(w, d, id, s, r);
+      completeWhenDone(w, d, r);
     },
 
     // Copia en las series vacías lo que se hizo la última vez (carga y repeticiones).
-    repeatLast(w: number, d: number, id: number) {
+    repeatLast(w: number, d: number, id: number, r = 1) {
       const x = model.findExercise(id);
-      const last = x && stats.lastBefore(x, w);
+      const last = x && stats.lastBefore(x, w, r);
       if (!x || !last) return;
-      const date = todayISO();
+      const date = logDateNow();
       let copied = 0;
-      last.sets.forEach((r) => {
-        const e = model.getEntry(w, d, id, r.set);
-        if (e.weight || e.reps || r.set > x.sets) return;
-        if (r.weight !== null) model.setEntryField(w, d, id, r.set, "weight", String(r.weight), date);
-        if (r.reps !== null) model.setEntryField(w, d, id, r.set, "reps", String(r.reps), date);
+      last.sets.forEach((v) => {
+        const e = model.getEntry(w, d, id, v.set, r);
+        if (e.weight || e.reps || v.set > x.sets) return;
+        if (v.weight !== null) model.setEntryField(w, d, id, v.set, "weight", String(v.weight), date, r);
+        if (v.reps !== null) model.setEntryField(w, d, id, v.set, "reps", String(v.reps), date, r);
         copied++;
       });
       if (!copied) return;
-      markSessionStart(w, d);
-      autoStart(w, d);
+      autoStart(w, d, r);
       showToast("Copiado de la última vez (" + (last.date ? formatShortDate(last.date) : "semana " + last.week) + ")");
-      completeWhenDone(w, d);
+      completeWhenDone(w, d, r);
     },
 
     // Tick manual: cuenta el ejercicio como hecho aunque no tenga series anotadas.
-    toggleExerciseChecked(w: number, d: number, id: number) {
-      model.toggleExerciseChecked(w, d, id, todayISO());
-      markSessionStart(w, d);
-      autoStart(w, d);
-      completeDay(w, d);
+    toggleExerciseChecked(w: number, d: number, id: number, r = 1) {
+      model.toggleExerciseChecked(w, d, id, logDateNow(), r);
+      autoStart(w, d, r);
+      completeDay(w, d, r);
     },
 
     // ---- Entreno en curso (empieza solo al anotar la primera serie) ----
@@ -375,23 +435,23 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
     async finishWorkout() {
       const a = getActiveWorkout();
       if (!a) return;
-      const { week: w, day: d } = a;
+      const { week: w, day: d } = a, r = a.round ?? 1;
       const list = model.exercisesOfDay(d);
-      const started = list.some((x) => model.isExerciseDone(w, d, x) || model.loggedSets(w, d, x) > 0);
+      const started = list.some((x) => model.isExerciseDone(w, d, x, r) || model.loggedSets(w, d, x, r) > 0);
       if (!started) {
         if (!await askConfirm({ title: "¿Descartar el entreno?", text: "No has anotado nada todavía.", action: "Descartar" })) return;
         setActiveWorkout(null);
-        clearSessionStart(w, d);
+        clearSessionStart(w, d, r);
         setRest(null);
         showToast("Entreno descartado");
         return;
       }
-      const left = list.filter((x) => !model.isExerciseDone(w, d, x)).length;
+      const left = list.filter((x) => !model.isExerciseDone(w, d, x, r)).length;
       if (left > 0 && !await askConfirm({ title: "¿Terminar el entreno?", text: (left === 1 ? "Queda 1 ejercicio" : "Quedan " + left + " ejercicios") + " sin terminar.", action: "Terminar" })) return;
       setActiveWorkout(null);
-      clearSessionStart(w, d);
+      clearSessionStart(w, d, r);
       setRest(null);
-      setSummary({ week: w, day: d, minutes: minutesSince(a.startedAt) });
+      setSummary({ week: w, day: d, round: r, minutes: minutesSince(a.startedAt) });
     },
 
     // ---- Descanso entre series ----
@@ -414,39 +474,63 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
     },
 
     // Vuelve a seguir el día de hoy.
-    goToToday() {
-      setWeek(null);
-      setDay(null);
-    },
+    goToToday: followToday,
 
     // Abre un día planificado que no se hizo para registrarlo hoy.
     recoverSession(session: PlannedSession) {
+      choosePastDate(null);
+      setRound(session.round);
       setWeek(session.week);
       setDay(session.day);
       goTo("/entrenar");
-      showToast("Hoy haces " + DAY_NAMES[session.day] + " (era el " + formatShortDate(session.date) + ")");
+      showToast("Hoy haces " + model.dayName(session.day) + " (era el " + formatShortDate(session.date) + ")");
     },
 
-    setWeekday(d: number, weekday: number) {
-      model.setWeekday(d, weekday);
+    setWeekdays(d: number, weekdays: number[]) {
+      model.setWeekdays(d, weekdays);
+    },
+
+    // ---- Días de rutina ----
+    addDay(name: string) {
+      const d = model.addDay(name);
+      if (d !== null) showToast("Día «" + model.dayName(d) + "» añadido");
+      return d;
+    },
+
+    renameDay(d: number, name: string) {
+      if (!name.trim()) return false;
+      model.renameDay(d, name);
+      showToast("Nombre cambiado");
+      return true;
+    },
+
+    // Pregunta antes: se borran sus ejercicios y todos sus registros.
+    async deleteDay(d: number) {
+      const name = model.dayName(d), count = model.exercisesOfDay(d).length;
+      const text = count ? "Se borrarán sus " + count + " ejercicios y todos sus registros. No se puede deshacer." : "No tiene ejercicios.";
+      if (!await askConfirm({ title: "¿Eliminar «" + name + "»?", text, action: "Eliminar día", danger: count > 0 })) return false;
+      model.removeDay(d);
+      followToday();
+      showToast("Día «" + name + "» eliminado");
+      return true;
     },
 
     applySchedulePreset(schedule: WeekSchedule, label: string) {
-      model.setSchedule(schedule);
+      // Los planes son para los días 1–5: los demás días conservan los suyos.
+      model.setSchedule({ ...model.schedule, ...schedule });
       showToast("Calendario: " + label);
     },
 
     setStartDate(iso: string) {
       model.setStartDate(iso);
-      setWeek(null);
-      setDay(null);
+      followToday();
       showToast("Semana actualizada");
     },
 
     addExercise(d: number, data: NewExerciseInput) {
       if (!data.name.trim()) return false;
       model.addExercise(d, { ...data, name: data.name.trim(), target: data.target.trim(), note: data.note.trim() });
-      showToast("Ejercicio añadido a " + DAY_NAMES[d]);
+      showToast("Ejercicio añadido a " + model.dayName(d));
       return true;
     },
 
@@ -467,13 +551,12 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
       if (routine) {
         model.routine.map((x) => x.id).forEach((id) => model.removeExercise(id));
         if (routine !== "empty") {
-          routine.filter((x) => x.day >= 1 && x.day <= 5 && x.name?.trim())
+          routine.filter((x) => model.days.includes(x.day) && x.name?.trim())
             .forEach((x) => model.addExercise(x.day, { name: x.name.trim(), sets: x.sets, target: x.target ?? "", note: x.note ?? "", superset: !!x.superset }));
         }
       }
       model.setSchedule(schedule);
-      setWeek(null);
-      setDay(null);
+      followToday();
       goTo(routine === "empty" ? "/rutina" : "/entrenar");
       showToast(routine === "empty" ? "¡Listo! Añade tus ejercicios a cada día" : "¡Todo listo!", undefined, "strong");
     },
@@ -485,7 +568,9 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
         if (!await askConfirm({ title: "¿Sustituir tu rutina?", text: hasData ? "Se borrarán tus ejercicios actuales y todos sus registros." : "Se sustituirán tus ejercicios actuales.", action: "Sustituir", danger: hasData })) return false;
         model.routine.map((x) => x.id).forEach((id) => model.removeExercise(id));
       }
-      const valid = list.filter((x) => x.day >= 1 && x.day <= 5 && x.name?.trim());
+      // Los días del amigo que no existen aquí se crean (con nombre «Día N», se puede cambiar).
+      list.filter((x) => Number.isInteger(x.day) && x.day >= 1 && x.day <= MAX_DAYS && !model.days.includes(x.day)).forEach((x) => model.addDay("Día " + x.day, x.day));
+      const valid = list.filter((x) => model.days.includes(x.day) && x.name?.trim());
       valid.forEach((x) => model.addExercise(x.day, { name: x.name.trim(), sets: x.sets, target: x.target ?? "", note: x.note ?? "", superset: !!x.superset }));
       showToast(valid.length + " ejercicios importados");
       return true;
@@ -546,30 +631,30 @@ function createActions({ model, stats, sync, showToast, setWeek, setDay, goTo, s
 
 // Hora a la que se empezó a entrenar un día (para la duración del resumen). Se
 // guarda en el dispositivo; si es de hace más de 6 h se considera otra sesión.
-const sessionKey = (w: number, d: number) => "rutina:started:" + w + "|" + d;
+const sessionKey = (w: number, d: number, r: number) => "rutina:started:" + w + "|" + d + (r > 1 ? "|" + r : "");
 const SESSION_MAX_MS = 6 * 3600_000;
 
-function readSessionStart(w: number, d: number) {
+function readSessionStart(w: number, d: number, r: number) {
   try {
-    const t = Number(localStorage.getItem(sessionKey(w, d)));
+    const t = Number(localStorage.getItem(sessionKey(w, d, r)));
     return t && Date.now() - t < SESSION_MAX_MS ? t : null;
   } catch {
     return null;
   }
 }
 
-function markSessionStart(w: number, d: number) {
-  if (readSessionStart(w, d)) return;
+function markSessionStart(w: number, d: number, r: number) {
+  if (readSessionStart(w, d, r)) return;
   try {
-    localStorage.setItem(sessionKey(w, d), String(Date.now()));
+    localStorage.setItem(sessionKey(w, d, r), String(Date.now()));
   } catch {
     // Sin almacenamiento el resumen no muestra la duración.
   }
 }
 
-function clearSessionStart(w: number, d: number) {
+function clearSessionStart(w: number, d: number, r: number) {
   try {
-    localStorage.removeItem(sessionKey(w, d));
+    localStorage.removeItem(sessionKey(w, d, r));
   } catch {
     // Nada que limpiar.
   }

@@ -324,8 +324,9 @@ max_frequency = "5s"
 # `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
 # Entrar con Google. En local queda apagado: para probarlo, crea unas claves en Google Cloud,
 # pon SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID y SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET en
-# supabase/.env (ignorado por git) y cambia enabled a true.
+# supabase/.env (ignorado por git), junto con SUPABASE_AUTH_EXTERNAL_GOOGLE_ENABLED=true.
 [auth.external.google]
+# Apagado por defecto: SUPABASE_AUTH_EXTERNAL_GOOGLE_ENABLED=true en supabase/.env lo enciende.
 enabled = false
 client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
 secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"

@@ -125,8 +125,8 @@ export class ServerActionWorkoutRepository implements WorkoutRepository {
   // del servidor se avisan con setErrorHandler.
   apply(change: WorkoutChange, snapshot: WorkoutSnapshot): Promise<void> {
     this.saveSnapshot(snapshot);
-    const key = change.type === "entry" ? "entry:" + entryKey(change.week, change.day, change.exerciseId, change.set)
-      : change.type === "exerciseChecked" ? "check:" + exerciseKey(change.week, change.day, change.exerciseId)
+    const key = change.type === "entry" ? "entry:" + entryKey(change.week, change.day, change.exerciseId, change.set, change.round)
+      : change.type === "exerciseChecked" ? "check:" + exerciseKey(change.week, change.day, change.exerciseId, change.round)
       : "op:" + Date.now() + ":" + this.seq++;
     this.items = [...this.items.filter((i) => i.key !== key), { key, change }];
     writeJSON(this.outboxKey, this.items);

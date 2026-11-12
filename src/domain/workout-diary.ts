@@ -1,4 +1,4 @@
-import { hasAny, isLogged, parseKey } from "./snapshot";
+import { hasAny, isLogged, parseKey, roundOf } from "./snapshot";
 import type { Exercise, SetEntry } from "./types";
 import type { WorkoutCalendar } from "./workout-calendar";
 import type { WorkoutModel } from "./workout-model";
@@ -11,6 +11,7 @@ export interface DiaryExercise {
 export interface DiarySession {
   week: number;
   day: number;
+  round: number; // vez del día en esa semana (1.ª, 2.ª…)
   // Fecha planificada; si es distinta del día real, la sesión se recuperó o se adelantó.
   plannedDate: string | null;
   exercises: DiaryExercise[];
@@ -36,7 +37,7 @@ export class WorkoutDiary {
 
       const sessions = byDate.get(entry.date) ?? new Map<string, Map<number, DiaryExercise>>();
       byDate.set(entry.date, sessions);
-      const sessionKey = week + "|" + day;
+      const sessionKey = [week, day, roundOf(k, 4)].join("|");
       const exercises = sessions.get(sessionKey) ?? new Map<number, DiaryExercise>();
       sessions.set(sessionKey, exercises);
       const item = exercises.get(id) ?? { exercise, sets: [] };
@@ -51,17 +52,18 @@ export class WorkoutDiary {
         date,
         sessions: Array.from(sessions.entries())
           .map(([key, exercises]) => {
-            const [week, day] = parseKey(key);
+            const [week, day, round] = parseKey(key);
             return {
               week,
               day,
+              round,
               plannedDate: this.calendar.plannedDate(week, day),
               exercises: Array.from(exercises.values())
                 .sort((a, b) => (order.get(a.exercise.id) ?? 0) - (order.get(b.exercise.id) ?? 0))
                 .map((x) => ({ ...x, sets: x.sets.sort((a, b) => a.set - b.set) })),
             };
           })
-          .sort((a, b) => a.week - b.week || a.day - b.day),
+          .sort((a, b) => a.week - b.week || a.day - b.day || a.round - b.round),
       }));
   }
 

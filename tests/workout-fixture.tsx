@@ -27,7 +27,7 @@ export const REMO = BASE_ROUTINE[4]; // con carga
 export function historySnapshot(): WorkoutSnapshot {
   const snap = blankSnapshot(BASE_ROUTINE.map((x) => ({ ...x })));
   snap.startDate = START;
-  snap.schedule = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 };
+  snap.schedule = { 1: [1], 2: [2], 3: [3], 4: [4], 5: [5] };
   const weeks = [
     { w: 1, date: "2026-10-05", press: "50", remo: "55", dom: ["4", "3"] },
     { w: 2, date: "2026-10-12", press: "52.5", remo: "57.5", dom: ["5", "4"] },
@@ -49,7 +49,7 @@ export function historySnapshot(): WorkoutSnapshot {
 export function freshSnapshot(): WorkoutSnapshot {
   const snap = blankSnapshot(BASE_ROUTINE.map((x) => ({ ...x })));
   snap.startDate = "2026-10-26";
-  snap.schedule = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 };
+  snap.schedule = { 1: [1], 2: [2], 3: [3], 4: [4], 5: [5] };
   return snap;
 }
 

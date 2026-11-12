@@ -104,6 +104,53 @@ se está viendo. Así, si se salta el viernes, el sábado sale «Hacer hoy».
 - **R14** En un día de descanso también sale como pendiente el último día que no se hizo.
   → `src/components/training-view.test.tsx`
 
+### Repetir un día en la misma semana
+
+**Qué hace:** un día de rutina se puede hacer varias veces en la misma semana. Con el día
+ya hecho, debajo de la cabecera sale «Repetir este día»: abre una tanda nueva vacía (la
+cabecera dice «2.ª vez esta semana») y la anterior queda guardada tal cual. En «Hacer otro
+día», elegir un día que ya se hizo esta semana también abre una tanda nueva; si la última
+tanda de ese día está a medias, se sigue en ella.
+**Cómo funciona:** cada tanda es una «vez» (`round`, 1, 2, 3…) dentro de la semana y el
+día de rutina. El controlador da `round` junto a `week` y `day`: sin elegir nada es la
+última vez con algo anotado (`model.lastRound`); «Repetir este día» (`actions.repeatDay`)
+y `selectDay` usan `model.openRound` (la última si está a medias, la siguiente si ya está
+completada). Todo lo que se anota, marca o completa lleva su `round`. El entreno en curso
+y la hora de inicio también la guardan.
+**Decisiones:** se descartó guardar la repetición en otra semana (rompería las fechas y la
+racha). La racha y los pendientes cuentan un día como hecho si lo está cualquiera de sus
+tandas (`model.isDayDone`).
+**Casos límite:** datos de antes de este cambio (y copias antiguas) son la 1.ª vez; al
+volver a abrir la app sin anotar nada en la tanda nueva, se vuelve a ver la última con
+datos. Como mucho 20 veces por semana (`MAX_ROUNDS`): en la 20.ª ya no sale el botón. En
+Progreso → Calendario esa tanda dice «2.ª vez esa semana» (`WorkoutDiary` separa las
+tandas por `round`).
+**Reglas:**
+- **R15** Con el día hecho, «Repetir este día» abre una tanda vacía («2.ª vez») y lo
+  anotado en la primera sigue guardado. → `src/components/training-view.test.tsx`
+- **R16** En «Hacer otro día», elegir un día ya hecho esta semana abre una tanda nueva.
+  → `src/components/training-view.test.tsx`
+- **R17** «La última vez» (lo propuesto, el consejo e «Igual que la última vez») es la
+  tanda anterior, aunque sea de la misma semana. → `src/domain/workout-stats.test.ts`
+
+### Apuntar otra fecha
+
+**Qué hace:** en «Hacer otro día» hay un campo «Fecha» (hoy por defecto). Si se elige una
+fecha pasada y luego un día de rutina, se apunta ese entreno con esa fecha: la cabecera
+dice «Apuntando el martes 3 nov» y en Progreso sale en ese día del calendario. «Volver a
+hoy» lo deja como estaba.
+**Cómo funciona:** `actions.logPastDay(fecha, día)` guarda la fecha elegida (`logDate`
+del controlador), pone la semana del ciclo de esa fecha (`calendar.cycleWeekOf`) y abre
+la tanda con `model.openRound`. `setEntry`, `repeatLast` y el tick guardan esa fecha en
+vez de la de hoy. Un día pasado no empieza «entreno en curso» y su resumen no tiene
+duración (no tiene sentido medirla). La semana del ciclo se amplía si hace falta
+(`model.ensureWeeks`).
+**Casos límite:** no se puede elegir una fecha futura ni anterior a la semana 1 del ciclo
+(`startDate`).
+**Reglas:**
+- **R18** Tras elegir una fecha pasada y un día, lo que se anota se guarda con esa fecha
+  y en la semana del ciclo de esa fecha. → `src/components/training-view.test.tsx`
+
 ### Anotar las series
 
 **Qué hace:** cada ejercicio de la lista se despliega al tocarlo (solo uno abierto). Dentro
@@ -137,7 +184,20 @@ repeticiones no se puede guardar; en iPhone no vibra (la web no puede).
 esa serie la última vez, y las repeticiones de la última vez o el mínimo del rango
 objetivo. Debajo dice qué se hizo la última vez.
 **Cómo funciona:** `suggestedWeight` (en `training-view.tsx`) y `parseRepRange`
-(dominio); «la última vez» es `stats.lastBefore(ejercicio, semana)`.
+(dominio); «la última vez» es `stats.lastBefore(ejercicio, semana, vez)` (la tanda
+anterior, ver R17).
+
+### La lista de ejercicios, limpia
+
+**Qué hace:** la lista de Hoy no enseña números a la derecha de cada ejercicio. Lo que se
+hizo la última vez se ve al abrir el ejercicio, en la tarjeta de anotar («La última vez:
+55 kg × 8», serie a serie; ver «Lo propuesto para cada serie»).
+**Decisiones:** primero se pusieron todas las series a la derecha de cada fila (recargado)
+y luego una línea «Última vez: …» al abrir el ejercicio; se quitó porque repetía lo que ya
+dice la tarjeta de anotar.
+**Reglas:**
+- **R19** La lista no enseña series y al abrir un ejercicio no hay una línea aparte con
+  la última vez: solo la de la tarjeta de anotar. → `src/components/training-view.test.tsx`
 
 ### Calentamiento
 

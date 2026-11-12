@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { EXERCISE_GROUPS, exerciseGroup, type ExerciseGroup } from "@/domain/exercise-library";
+import { compactSets } from "./exercise-progress";
 import { ChevronIcon, MedalIcon } from "./icons";
 
 export interface LiftRow {
@@ -9,15 +10,19 @@ export interface LiftRow {
   display_name: string;
   weight: number;
   reps: number | null;
+  // Todas las series de trabajo del día de la marca y sus repeticiones en total.
+  sets: { weight: number | null; reps: number | null }[];
+  total_reps: number;
   is_me: boolean;
 }
 
 const MEDALS = ["gold", "silver", "bronze"];
 const key = (name: string) => name.trim().toLowerCase().replace(/\s+/g, " ");
-const mark = (r: LiftRow) => Number(r.weight).toLocaleString("es-ES", { maximumFractionDigits: 2 }) + " kg" + (r.reps ? " × " + r.reps : "");
+const mark = (r: LiftRow) => Number(r.weight).toLocaleString("es-ES", { maximumFractionDigits: 2 }) + " kg";
+const setsOf = (r: LiftRow) => compactSets(r.sets.map((s, i) => ({ set: i + 1, weight: s.weight === null ? null : Number(s.weight), reps: s.reps })));
 
-// Quién levanta más, de un vistazo: una fila por ejercicio con quién va primero (su mejor
-// serie: más peso; con el mismo peso, más repeticiones) y, al lado, tu puesto y tu marca.
+// Quién levanta más, de un vistazo: una fila por ejercicio con quién va primero (el día de
+// más peso, con todas sus series; con el mismo peso, más repeticiones en total) y tu puesto.
 // El mismo ejercicio se junta aunque cada uno lo haya escrito distinto. Primero los que
 // hacen más personas. Al tocar una fila se ve el ranking completo de ese ejercicio.
 // Los ejercicios van divididos por grupo muscular (Pecho, Espalda, Pierna…), y con los
@@ -34,7 +39,7 @@ export function LiftRanking({ rows }: { rows: LiftRow[] }) {
     groups.set(k, g);
   }
   const list = [...groups.entries()]
-    .map(([k, g]) => ({ key: k, name: g.name, rows: [...g.rows].sort((a, b) => b.weight - a.weight || (b.reps ?? 0) - (a.reps ?? 0)) }))
+    .map(([k, g]) => ({ key: k, name: g.name, rows: [...g.rows].sort((a, b) => b.weight - a.weight || b.total_reps - a.total_reps) }))
     .sort((a, b) => b.rows.length - a.rows.length || a.name.localeCompare(b.name, "es"));
 
   if (!list.length) return <p className="body-hint">Cuando anotéis series con peso, aquí veréis quién levanta más en cada ejercicio.</p>;
@@ -88,19 +93,36 @@ function LiftList({ items, label, open, setOpen }: { items: Item[]; label: strin
             {me === 0 && <p className="lift-me first">¡Vas primero!</p>}
             {me > 0 && <p className="lift-me">Tú · {me + 1}º · {mark(g.rows[me])}</p>}
             {isOpen && (
-              <ol className="leaders lift-full" aria-label={"Ranking de " + g.name}>
-                {g.rows.map((r, i) => (
-                  <li key={i} className={r.is_me ? "me" : ""}>
-                    <span className={"medal " + (MEDALS[i] ?? "")} aria-label={"Puesto " + (i + 1)}>{MEDALS[i] ? <MedalIcon /> : i + 1}</span>
-                    <b>{r.display_name}{r.is_me && <small> (tú)</small>}</b>
-                    <span className="leader-days">{mark(r)}</span>
-                  </li>
-                ))}
-              </ol>
+              <PersonList name={g.name} rows={g.rows} />
             )}
           </li>
         );
       })}
     </ul>
+  );
+}
+
+// Ranking completo de un ejercicio: solo pesos. Al tocar el recuadro de una persona se
+// despliegan las series del día de su marca (y se pliegan al tocarlo otra vez).
+function PersonList({ name, rows }: { name: string; rows: LiftRow[] }) {
+  const [shown, setShown] = useState<Set<number>>(() => new Set());
+  const toggle = (i: number) => setShown((s) => {
+    const next = new Set(s);
+    if (!next.delete(i)) next.add(i);
+    return next;
+  });
+  return (
+    <ol className="leaders lift-full" aria-label={"Ranking de " + name}>
+      {rows.map((r, i) => (
+        <li key={i} className={r.is_me ? "me" : ""}>
+          <button type="button" className="lift-person" aria-expanded={shown.has(i)} onClick={() => toggle(i)}>
+            <span className={"medal " + (MEDALS[i] ?? "")} aria-label={"Puesto " + (i + 1)}>{MEDALS[i] ? <MedalIcon /> : i + 1}</span>
+            <b>{r.display_name}{r.is_me && <small> (tú)</small>}</b>
+            <span className="leader-days">{mark(r)}</span>
+          </button>
+          {shown.has(i) && <p className="lift-sets">{setsOf(r)}</p>}
+        </li>
+      ))}
+    </ol>
   );
 }

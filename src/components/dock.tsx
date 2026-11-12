@@ -3,7 +3,6 @@
 import { useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { navigateTab, useWorkout } from "@/controllers/workout-controller";
-import { DAY_NAMES } from "@/domain/snapshot";
 import { ArrowIcon } from "./icons";
 
 // Hueco fijo de abajo, encima de la barra de pestañas (bajo el pulgar): ahí va el botón
@@ -29,7 +28,7 @@ export function InDock({ children }: { children: ReactNode }) {
 export function ContinueWorkout({ onToday }: { onToday: boolean }) {
   const { model, active, rest, day, actions } = useWorkout();
   if (!active || onToday || rest) return null;
-  const next = model.exercisesOfDay(active.day).find((x) => !model.isExerciseDone(active.week, active.day, x));
+  const next = model.exercisesOfDay(active.day).find((x) => !model.isExerciseDone(active.week, active.day, x, active.round ?? 1));
   const go = () => {
     if (active.day !== day) actions.selectDay(active.day);
     navigateTab("/entrenar");
@@ -37,7 +36,7 @@ export function ContinueWorkout({ onToday }: { onToday: boolean }) {
   return (
     <InDock>
       <button type="button" className="dock-continue" onClick={go}>
-        <span><small>Seguir entreno</small><b>{next?.name ?? DAY_NAMES[active.day]}</b></span>
+        <span><small>Seguir entreno</small><b>{next?.name ?? model.dayName(active.day)}</b></span>
         <ArrowIcon dir="right" />
       </button>
     </InDock>

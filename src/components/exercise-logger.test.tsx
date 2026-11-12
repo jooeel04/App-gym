@@ -1,7 +1,9 @@
 import { act, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BASE_ROUTINE } from "@/domain/base-routine";
-import { freezeToday, PRESS, renderWithWorkout, TODAY } from "../../tests/workout-fixture";
+import { useWorkout } from "@/controllers/workout-controller";
+import { entryKey } from "@/domain/snapshot";
+import { freezeToday, historySnapshot, PRESS, renderWithWorkout, TODAY } from "../../tests/workout-fixture";
 import { ExerciseLogger } from "./exercise-logger";
 import { RestTimerBar } from "./rest-timer";
 
@@ -122,5 +124,38 @@ describe("Hoy · todo se anota en la misma tarjeta (spec hoy R2, R4–R6)", () =
     fireEvent.click(screen.getByRole("button", { name: /Igual que la última vez/ }));
     for (const n of [1, 2, 3]) expect(chip(n)).toHaveTextContent("55 × 8");
     expect(screen.queryByRole("button", { name: /Igual que la última vez/ })).not.toBeInTheDocument();
+  });
+});
+
+// Spec progreso R4: «¡Nuevo récord!» sale solo al superar el peso más alto anterior.
+describe("Hoy · nuevo récord por peso", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+    vi.setSystemTime(new Date(TODAY + "T10:00:00"));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  function Toast() {
+    const { toast } = useWorkout();
+    return <p data-testid="toast">{toast.visible ? toast.text : ""}</p>;
+  }
+
+  const log = (kg: string, reps: string) => {
+    fireEvent.change(screen.getByRole("spinbutton", { name: /carga en kg/ }), { target: { value: kg } });
+    fireEvent.change(screen.getByRole("spinbutton", { name: /repeticiones/ }), { target: { value: reps } });
+    fireEvent.click(screen.getByRole("button", { name: /Serie hecha/ }));
+    act(() => { vi.advanceTimersByTime(1600); });
+    const skip = screen.queryByRole("button", { name: "Saltar" });
+    if (skip) fireEvent.click(skip);
+  };
+
+  it("con el mismo peso y más repeticiones no hay récord; con más peso, sí", () => {
+    const snap = historySnapshot();
+    snap.entries[entryKey(3, 3, MILITAR.id, 1)] = { weight: "30", reps: "8", date: "2026-10-21" };
+    renderWithWorkout(<><ExerciseLogger exercise={MILITAR} superset={null} /><RestTimerBar /><Toast /></>, snap);
+    log("30", "12");
+    expect(screen.getByTestId("toast")).not.toHaveTextContent(/récord/);
+    log("32.5", "5");
+    expect(screen.getByTestId("toast")).toHaveTextContent("¡Nuevo récord en " + MILITAR.name + "! 32,5 kg × 5");
   });
 });

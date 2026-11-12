@@ -24,7 +24,7 @@ const EMPTY: Draft = { name: "", sets: 3, target: "", note: "", superset: false 
 // Añadir un ejercicio a un día de la rutina (buscándolo en la biblioteca, con el
 // mapa de músculos que trabaja, o escribiéndolo a mano) o editar uno existente.
 export function ExerciseModal({ day, exercise, onClose }: { day: number; exercise?: Exercise; onClose: () => void }) {
-  const { actions } = useWorkout();
+  const { model, actions } = useWorkout();
   const editing = !!exercise;
   const [tab, setTab] = useState<"library" | "custom">(editing ? "custom" : "library");
   const [query, setQuery] = useState("");
@@ -58,7 +58,7 @@ export function ExerciseModal({ day, exercise, onClose }: { day: number; exercis
       <div className={"modal exmodal" + (tab === "library" ? " library" : "")}>
         <div className="exmodal-head">
           <h2 id="exerciseModalTitle">{editing ? "Editar ejercicio" : "Añadir ejercicio"}</h2>
-          <span>{DAY_NAMES[day]}</span>
+          <span>{model.dayName(day)}</span>
         </div>
         <div className="segmented exmodal-tabs" role="tablist" hidden={editing}>
           <button type="button" role="tab" aria-selected={tab === "library"} onClick={() => setTab("library")}>Biblioteca</button>

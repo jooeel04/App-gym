@@ -4,19 +4,20 @@ import { useState } from "react";
 import { useWorkout } from "@/controllers/workout-controller";
 import { WEEKDAY_NAMES } from "@/domain/calendar";
 import { musclesFor } from "@/domain/exercise-library";
-import { DAY_NAMES, DAYS } from "@/domain/snapshot";
+import { MAX_DAYS } from "@/domain/snapshot";
 import type { Exercise } from "@/domain/types";
 import { BodyMap } from "./body-map";
 import { ExerciseModal } from "./exercise-modal";
 import { ArrowIcon, ChevronIcon, PlusIcon } from "./icons";
 import { ScheduleCard } from "./schedule-card";
+import { DayNameModal } from "./day-name-modal";
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-// Vista "Rutina": un día por fila, plegado, ordenados de lunes a domingo (de título el
-// día de la semana y debajo lo que se entrena); al tocarlo se ven sus ejercicios y el botón
-// para hacerlo hoy. Con "Editar" aparecen las acciones para añadir, editar, reordenar
-// y eliminar ejercicios.
+// Vista "Rutina": un día de rutina por fila, plegado, ordenados por su primer día de la
+// semana (de título los días de la semana y debajo su nombre); al tocarlo se ven sus
+// ejercicios y el botón para hacerlo hoy. Con "Editar" aparecen las acciones para añadir, editar, reordenar
+// y eliminar ejercicios, y para añadir, renombrar y eliminar días (hasta 7).
 export function RoutineView() {
   const { model, actions } = useWorkout();
   const [editing, setEditing] = useState<{ day: number; exercise?: Exercise } | null>(null);
@@ -24,7 +25,9 @@ export function RoutineView() {
   // Al entrar están todos cerrados: se abre el que se toque.
   const [open, setOpen] = useState<number | null>(null);
   // Los días sin día fijo van al final.
-  const order = [...DAYS].sort((a, b) => (model.weekdayFor(a) || 8) - (model.weekdayFor(b) || 8));
+  const order = [...model.days].sort((a, b) => (model.weekdaysFor(a)[0] ?? 8) - (model.weekdaysFor(b)[0] ?? 8));
+  // Ventana del nombre: día nuevo (`day` null) o cambiar el de uno.
+  const [naming, setNaming] = useState<{ day: number | null } | null>(null);
 
   return (
     <section className="view active">
@@ -39,14 +42,14 @@ export function RoutineView() {
         {order.map((d) => {
           const list = model.exercisesOfDay(d);
           const isOpen = open === d;
-          const weekday = model.weekdayFor(d);
+          const weekdays = model.weekdaysFor(d);
           return (
             <article className={"routine-day" + (isOpen ? " open" : "")} key={d} style={{ "--dc": "var(--day" + d + ")" } as React.CSSProperties}>
               <button type="button" className="routine-toggle" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : d)}>
                 <i className="routine-bar" aria-hidden="true" />
                 <span className="routine-title">
-                  <b>{weekday ? capitalize(WEEKDAY_NAMES[weekday]) : "Sin día fijo"}</b>
-                  <small>{DAY_NAMES[d]} · {list.length} {list.length === 1 ? "ejercicio" : "ejercicios"}</small>
+                  <b>{weekdays.length ? capitalize(weekdays.map((w) => WEEKDAY_NAMES[w]).join(" y ")) : "Sin día fijo"}</b>
+                  <small>{model.dayName(d)} · {list.length} {list.length === 1 ? "ejercicio" : "ejercicios"}</small>
                 </span>
                 <ChevronIcon />
               </button>
@@ -89,15 +92,28 @@ export function RoutineView() {
                   })}
                   {edit
                     ? <button className="add-ex" type="button" onClick={() => setEditing({ day: d })}><PlusIcon />Añadir ejercicio</button>
-                    : list.length > 0 && <button className="routine-go" type="button" onClick={() => actions.startDay(d)}>Hacer {DAY_NAMES[d]} hoy</button>}
+                    : list.length > 0 && <button className="routine-go" type="button" onClick={() => actions.startDay(d)}>Hacer {model.dayName(d)} hoy</button>}
+                  {edit && (
+                    <div className="day-actions">
+                      <button type="button" className="edit-ex" onClick={() => setNaming({ day: d })}>Cambiar nombre</button>
+                      {model.days.length > 1 && <button type="button" className="remove-ex" onClick={() => { void actions.deleteDay(d).then((gone) => { if (gone) setOpen(null); }); }}>Eliminar día</button>}
+                    </div>
+                  )}
                 </div>
               )}
             </article>
           );
         })}
+        {edit && model.days.length < MAX_DAYS && (
+          <button className="add-ex add-day" type="button" onClick={() => setNaming({ day: null })}><PlusIcon />Añadir día</button>
+        )}
       </div>
       <ScheduleCard />
       {editing && <ExerciseModal day={editing.day} exercise={editing.exercise} onClose={() => setEditing(null)} />}
+      {naming && (
+        <DayNameModal isNew={naming.day === null} initial={naming.day === null ? "" : model.dayName(naming.day)} onClose={() => setNaming(null)}
+          onSave={(name) => (naming.day === null ? actions.addDay(name) !== null : actions.renameDay(naming.day, name))} />
+      )}
     </section>
   );
 }

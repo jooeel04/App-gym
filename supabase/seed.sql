@@ -15,18 +15,18 @@
 
 -- El recordatorio y el aviso del descanso programados (pg_cron) llaman a la app de
 -- producción: en local no.
-do $
+do $$
 begin
   perform cron.unschedule('rutina-recordatorios');
 exception when others then null;
 end;
-$;
-do $
+$$;
+do $$
 begin
   perform cron.unschedule('fitgym-descansos');
 exception when others then null;
 end;
-$;
+$$;
 
 -- Mismos datos "aleatorios" en cada carga.
 select setseed(0.42);
@@ -242,6 +242,19 @@ begin
         values (v_program, v_w, v_d, v_logged + time '19:30');
       end loop;
 
+      -- Alguna semana se repite el Día 1 el sábado (2.ª vez): mismas cargas y repeticiones.
+      v_date := v_start + (v_w - 1) * 7 + 5;
+      if v_date < current_date and random() < 0.1 then
+        insert into public.set_logs (program_id, week, day, round, exercise_local_id, set_number, weight, reps, logged_on)
+        select program_id, week, day, 2, exercise_local_id, set_number, weight, reps, v_date
+        from public.set_logs
+        where program_id = v_program and week = v_w and day = 1 and round = 1 and set_number between 1 and 10;
+        if found then
+          insert into public.completed_days (program_id, week, day, round, created_at)
+          values (v_program, v_w, 1, 2, v_date + time '11:00');
+        end if;
+      end if;
+
       -- Peso corporal casi todos los lunes; medidas una vez al mes.
       v_date := v_start + (v_w - 1) * 7;
       if v_date <= current_date and random() < 0.85 then
@@ -269,6 +282,10 @@ values ('DEMO01', 'Colegas del gym', '00000000-0000-4000-8000-000000000001');
 
 insert into public.group_members (group_code, user_id, display_name)
 select 'DEMO01', u.id, u.display from demo_users u;
+
+-- Apodo de cada cuenta demo (si no, la app pregunta «¿Cómo te llamamos?» al entrar).
+insert into public.profiles (user_id, nickname)
+select u.id, u.display from demo_users u;
 
 insert into public.reminders (user_id, time_of_day, mode)
 values ('00000000-0000-4000-8000-000000000001', '18:30', 'training');

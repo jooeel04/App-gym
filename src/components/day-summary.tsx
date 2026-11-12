@@ -2,7 +2,6 @@
 
 import { useWorkout } from "@/controllers/workout-controller";
 import { formatLongDate } from "@/domain/calendar";
-import { DAY_NAMES } from "@/domain/snapshot";
 import { closeOnBackdrop } from "./backdrop";
 import { Delta } from "./exercise-progress";
 import { PartyIcon, StrongIcon, TrendUpIcon, TrophyIcon } from "./icons";
@@ -14,11 +13,11 @@ const fmt = (n: number) => n.toLocaleString("es-ES", { maximumFractionDigits: 1 
 export function DaySummary() {
   const { summary, model, stats, records, today, nickname, actions } = useWorkout();
   if (!summary) return null;
-  const { week, day, minutes } = summary;
-  const tally = stats.day(week, day);
+  const { week, day, round, minutes } = summary;
+  const tally = stats.day(week, day, round);
   const done = model.exercisesOfDay(day).flatMap((x) => {
-    const now = stats.session(x, week);
-    return now ? [{ x, now, before: stats.lastBefore(x, week) }] : [];
+    const now = stats.session(x, week, round);
+    return now ? [{ x, now, before: stats.lastBefore(x, week, round) }] : [];
   });
   const sessions = done.map((e) => e.now);
   const volume = sessions.reduce((sum, s) => sum + s.volume, 0);
@@ -34,14 +33,14 @@ export function DaySummary() {
   const reps = sessions.reduce((sum, s) => sum + s.reps, 0);
   const prs = records.filter((r) => r.day === day);
   // Se puede terminar un entreno sin haber completado el día.
-  const complete = model.isDayCompleted(week, day);
+  const complete = model.isDayCompleted(week, day, round);
 
   return (
     <div className="backdrop open summary-backdrop" role="dialog" aria-modal="true" aria-labelledby="summaryTitle" {...closeOnBackdrop(actions.closeSummary)}>
       <div className="modal summary">
         <div className="summary-emoji" aria-hidden="true">{complete ? <PartyIcon /> : <StrongIcon />}</div>
         <h2 id="summaryTitle">{complete ? "¡Día completado" + (nickname ? ", " + nickname : "") + "!" : "Entreno terminado" + (nickname ? ", " + nickname : "")}</h2>
-        <p>{DAY_NAMES[day]}{today && " · " + formatLongDate(today).toLowerCase()}</p>
+        <p>{model.dayName(day)}{today && " · " + formatLongDate(today).toLowerCase()}</p>
         <div className="summary-grid">
           <div><strong>{minutes ? minutes + " min" : "—"}</strong><span>Duración</span></div>
           <div><strong>{tally.n}</strong><span>Series</span></div>

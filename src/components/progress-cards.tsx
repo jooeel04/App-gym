@@ -13,14 +13,14 @@ import { CheckIcon, FlameIcon, PencilIcon, PlusIcon, TrophyIcon } from "./icons"
 const fmt = (n: number, digits = 1) => n.toLocaleString("es-ES", { maximumFractionDigits: digits });
 
 // Resumen en tres números: racha de semanas completas, días entrenados este mes y
-// récords (mejor 1RM estimado de un ejercicio) conseguidos este mes.
+// récords (serie más pesada de un ejercicio) conseguidos este mes.
 export function ProgressStats() {
   const { calendar, diary, stats, today, model } = useWorkout();
   if (!today) return null;
   const month = today.slice(0, 7);
   const streak = model.startDate ? calendar.streak(today) : null;
   const days = diary.days().filter((d) => d.date.startsWith(month)).length;
-  const records = stats.records().filter((r) => r.best1RM.date?.startsWith(month)).length;
+  const records = stats.records().filter((r) => r.heaviest.date?.startsWith(month)).length;
   return (
     <div className="stat-tiles">
       <div className="stat-tile" title={streak ? "Tu mejor racha: " + streak.best + " semanas" : undefined}>

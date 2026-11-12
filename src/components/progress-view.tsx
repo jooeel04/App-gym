@@ -5,7 +5,7 @@ import { ExerciseProgress } from "./exercise-progress";
 import { BodyCard, ProgressStats } from "./progress-cards";
 
 // Vista "Progreso": resumen (racha, días y récords del mes), calendario (al tocar un día se ve lo que se entrenó),
-// progreso de cada ejercicio (la última vez, su fuerza y su récord) y peso y medidas.
+// progreso de cada ejercicio (la última vez, su peso máximo y su récord) y peso y medidas.
 // Lo de los amigos está en la pestaña Social.
 export function ProgressView() {
   return (

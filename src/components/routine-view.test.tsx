@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { freezeToday, PRESS, renderWithWorkout } from "../../tests/workout-fixture";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -65,5 +65,53 @@ describe("Interfaz · sin ventanas del navegador", () => {
       e.isDirectory() ? files(join(dir, e.name)) : /\.tsx?$/.test(e.name) && !/\.test\./.test(e.name) ? [join(dir, e.name)] : []);
     const offenders = files("src").filter((f) => /(^|[^.\w])confirm\(/.test(readFileSync(f, "utf8")));
     expect(offenders).toEqual([]);
+  });
+});
+
+// Spec rutina R1–R3: días de rutina propios (añadir, cambiar nombre y eliminar).
+describe("Rutina · tus días de rutina", () => {
+  beforeEach(freezeToday);
+  afterEach(() => vi.useRealTimers());
+
+  const edit = () => {
+    renderWithWorkout(<><RoutineView /><ConfirmDialog /></>);
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+  };
+  const nameDialog = () => screen.getByRole("dialog", { name: /nombre|Nuevo día/i });
+
+  it("«Añadir día» pide un nombre y crea el día vacío; con 7 días ya no sale (R1)", () => {
+    edit();
+    fireEvent.click(screen.getByRole("button", { name: "Añadir día" }));
+    fireEvent.change(within(nameDialog()).getByLabelText("Nombre del día"), { target: { value: "Full body" } });
+    fireEvent.click(within(nameDialog()).getByRole("button", { name: "Añadir día" }));
+    const day = dayButton(/Full body/);
+    expect(day).toHaveTextContent("Sin día fijo");
+    expect(day).toHaveTextContent("0 ejercicios");
+    fireEvent.click(screen.getByRole("button", { name: "Añadir día" }));
+    fireEvent.change(within(nameDialog()).getByLabelText("Nombre del día"), { target: { value: "Cardio" } });
+    fireEvent.click(within(nameDialog()).getByRole("button", { name: "Añadir día" }));
+    expect(screen.queryByRole("button", { name: "Añadir día" })).not.toBeInTheDocument();
+  });
+
+  it("«Cambiar nombre» cambia el nombre del día (R2)", () => {
+    edit();
+    fireEvent.click(dayButton(/Lunes/));
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar nombre" }));
+    const input = within(nameDialog()).getByLabelText("Nombre del día");
+    expect(input).toHaveValue("Torso");
+    fireEvent.change(input, { target: { value: "Pecho y espalda" } });
+    fireEvent.click(within(nameDialog()).getByRole("button", { name: "Guardar nombre" }));
+    expect(dayButton(/Lunes/)).toHaveTextContent("Pecho y espalda");
+  });
+
+  it("«Eliminar día» pregunta y, al confirmar, lo borra con sus ejercicios (R3)", async () => {
+    edit();
+    fireEvent.click(dayButton(/Lunes/));
+    fireEvent.click(screen.getByRole("button", { name: "Eliminar día" }));
+    const confirm = await screen.findByRole("alertdialog");
+    expect(confirm).toHaveTextContent("¿Eliminar «Torso»?");
+    fireEvent.click(within(confirm).getByRole("button", { name: "Eliminar día" }));
+    await waitFor(() => expect(screen.queryByText(/Torso/)).not.toBeInTheDocument());
+    expect(screen.queryByText(PRESS.name)).not.toBeInTheDocument();
   });
 });

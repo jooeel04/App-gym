@@ -10,8 +10,8 @@ vi.mock("@/app/actions/social", () => ({
   myGroups: vi.fn(async () => ({ ok: true, data: [{ code: "ABC123", name: "Los del gym", members: 2 }] })),
   groupLeaderboard: vi.fn(async () => ({ ok: true, data: [{ display_name: "Bea", days: 9, is_me: false }, { display_name: "Joel", days: 7, is_me: true }] })),
   groupExerciseRecords: vi.fn(async () => ({ ok: true, data: [
-    { exercise: "Press banca", display_name: "Bea", weight: 90, reps: 6, is_me: false },
-    { exercise: "Press banca", display_name: "Joel", weight: 85, reps: 5, is_me: true },
+    { exercise: "Press banca", display_name: "Bea", weight: 90, reps: 6, sets: [{ weight: 90, reps: 6 }], total_reps: 6, is_me: false },
+    { exercise: "Press banca", display_name: "Joel", weight: 85, reps: 5, sets: [{ weight: 85, reps: 5 }], total_reps: 5, is_me: true },
   ] })),
   createGroup: vi.fn(), joinGroup: vi.fn(), leaveGroup: vi.fn(), shareRoutine: vi.fn(), getSharedRoutine: vi.fn(),
 }));
@@ -26,7 +26,8 @@ describe("Social · todo lo de amigos en un sitio", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Social" })).toBeInTheDocument();
     expect((await screen.findAllByText("Bea")).length).toBeGreaterThan(0);
     const lifts = await screen.findByRole("list", { name: "Pecho" });
-    expect(within(lifts).getByRole("listitem")).toHaveTextContent("90 kg × 6");
+    expect(within(lifts).getByRole("listitem")).toHaveTextContent("90 kg");
+    expect(within(lifts).getByRole("listitem")).not.toHaveTextContent("90×6");
     expect(screen.getByRole("button", { name: "Compartir mi rutina" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Importar rutina" })).toBeInTheDocument();
   });

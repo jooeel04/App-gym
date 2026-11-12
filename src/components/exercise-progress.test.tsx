@@ -21,24 +21,29 @@ describe("Progreso · Tus ejercicios", () => {
     fireEvent.click(screen.getByRole("tab", { name: /Torso/ }));
   };
 
-  it("lista los ejercicios con registros en filas compactas, sin gráficas abiertas", () => {
+  it("lista los ejercicios en filas compactas con su peso máximo y el cambio (progreso R1)", () => {
     openTorso();
     const press = row(/Press inclinado en multipower/);
     expect(press).toHaveAttribute("aria-expanded", "false");
-    expect(press).toHaveTextContent("69,5 kg");
-    expect(press).toHaveTextContent("+3 kg");
+    expect(press).toHaveTextContent("Peso máximo");
+    expect(press).toHaveTextContent("55 kg");
+    expect(press).not.toHaveTextContent("Fuerza");
+    expect(press).toHaveTextContent("+2,5 kg");
     expect(row(/Remo con barra/)).toHaveAttribute("aria-expanded", "false");
     expect(charts()).toHaveLength(0);
   });
 
-  it("al tocar un ejercicio se despliega con su récord y su gráfica", () => {
+  it("al tocar un ejercicio se despliega con su récord (el día de más peso con sus series) y la gráfica del peso máximo (R2, R5)", () => {
     openTorso();
     fireEvent.click(row(/Press inclinado en multipower/));
     expect(row(/Press inclinado en multipower/)).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("group", { name: "Fuerza de Press inclinado en multipower por fecha" })).toBeInTheDocument();
-    expect(screen.getByText(/Récord/)).toBeInTheDocument();
-    // La explicación de "fuerza" está a la vista, sin tener que buscar un botón diminuto.
-    expect(screen.getByText(/lo máximo que podrías levantar una vez/)).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Peso máximo de Press inclinado en multipower por fecha" })).toBeInTheDocument();
+    // El récord con todas las series de ese día (R5), y cada punto de la gráfica igual.
+    expect(screen.getByText(/Récord/).closest("p")).toHaveTextContent("Récord: 55 kg · 55×8 · 55×8 · 55×8");
+    expect(screen.getByRole("button", { name: /lunes 19 oct/ })).toHaveAccessibleName(/55×8 · 55×8 · 55×8/);
+    // Qué es el peso máximo, a la vista y sin hablar de 1RM.
+    expect(screen.getByText(/lo más pesado que levantaste/)).toBeInTheDocument();
+    expect(screen.queryByText(/1RM/)).not.toBeInTheDocument();
   });
 
   it("solo hay un ejercicio desplegado a la vez y se puede volver a plegar", () => {
@@ -52,7 +57,7 @@ describe("Progreso · Tus ejercicios", () => {
     expect(charts()).toHaveLength(0);
   });
 
-  it("los ejercicios sin carga muestran sus repeticiones, no una fuerza vacía", () => {
+  it("los ejercicios sin carga muestran sus repeticiones, no un peso vacío (R3)", () => {
     openTorso();
     const dominadas = row(/Dominadas excéntricas/);
     expect(dominadas).toHaveTextContent("6 reps");

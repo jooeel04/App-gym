@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { getSharedRoutine, shareRoutine } from "@/app/actions/social";
 import { useWorkout } from "@/controllers/workout-controller";
-import { DAY_NAMES, DAYS } from "@/domain/snapshot";
+
 import type { NewExerciseInput } from "@/domain/types";
 import { closeOnBackdrop } from "./backdrop";
 
@@ -70,7 +70,7 @@ export function ShareRoutineCard() {
 }
 
 function ImportModal({ initialCode, onClose }: { initialCode: string; onClose: () => void }) {
-  const { actions } = useWorkout();
+  const { model, actions } = useWorkout();
   const [code, setCode] = useState(initialCode);
   const [routine, setRoutine] = useState<SharedExercise[] | null>(null);
   const [error, setError] = useState("");
@@ -113,9 +113,9 @@ function ImportModal({ initialCode, onClose }: { initialCode: string; onClose: (
           <>
             <p>{routine.length} ejercicios. Puedes añadirlos a tu rutina o sustituir la tuya.</p>
             <div className="import-preview">
-              {DAYS.filter((d) => routine.some((x) => x.day === d)).map((d) => (
+              {[...new Set(routine.map((x) => x.day))].sort((a, b) => a - b).map((d) => (
                 <div key={d}>
-                  <b><i className="swatch" style={{ background: "var(--day" + d + ")" }} /> {DAY_NAMES[d]}</b>
+                  <b><i className="swatch" style={{ background: "var(--day" + d + ")" }} /> {model.days.includes(d) ? model.dayName(d) : "Día " + d + " (nuevo)"}</b>
                   {routine.filter((x) => x.day === d).map((x, i) => <span key={i}>{x.name} <em>{x.prescription}</em></span>)}
                 </div>
               ))}

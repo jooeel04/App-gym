@@ -21,13 +21,13 @@ import { range, suggestedWeight, supersetRole } from "./training-view";
 // la única forma de anotar). Lo que no se usa en cada serie (músculos, foto de cómo se hace
 // e indicaciones) está plegado en «Cómo se hace».
 export function ExerciseLogger({ exercise: x, superset }: { exercise: Exercise; superset: ReturnType<typeof supersetRole> }) {
-  const { model, stats, week, day, actions } = useWorkout();
+  const { model, stats, week, day, round, actions } = useWorkout();
   const [how, setHow] = useState(false);
   const muscles = musclesFor(x.name);
-  const tip = suggestNext(x, stats.lastBefore(x, week));
-  const done = model.isExerciseDone(week, day, x);
+  const tip = suggestNext(x, stats.lastBefore(x, week, round));
+  const done = model.isExerciseDone(week, day, x, round);
   // Con todas las series anotadas ya está hecho y la marca no se puede quitar a mano.
-  const filled = done && !model.isExerciseChecked(week, day, x.id);
+  const filled = done && !model.isExerciseChecked(week, day, x.id, round);
 
   return (
     <>
@@ -52,7 +52,7 @@ export function ExerciseLogger({ exercise: x, superset }: { exercise: Exercise; 
       {superset === "first" && <p className="ss-note">Superserie: haz una serie de este y otra del siguiente sin descansar entre ambos.</p>}
       <SetLogger exercise={x} />
       {!filled && (
-        <button type="button" className={"focus-check" + (done ? " done" : "")} onClick={() => actions.toggleExerciseChecked(week, day, x.id)}>
+        <button type="button" className={"focus-check" + (done ? " done" : "")} onClick={() => actions.toggleExerciseChecked(week, day, x.id, round)}>
           {done ? "Quitar marca de hecho" : <><CheckIcon />Marcar como hecho sin anotar series</>}
         </button>
       )}
@@ -74,21 +74,21 @@ const UNDO_MS = 6000;
 // se tocó sin querer o con otro número): vuelve a como estaba y, si empezó el descanso, lo
 // para. La serie se vuelve a abrir con lo que se acababa de poner, para corregir solo lo que falle.
 function SetLogger({ exercise: x }: { exercise: Exercise }) {
-  const { model, stats, week, day, actions } = useWorkout();
-  const last = stats.lastBefore(x, week);
+  const { model, stats, week, day, round, actions } = useWorkout();
+  const last = stats.lastBefore(x, week, round);
   const sets = range(x.sets);
-  const pending = sets.find((s) => !hasReps(model.getEntry(week, day, x.id, s))) ?? null;
+  const pending = sets.find((s) => !hasReps(model.getEntry(week, day, x.id, s, round))) ?? null;
   const [pick, setPick] = useState<number | null>(null);
   const [undo, setUndo] = useState<{ set: number; prev: SetEntry; saved: SetEntry } | null>(null);
   const [draft, setDraft] = useState<{ set: number; entry: SetEntry } | null>(null);
   // Series de calentamiento visibles: las que ya tienen datos, o las añadidas ahora.
   const [warmups, setWarmups] = useState(() => WARMUP_SETS.filter((s) => {
-    const e = model.getEntry(week, day, x.id, s);
+    const e = model.getEntry(week, day, x.id, s, round);
     return e.weight || e.reps;
   }).length);
   const current = pick ?? pending;
   const canRepeat = !!last && sets.some((s) => {
-    const e = model.getEntry(week, day, x.id, s);
+    const e = model.getEntry(week, day, x.id, s, round);
     return !e.weight && !e.reps && last.sets.some((r) => r.set === s);
   });
 
@@ -101,9 +101,9 @@ function SetLogger({ exercise: x }: { exercise: Exercise }) {
   const revert = () => {
     if (!undo) return;
     const { set: s, prev, saved } = undo;
-    actions.setEntry(week, day, x.id, s, "reps", prev.reps ?? "");
-    actions.setEntry(week, day, x.id, s, "weight", prev.weight ?? "");
-    actions.setEntry(week, day, x.id, s, "note", prev.note ?? "");
+    actions.setEntry(week, day, x.id, s, "reps", prev.reps ?? "", round);
+    actions.setEntry(week, day, x.id, s, "weight", prev.weight ?? "", round);
+    actions.setEntry(week, day, x.id, s, "note", prev.note ?? "", round);
     if (!hasReps(prev)) actions.stopRest();
     setDraft({ set: s, entry: saved });
     setPick(s);
@@ -116,7 +116,7 @@ function SetLogger({ exercise: x }: { exercise: Exercise }) {
   };
 
   const chip = (s: number) => {
-    const e = model.getEntry(week, day, x.id, s);
+    const e = model.getEntry(week, day, x.id, s, round);
     const logged = hasReps(e);
     const label = isWarmup(s) ? "Calent. " + (WARMUP_SETS.indexOf(s) + 1) : "Serie " + s + (x.optionalLast && s === x.sets ? " (opc.)" : "");
     return (
@@ -131,7 +131,7 @@ function SetLogger({ exercise: x }: { exercise: Exercise }) {
   return (
     <>
       {canRepeat && last && (
-        <button type="button" className="repeat-last" onClick={() => actions.repeatLast(week, day, x.id)}>
+        <button type="button" className="repeat-last" onClick={() => actions.repeatLast(week, day, x.id, round)}>
           <RepeatIcon />Igual que la última vez <small>({last.date ? formatShortDate(last.date) : "semana " + last.week})</small>
         </button>
       )}
@@ -170,13 +170,13 @@ const bump = (v: string, d: number) => String(Math.max(0, Math.round(((Number(v)
 function SetStepper({ exercise: x, set: s, old, draft, picked, onSaved }: {
   exercise: Exercise; set: number; old?: SetResult; draft?: SetEntry; picked: boolean; onSaved: (prev: SetEntry, saved: SetEntry) => void;
 }) {
-  const { model, week, day, rest, actions } = useWorkout();
-  const e = model.getEntry(week, day, x.id, s);
+  const { model, week, day, round, rest, actions } = useWorkout();
+  const e = model.getEntry(week, day, x.id, s, round);
   const saved = hasReps(e);
   const warmup = isWarmup(s);
   const filled = (v?: string | null) => (v?.trim() ? v : null);
   const [kg, setKg] = useState(() => filled(draft?.weight) ?? filled(e.weight)
-    ?? (warmup ? "" : suggestedWeight(range(s - 1).map((p) => model.getEntry(week, day, x.id, p).weight), old)));
+    ?? (warmup ? "" : suggestedWeight(range(s - 1).map((p) => model.getEntry(week, day, x.id, p, round).weight), old)));
   const [reps, setReps] = useState(() => filled(draft?.reps) ?? filled(e.reps)
     ?? (warmup ? "" : old?.reps != null ? String(old.reps) : String(parseRepRange(x.target)?.min ?? "")));
   const [note, setNote] = useState(() => draft?.note ?? e.note ?? "");
@@ -190,9 +190,9 @@ function SetStepper({ exercise: x, set: s, old, draft, picked, onSaved }: {
     // Antes lo pedía el primer toque en un ejercicio; ahora se entra con él ya abierto.
     void requestPermissions();
     const prev = { weight: e.weight, reps: e.reps, note: e.note };
-    if (kg.trim() !== (e.weight ?? "").trim()) actions.setEntry(week, day, x.id, s, "weight", kg.trim());
-    if (note.trim() !== (e.note ?? "").trim()) actions.setEntry(week, day, x.id, s, "note", note.trim());
-    actions.setEntry(week, day, x.id, s, "reps", reps.trim());
+    if (kg.trim() !== (e.weight ?? "").trim()) actions.setEntry(week, day, x.id, s, "weight", kg.trim(), round);
+    if (note.trim() !== (e.note ?? "").trim()) actions.setEntry(week, day, x.id, s, "note", note.trim(), round);
+    actions.setEntry(week, day, x.id, s, "reps", reps.trim(), round);
     // Un toque de vibración confirma que se ha guardado (Android; iPhone no vibra desde la web).
     if ("vibrate" in navigator) navigator.vibrate(12);
     onSaved(prev, { weight: kg.trim(), reps: reps.trim(), note: note.trim() });

@@ -16,9 +16,11 @@ Varias personas, cada una con su cuenta (correo y contraseña) y sus propios dat
 - Cuentas con correo y contraseña: los datos de cada persona se guardan en su cuenta y los ve en cualquier dispositivo donde inicie sesión.
 - Resumen por semana y día, historial de cargas y exportación a CSV.
 - Copia y restauración de datos en JSON.
+- Repetir un día de rutina en la misma semana ("Repetir este día" o poniéndolo en varios días de "Tu semana") y apuntar un entreno de una fecha pasada (en "Hacer otro día").
+- Días de rutina propios: hasta 7, con su nombre (añadir, renombrar y eliminar desde "Editar" en Rutina).
 - Al entrenar: peso y repeticiones propuestos en cada serie (de la serie anterior o de la última vez; con escribir solo las repeticiones basta) y botón "Igual que la última vez", temporizador de descanso, sugerencia de progresión (doble progresión), récords personales, series de calentamiento, superseries, calculadora de discos y resumen al completar el día (con la comparación de cada ejercicio frente a la última vez).
 - Entreno en curso: empieza solo al anotar la primera serie; al terminar un ejercicio se abre el siguiente que falte, la pantalla no se apaga y "Terminar entreno" muestra el resumen.
-- Progreso: racha de semanas, fuerza (1RM estimado) y récord de cada ejercicio, peso corporal y medidas.
+- Progreso: racha de semanas, peso máximo y récord (el día de más peso, con todas sus series) de cada ejercicio, peso corporal y medidas.
 - Social (pestaña propia): grupos de amigos con un código, clasificación de días entrenados del mes, quién levanta más en cada ejercicio (de un vistazo) y compartir o importar rutinas.
 - Recuperación de contraseña por correo.
 - Entrar con Google: con el mismo correo se une a la cuenta que ya existe; con otro, se conecta desde Ajustes → Cuenta.
@@ -41,6 +43,8 @@ En el SQL Editor del proyecto, ejecuta en orden los archivos de `supabase/migrat
 11. `20261107000000_privacy_and_delete_account.sql` (ocultar tus pesos en Social y borrar la cuenta)
 12. `20261108000000_reminder_diagnostics.sql` (aviso de prueba y comprobación del recordatorio desde Ajustes)
 13. `20261109000000_rest_alerts.sql` (aviso del fin del descanso como notificación push, pg_cron cada 2 s)
+14. `20261112000000_repeat_days.sql` (repetir un día de rutina en la misma semana: columna `round`)
+15. `20261113000000_routine_days.sql` (días de rutina propios hasta 7, un día en varios días de la semana y el máximo con sus series en Social)
 
 Las fotos de cómo se hace cada ejercicio (`public/ejercicios`) son de
 [Free Exercise DB](https://github.com/yuhonas/free-exercise-db), de dominio público (Unlicense).

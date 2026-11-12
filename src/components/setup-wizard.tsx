@@ -4,7 +4,6 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { getSharedRoutine } from "@/app/actions/social";
 import { useWorkout } from "@/controllers/workout-controller";
 import { WEEKDAY_NAMES, WEEKDAY_SHORT, WEEKDAYS } from "@/domain/calendar";
-import { DAY_NAMES, DAYS } from "@/domain/snapshot";
 import type { NewExerciseInput, WeekSchedule } from "@/domain/types";
 import { CheckIcon, ClipboardIcon, PartyIcon, PencilIcon, SleepIcon, UsersIcon } from "./icons";
 
@@ -44,7 +43,7 @@ export function SetupWizard() {
   const fresh = Object.keys(snap.entries).length === 0 && Object.keys(snap.checked ?? {}).length === 0
     && Object.keys(snap.completed).length === 0 && Object.keys(snap.body ?? {}).length === 0;
   const [step, setStep] = useState(1);
-  const [weekdays, setWeekdays] = useState<number[]>(() => WEEKDAYS.filter((wd) => DAYS.some((d) => model.weekdayFor(d) === wd)));
+  const [weekdays, setWeekdays] = useState<number[]>(() => WEEKDAYS.filter((wd) => model.days.some((d) => model.weekdaysFor(d).includes(wd))));
   const [choice, setChoice] = useState<Choice>("base");
   const [code, setCode] = useState("");
   const [friend, setFriend] = useState<Shared[] | null>(null);
@@ -59,11 +58,11 @@ export function SetupWizard() {
   const toggle = (wd: number) => {
     setError("");
     if (weekdays.includes(wd)) setWeekdays(weekdays.filter((x) => x !== wd));
-    else if (weekdays.length >= DAYS.length) setError("Como mucho " + DAYS.length + " días: uno por cada rutina.");
+    else if (weekdays.length >= model.days.length) setError("Como mucho " + model.days.length + " días: uno por cada rutina.");
     else setWeekdays([...weekdays, wd].sort((a, b) => a - b));
   };
   // Cada rutina (en orden) va al siguiente día elegido; las que sobran, sin día fijo.
-  const schedule = Object.fromEntries(DAYS.map((d, i) => [d, weekdays[i] ?? 0])) as WeekSchedule;
+  const schedule: WeekSchedule = Object.fromEntries(model.days.map((d, i) => [d, weekdays[i] ? [weekdays[i]] : []]));
   // Con la rutina de un amigo puede haber días sin ejercicios.
   const emptyDay = (d: number) => choice === "empty" || (choice === "friend" && !!friend && !friend.some((x) => x.day === d));
   const skip = () => markDone(email);
@@ -119,7 +118,7 @@ export function SetupWizard() {
           <h1 id="wizardTitle">¿Qué rutina quieres?</h1>
           <p className="wizard-sub">Puedes cambiarla cuando quieras en Rutina.</p>
           <button type="button" className={"wizard-opt" + (choice === "base" ? " on" : "")} onClick={() => setChoice("base")}>
-            <span aria-hidden="true"><ClipboardIcon /></span><span><b>Rutina recomendada</b><small>{DAYS.length} días: {DAYS.map((d) => DAY_NAMES[d].toLowerCase()).join(", ")}</small></span>
+            <span aria-hidden="true"><ClipboardIcon /></span><span><b>Rutina recomendada</b><small>{model.days.length} días: {model.days.map((d) => model.dayName(d).toLowerCase()).join(", ")}</small></span>
           </button>
           {cloud && (
             <button type="button" className={"wizard-opt" + (choice === "friend" ? " on" : "")} onClick={() => setChoice("friend")}>
@@ -142,17 +141,17 @@ export function SetupWizard() {
           <p className="wizard-sub">Así queda tu semana:</p>
           <div className="wizard-plan">
             {WEEKDAYS.map((wd) => {
-              const d = DAYS.find((x) => schedule[x] === wd);
+              const d = model.days.find((x) => schedule[x].includes(wd));
               return (
                 <div key={wd}>
                   <span>{capitalize(WEEKDAY_NAMES[wd])}</span>
-                  {d ? <b><i style={{ background: "var(--day" + d + ")" }} />{DAY_NAMES[d]}{emptyDay(d) && <small> (vacía)</small>}</b> : <b><SleepIcon /> Descanso</b>}
+                  {d ? <b><i style={{ background: "var(--day" + d + ")" }} />{model.dayName(d)}{emptyDay(d) && <small> (vacía)</small>}</b> : <b><SleepIcon /> Descanso</b>}
                 </div>
               );
             })}
           </div>
-          {DAYS.some((d) => !schedule[d]) && (
-            <p className="wizard-sub">Sin día fijo: {DAYS.filter((d) => !schedule[d]).map((d) => DAY_NAMES[d]).join(", ")}. Puedes hacerlas cuando quieras.</p>
+          {model.days.some((d) => !schedule[d].length) && (
+            <p className="wizard-sub">Sin día fijo: {model.days.filter((d) => !schedule[d].length).map((d) => model.dayName(d)).join(", ")}. Puedes hacerlas cuando quieras.</p>
           )}
         </>
       )}

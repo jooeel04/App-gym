@@ -1,12 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { blankSnapshot, dayKey, entryKey, exerciseKey, parseKey } from "@/domain/snapshot";
+import { blankSnapshot, dayKey, entryKey, exerciseKey, normalizeSchedule, parseKey, roundOf } from "@/domain/snapshot";
 import { isISODate } from "@/domain/calendar";
-import { BODY_FIELDS, type BodyMetrics, type Exercise, type SetEntry, type WeekSchedule, type WorkoutChange, type WorkoutSnapshot } from "@/domain/types";
+import { BODY_FIELDS, type BodyMetrics, type Exercise, type SetEntry, type WorkoutChange, type WorkoutSnapshot } from "@/domain/types";
 import type { WorkoutRepository } from "./workout-repository";
 
 const ENTRY_DEBOUNCE_MS = 600;
 const PAGE_SIZE = 1000;
-const LOG_CONFLICT = "program_id,week,day,exercise_local_id,set_number";
+const LOG_CONFLICT = "program_id,week,day,round,exercise_local_id,set_number";
 // Un ejercicio marcado a mano con el tick se guarda como la "serie 0" en set_logs,
 // con la fecha en logged_on: así se borra en cascada y se copia con el resto de series.
 const CHECK_SET = 0;
@@ -20,11 +20,11 @@ interface ExerciseRow {
   prescription: string; sets: number; target: string; optional_last: boolean; custom: boolean; superset: boolean;
 }
 interface LogRow {
-  week: number; day: number; exercise_local_id: number; set_number: number;
+  week: number; day: number; round: number; exercise_local_id: number; set_number: number;
   weight: number | null; reps: number | null; note: string | null; logged_on: string | null;
 }
 type BodyRow = { date: string } & Record<(typeof BODY_FIELDS)[number], number | null>;
-interface ProgramRow { id: string; weeks_count: number; schedule: WeekSchedule | null; start_date: string | null }
+interface ProgramRow { id: string; weeks_count: number; schedule: unknown; start_date: string | null; day_names: Record<string, string> | null }
 
 // Persistencia en Supabase (Postgres). Se usa solo en el servidor, con la sesión del
 // usuario: RLS limita cada consulta a su propio programa (user_id). Solo depende del
@@ -43,7 +43,7 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
   constructor(private readonly db: SupabaseClient, private readonly userId: string) {}
 
   private programQuery() {
-    return this.db.from("programs").select("id, weeks_count, schedule, start_date").eq("user_id", this.userId).maybeSingle();
+    return this.db.from("programs").select("id, weeks_count, schedule, start_date, day_names").eq("user_id", this.userId).maybeSingle();
   }
 
   // ---- Lectura ----
@@ -60,23 +60,24 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
     const id = program.id;
     const [exercises, logs, completed, body] = await Promise.all([
       must<ExerciseRow[]>(this.db.from("exercises").select("local_id, day, position, group_name, name, note, prescription, sets, target, optional_last, custom, superset").eq("program_id", id).order("position")),
-      selectAll<LogRow>((from, to) => this.db.from("set_logs").select("week, day, exercise_local_id, set_number, weight, reps, note, logged_on").eq("program_id", id).order("week").order("day").range(from, to)),
-      must<{ week: number; day: number }[]>(this.db.from("completed_days").select("week, day").eq("program_id", id)),
+      selectAll<LogRow>((from, to) => this.db.from("set_logs").select("week, day, round, exercise_local_id, set_number, weight, reps, note, logged_on").eq("program_id", id).order("week").order("day").range(from, to)),
+      must<{ week: number; day: number; round: number }[]>(this.db.from("completed_days").select("week, day, round").eq("program_id", id)),
       must<BodyRow[]>(this.db.from("body_metrics").select("date, " + BODY_FIELDS.join(", ")).eq("program_id", id)),
     ]);
 
     const snapshot = blankSnapshot(exercises.map(fromExerciseRow));
     snapshot.weeksCount = program.weeks_count;
-    if (program.schedule) snapshot.schedule = program.schedule;
+    if (program.schedule) snapshot.schedule = normalizeSchedule(program.schedule);
+    if (program.day_names) snapshot.dayNames = program.day_names;
     if (program.start_date) snapshot.startDate = program.start_date;
     if (body.length) snapshot.body = Object.fromEntries(body.map((r) => [r.date, fromBodyRow(r)]));
     const checked: Record<string, string> = {};
     logs.forEach((r) => {
-      if (r.set_number === CHECK_SET) checked[exerciseKey(r.week, r.day, r.exercise_local_id)] = r.logged_on ?? "";
-      else snapshot.entries[entryKey(r.week, r.day, r.exercise_local_id, r.set_number)] = fromLogRow(r);
+      if (r.set_number === CHECK_SET) checked[exerciseKey(r.week, r.day, r.exercise_local_id, r.round)] = r.logged_on ?? "";
+      else snapshot.entries[entryKey(r.week, r.day, r.exercise_local_id, r.set_number, r.round)] = fromLogRow(r);
     });
     snapshot.checked = checked;
-    completed.forEach((r) => { snapshot.completed[dayKey(r.week, r.day)] = true; });
+    completed.forEach((r) => { snapshot.completed[dayKey(r.week, r.day, r.round)] = true; });
     return snapshot;
   }
 
@@ -105,7 +106,7 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
   }
 
   private queueEntry(change: EntryChange) {
-    this.pending.set(entryKey(change.week, change.day, change.exerciseId, change.set), change);
+    this.pending.set(entryKey(change.week, change.day, change.exerciseId, change.set, change.round), change);
     if (!this.batch) {
       let resolve!: () => void, reject!: (e: unknown) => void;
       const promise = new Promise<void>((res, rej) => { resolve = res; reject = rej; });
@@ -121,9 +122,9 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
     const programId = await this.requireProgram();
     const upserts: Record<string, unknown>[] = [], deletes: Record<string, unknown>[] = [];
     changes.forEach((c) => {
-      const row = toLogRow(c.week, c.day, c.exerciseId, c.set, c.entry);
+      const row = toLogRow(c.week, c.day, c.round ?? 1, c.exerciseId, c.set, c.entry);
       if (row) upserts.push({ program_id: programId, ...row });
-      else deletes.push({ program_id: programId, week: c.week, day: c.day, exercise_local_id: c.exerciseId, set_number: c.set });
+      else deletes.push({ program_id: programId, week: c.week, day: c.day, round: c.round ?? 1, exercise_local_id: c.exerciseId, set_number: c.set });
     });
     if (upserts.length) await must(this.db.from("set_logs").upsert(upserts, { onConflict: LOG_CONFLICT }));
     await Promise.all(deletes.map((key) => must(this.db.from("set_logs").delete().match(key))));
@@ -137,13 +138,13 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
     const db = this.db, programId = await this.requireProgram();
     switch (change.type) {
       case "completed": {
-        const key = { program_id: programId, week: change.week, day: change.day };
-        if (change.done) await must(db.from("completed_days").upsert(key, { onConflict: "program_id,week,day", ignoreDuplicates: true }));
+        const key = { program_id: programId, week: change.week, day: change.day, round: change.round ?? 1 };
+        if (change.done) await must(db.from("completed_days").upsert(key, { onConflict: "program_id,week,day,round", ignoreDuplicates: true }));
         else await must(db.from("completed_days").delete().match(key));
         return;
       }
       case "exerciseChecked": {
-        const key = { program_id: programId, week: change.week, day: change.day, exercise_local_id: change.exerciseId, set_number: CHECK_SET };
+        const key = { program_id: programId, week: change.week, day: change.day, round: change.round ?? 1, exercise_local_id: change.exerciseId, set_number: CHECK_SET };
         if (change.date) await must(db.from("set_logs").upsert({ ...key, logged_on: change.date }, { onConflict: LOG_CONFLICT }));
         else await must(db.from("set_logs").delete().match(key));
         return;
@@ -165,6 +166,13 @@ export class SupabaseWorkoutRepository implements WorkoutRepository {
         return;
       case "weeksCount":
         await must(db.from("programs").update({ weeks_count: change.weeksCount }).eq("id", programId));
+        return;
+      case "dayNames":
+        await must(db.from("programs").update({ day_names: change.dayNames }).eq("id", programId));
+        return;
+      case "dayRemoved":
+        // En una sola transacción: ejercicios (y sus series), días completados, nombre y calendario.
+        await must(db.rpc("remove_routine_day", { p_program_id: programId, p_day: change.day, p_day_names: change.dayNames, p_schedule: change.schedule }));
         return;
       case "schedule":
         await must(db.from("programs").update({ schedule: change.schedule, start_date: change.startDate }).eq("id", programId));
@@ -252,36 +260,37 @@ function fromLogRow(r: LogRow): SetEntry {
 }
 
 // Devuelve null si la serie quedó vacía y hay que borrarla.
-function toLogRow(week: number, day: number, exerciseId: number, set: number, entry: SetEntry | null) {
+function toLogRow(week: number, day: number, round: number, exerciseId: number, set: number, entry: SetEntry | null) {
   const weight = toNumber(entry?.weight), reps = toNumber(entry?.reps);
   const note = String(entry?.note ?? "").trim() || null;
   if (weight === null && reps === null && note === null) return null;
   return {
-    week, day, exercise_local_id: exerciseId, set_number: set,
+    week, day, round, exercise_local_id: exerciseId, set_number: set,
     weight, reps: reps === null ? null : Math.round(reps), note,
     logged_on: isISODate(entry?.date) ? entry.date : null,
   };
 }
 
 function toProgramPayload(snapshot: WorkoutSnapshot) {
-  const logs: Record<string, unknown>[] = [], completed: { week: number; day: number }[] = [];
+  const logs: Record<string, unknown>[] = [], completed: { week: number; day: number; round: number }[] = [];
   Object.entries(snapshot.entries).forEach(([k, entry]) => {
     const [week, day, exercise, set] = parseKey(k);
-    const row = toLogRow(week, day, exercise, set, entry);
-    if (row) logs.push({ week, day, exercise, set, weight: row.weight, reps: row.reps, note: row.note, date: row.logged_on });
+    const row = toLogRow(week, day, roundOf(k, 4), exercise, set, entry);
+    if (row) logs.push({ week, day, round: row.round, exercise, set, weight: row.weight, reps: row.reps, note: row.note, date: row.logged_on });
   });
   Object.entries(snapshot.checked ?? {}).forEach(([k, date]) => {
     const [week, day, exercise] = parseKey(k);
-    logs.push({ week, day, exercise, set: CHECK_SET, weight: null, reps: null, note: null, date: isISODate(date) ? date : null });
+    logs.push({ week, day, round: roundOf(k, 3), exercise, set: CHECK_SET, weight: null, reps: null, note: null, date: isISODate(date) ? date : null });
   });
   Object.keys(snapshot.completed).forEach((k) => {
     if (!snapshot.completed[k]) return;
     const [week, day] = parseKey(k);
-    completed.push({ week, day });
+    completed.push({ week, day, round: roundOf(k, 2) });
   });
   return {
     p_weeks_count: snapshot.weeksCount, p_exercises: snapshot.routine, p_logs: logs, p_completed: completed,
-    p_schedule: snapshot.schedule ?? null, p_start_date: isISODate(snapshot.startDate) ? snapshot.startDate : null,
+    p_schedule: snapshot.schedule ? normalizeSchedule(snapshot.schedule) : null, p_start_date: isISODate(snapshot.startDate) ? snapshot.startDate : null,
+    p_day_names: snapshot.dayNames ?? null,
     p_body: Object.entries(snapshot.body ?? {}).filter(([date]) => isISODate(date)).map(([date, m]) => ({ date, ...toBodyColumns(m) })),
   };
 }
