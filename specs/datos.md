@@ -17,6 +17,26 @@ SQL y la copia en el dispositivo que permite usar la app sin conexión.
 
 ## Funcionalidades
 
+### Guardar sin perder cambios (sincronización)
+
+**Qué hace:** todo lo que se hace en la app se guarda al momento en el dispositivo y luego
+se manda a la cuenta. Ningún cambio se pierde: si el servidor rechaza uno, la cuenta se
+pone igual que el móvil; y si ni eso se puede, los cambios esperan en el móvil y se
+reintentan, y al abrir la app se ve lo del móvil (no lo viejo del servidor).
+**Cómo funciona:** `ServerActionWorkoutRepository` guarda la copia (`rutina:<cuenta>:snapshot`)
+y la cola (`rutina:<cuenta>:outbox`) en el dispositivo y las manda con `applyWorkoutChanges`.
+Sin red, espera y reintenta (30 s y al volver la red). Si el servidor rechaza un lote 3
+veces, manda el estado completo (`replaced` → `replace_program`), que ya incluye esos
+cambios, y los quita de la cola. Si también falla, los deja en la cola, avisa («Un cambio
+no se pudo guardar en tu cuenta») y reintenta más tarde. Al abrir la app, con cambios en la
+cola se usa la copia del dispositivo (`model.adopt`).
+**Decisiones:** antes, tras 3 rechazos se tiraba el lote entero (también los cambios
+buenos que iban con él) y al reabrir la app volvían datos viejos, p. ej. un entreno borrado.
+**Reglas:**
+- **R8** Un lote rechazado por el servidor no se pierde: se manda el estado completo del
+  dispositivo; si eso también falla, los cambios siguen en la cola.
+  → `src/repositories/server-action-workout-repository.test.ts`
+
 ### Varias tandas del mismo día en una semana
 
 **Qué hace:** un día de rutina se puede hacer varias veces en la misma semana (ver

@@ -7,7 +7,7 @@ const ENTRY_DEBOUNCE_MS = 600;
 const RETRY_MS = 30_000;
 // Con más cambios pendientes se envía el estado completo de una vez.
 const MAX_BATCH = 400;
-// Reintentos ante errores del servidor (no de red) antes de descartar los cambios.
+// Reintentos ante errores del servidor (no de red) antes de mandar el estado completo.
 const MAX_SERVER_ATTEMPTS = 3;
 
 type Item = { key: string; change: WorkoutChange };
@@ -57,6 +57,8 @@ export class ServerActionWorkoutRepository implements WorkoutRepository {
   private status: SyncStatus;
   private listeners = new Set<() => void>();
   private onError: (e: unknown) => void = () => {};
+  // Ya se avisó de que algo no se pudo guardar (no se repite hasta que vuelva a funcionar).
+  private warned = false;
 
   private readonly snapshotKey: string;
   private readonly outboxKey: string;
@@ -143,6 +145,13 @@ export class ServerActionWorkoutRepository implements WorkoutRepository {
     return this.sending;
   }
 
+  // Deja los cambios en la cola y vuelve a intentarlo dentro de RETRY_MS.
+  private retryLater(offline: boolean) {
+    this.setStatus(offline);
+    clearTimeout(this.retryTimer);
+    this.retryTimer = setTimeout(() => { this.flush().catch(() => {}); }, RETRY_MS);
+  }
+
   private async send() {
     let attempts = 0;
     while (this.items.length) {
@@ -155,16 +164,27 @@ export class ServerActionWorkoutRepository implements WorkoutRepository {
         await applyWorkoutChanges(whole ? [{ type: "replaced" }] : batch.map((i) => i.change), whole ? snapshot : null);
         this.setStatus(false);
       } catch (e) {
-        if (isNetworkError(e)) {
-          this.setStatus(true);
-          clearTimeout(this.retryTimer);
-          this.retryTimer = setTimeout(() => { this.flush().catch(() => {}); }, RETRY_MS);
-          return;
-        }
+        if (isNetworkError(e)) return this.retryLater(true);
         if (++attempts < MAX_SERVER_ATTEMPTS) continue;
-        this.onError(e);
+        // Lote rechazado (spec datos R8): no se tira. Se manda el estado completo del
+        // dispositivo, que ya lo incluye; si eso también falla, se queda en la cola.
+        let recovered = false;
+        if (!whole && snapshot) {
+          try {
+            await applyWorkoutChanges([{ type: "replaced" }], snapshot);
+            recovered = true;
+          } catch (e2) {
+            if (isNetworkError(e2)) return this.retryLater(true);
+          }
+        }
+        if (!recovered) {
+          if (!this.warned) this.onError(e);
+          this.warned = true;
+          return this.retryLater(false);
+        }
       }
       attempts = 0;
+      this.warned = false;
       const sent = new Set(batch);
       this.items = this.items.filter((i) => !sent.has(i));
       writeJSON(this.outboxKey, this.items);
