@@ -50,25 +50,12 @@ describe("Hoy · los días pendientes no ocupan la pantalla principal", () => {
   beforeEach(freezeToday);
   afterEach(() => vi.useRealTimers());
 
-  it("no se ven de entrada: «Esta semana» avisa con «N pendientes»", () => {
+  it("no hay aviso de pendientes (R14)", () => {
     renderWithWorkout(<TrainingView />);
     expect(screen.queryByText("Pendientes")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^\d+ pendientes?$/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /pendientes?$/ })).not.toBeInTheDocument();
   });
 
-  it("al tocar «N pendientes» aparecen con «Hacer hoy»", () => {
-    renderWithWorkout(<TrainingView />);
-    const pending = screen.getByRole("button", { name: /^\d+ pendientes?$/ });
-    const count = Number(/\d+/.exec(pending.textContent ?? "")?.[0]);
-    fireEvent.click(pending);
-    expect(screen.getByText("Pendientes")).toBeInTheDocument();
-    const buttons = screen.getAllByRole("button", { name: /^Hacer hoy / });
-    expect(buttons).toHaveLength(count);
-    const name = buttons[0].getAttribute("aria-label")!.replace("Hacer hoy ", "");
-    fireEvent.click(buttons[0]);
-    expect(screen.getByRole("heading", { level: 2, name })).toBeInTheDocument();
-    expect(screen.queryByText("Pendientes")).not.toBeInTheDocument();
-  });
 });
 
 describe("Hoy · limpio, sin calculadora de discos (R28)", () => {
@@ -121,12 +108,11 @@ describe("Hoy · pendientes en un día de descanso", () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  it("el viernes que no se hizo sale en los pendientes con «Hacer hoy»", () => {
+  it("el viernes que no se hizo se recupera tocándolo en la tira (R14)", () => {
     renderWithWorkout(<TrainingView />);
-    fireEvent.click(screen.getByRole("button", { name: /^\d+ pendientes?$/ }));
-    // El de ayer, no solo el de la semana pasada.
-    expect(screen.getByText("Era el viernes, 30 de octubre")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Hacer hoy " + DAY_NAMES[5] }).length).toBeGreaterThan(0);
+    stripDay("viernes 30 oct");
+    fireEvent.click(screen.getByRole("button", { name: "Hacer " + DAY_NAMES[5] + " hoy" }));
+    expect(screen.getByRole("heading", { level: 2, name: DAY_NAMES[5] })).toBeInTheDocument();
   });
 });
 

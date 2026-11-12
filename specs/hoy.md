@@ -116,7 +116,7 @@ hay racha.
 - **Esta semana**, encima de la tarjeta del día: una tira con los 7 días (L…D). Relleno con
   el color de la rutina si ese día se entrenó; con borde si tocaba y falta; un punto gris si
   es de descanso. Hoy va marcado. En días de descanso también sale. A la derecha, «2 de 5»
-  (entrenos hechos de los que pide el plan), la racha y, si los hay, «N pendientes».
+  (entrenos hechos de los que pide el plan) y la racha.
   **Cada día es un botón**: al tocarlo se abre debajo un panel con ese día (otra vez, se
   cierra): si se entrenó, «Editar Torso» (lo abre como en el calendario); si es pasado y
   falta, «Hacer Tirones hoy» (lo recupera); si es hoy o de los que vienen, «Hacer Pierna
@@ -180,18 +180,20 @@ suman al plan, pero si se hacen sí cuentan como entreno.
 
 ### Días pendientes
 
-**Qué hace:** si en los últimos 14 días quedó un día de rutina sin hacer, «Esta semana»
-lo avisa con un botón «N pendientes» en su cabecera; al tocarlo salen en «Pendientes» (los
-de la semana pasada también), cada uno con «Hacer hoy». Los de esta semana además se ven
-en la tira (con borde) y al tocar su día sale «Hacer … hoy».
-**Cómo funciona:** `calendar.missedSessions(today)`; «Hacer hoy» llama a
-`actions.recoverSession`, que lo carga como día de hoy. En Progreso ese día se marca como
-«Hecho más tarde».
+**Qué hace:** no hay aviso de días pendientes. Un día de esta semana que tocaba y falta se
+ve en «Esta semana» con borde; al tocarlo sale «Hacer … hoy», que lo recupera.
+**Cómo funciona:** el panel del día usa `calendar.sessionsOn(fecha)` y `calendar.isDone`;
+«Hacer … hoy» en un día pasado llama a `actions.recoverSession`, que lo carga como día de
+hoy. En Progreso ese día se marca como «Hecho más tarde».
+**Decisiones:** hubo un aviso «N pendientes» (antes en «Otro día» y luego en la cabecera de
+«Esta semana») con la lista de los últimos 14 días; se quitó a petición: la tira ya enseña
+lo que falta esta semana. Lo de semanas anteriores se apunta con «Otra fecha…».
 **Casos límite:** en un día de descanso el controlador apunta al último día de rutina de
-la semana (`calendar.focusFor`); ese día no se quita de pendientes, porque no es el que
-se está viendo. Así, si se salta el viernes, el sábado sale «Hacer hoy».
+la semana (`calendar.focusFor`); ese día sigue saliendo con borde en la tira si falta. Así,
+si se salta el viernes, el sábado se toca el viernes y sale «Hacer … hoy».
 **Reglas:**
-- **R14** En un día de descanso también sale como pendiente el último día que no se hizo.
+- **R14** En un día de descanso, el último día que no se hizo se puede recuperar tocándolo en
+  la tira; no hay aviso de pendientes.
   → `src/components/training-view.test.tsx`
 
 ### Repetir un día en la misma semana

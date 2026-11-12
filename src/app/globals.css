@@ -216,7 +216,7 @@ button.calday.selected small{color:var(--text);font-weight:900}
 .summary-prs b .ico{color:#f5b301}
 .charttitle h2 .ico{margin-right:3px;color:var(--accent)}
 
-.ico.flame,.pending-card .ico{color:#ff8a3d}
+.ico.flame{color:#ff8a3d}
 .summary-emoji .ico,.summary-vs .ico{color:var(--accent)}
 .toast svg{width:16px;height:16px;vertical-align:-3px;margin-right:6px}
 .ss-note{margin:0 0 12px;color:var(--accent);font-size:max(11px, calc(11px * var(--fs)));font-weight:750}
@@ -360,7 +360,7 @@ button:disabled,input:disabled{opacity:.6}
 /* Calendario, recuperación de días y registro diario */
 
 .pending{margin-top:13px;border-top:1px solid var(--line);padding-top:11px;display:grid;gap:6px}
-.pending-title{color:var(--soft);font-size:max(11px, calc(11px * var(--fs)));font-weight:850;text-transform:uppercase;letter-spacing:.1em}
+
 
 .tag{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:999px;background:var(--accent-bg);border:1px solid var(--accent-line);color:var(--accent);font-size:max(11px, calc(11px * var(--fs)));font-weight:800;vertical-align:middle}
 
@@ -612,11 +612,11 @@ body:has(.restbar) .toast{bottom:calc(166px + env(safe-area-inset-bottom))}
 .hero h2 i{flex:none;width:14px;height:14px;border-radius:50%;background:var(--hero)}
 .hero p{margin:4px 0 0;color:var(--soft);font-size:calc(14px * var(--fs))}
 .hero .hero-note{color:var(--muted)}
-.pending-card{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;padding:12px 14px;border-radius:18px;background:var(--warn-bg);border:1px solid var(--warn-line)}
-.pending-card b{display:block;font-size:calc(13px * var(--fs))}
-.pending-card span{display:block;margin-top:2px;color:var(--muted);font-size:max(11px, calc(11px * var(--fs)))}
-.pending-card button{flex:none;border:0;border-radius:12px;padding:10px 12px;background:var(--warn-text);color:#1a1200;font-size:max(11px, calc(12px * var(--fs)));font-weight:850}
-:root[data-theme="light"] .pending-card button{color:#fff}
+
+
+
+
+
 .chart.peek{margin-top:2px}
 .chart.peek h3{margin:0 0 6px;font-size:calc(14px * var(--fs))}
 .peek-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--hair)}
@@ -686,10 +686,9 @@ body:has(.wizard){overflow:hidden}
 .segmented button[aria-checked="true"]{background:var(--accent-grad);color:#fff;box-shadow:0 6px 16px rgba(46,139,255,.32)}
 
 
-/* Cristal fino reutilizable para piezas que antes eran opacas */
-.pending-card,.rest-next,.summary-vs,.body-entry,.wizard-opt,.wizard-plan div,.wizard-days button,.wizard-actions button,.focus-check,.stat-tile,.set-box,.set-account,.focus-muscles{
+.rest-next,.summary-vs,.body-entry,.wizard-opt,.wizard-plan div,.wizard-days button,.wizard-actions button,.focus-check,.stat-tile,.set-box,.set-account,.focus-muscles{
   background:linear-gradient(180deg,var(--glass-strong),var(--glass));border:1px solid var(--glass-line);box-shadow:none}
-.pending-card{background:linear-gradient(180deg,rgba(240,196,107,.16),var(--glass));border-color:rgba(240,196,107,.35)}
+
 .wizard-opt.on,.wizard-days button.on{background:rgba(46,139,255,.18);border-color:rgba(46,139,255,.6)}
 .wizard-days button.on{color:var(--text)}
 .wizard-actions .primary,.set-done{background:var(--accent-grad);border-color:transparent;color:#fff;box-shadow:0 10px 26px rgba(46,139,255,.32)}
@@ -945,8 +944,8 @@ button,.nav,.daychip{-webkit-user-select:none;user-select:none;-webkit-touch-cal
 @media (prefers-reduced-motion:reduce){.today-actions button:active{transform:none}}
 
 
-.pending-list{margin:2px 0 10px}
-.pending-title{margin:0 2px 8px;color:var(--muted);font-size:max(11px, calc(11px * var(--fs)));font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+
+
 
 /* ===== Cambio de pestaña sin destello ni golpecito ===== */
 /* El cristal aparece con un fundido: en Safari su primer fotograma sale más claro y,
@@ -1252,8 +1251,8 @@ main{padding-top:calc(env(safe-area-inset-top) + 18px)}
 .pagehead h1{font-size:calc(32px * var(--fs));font-weight:800;letter-spacing:-.02em;line-height:1.1}
 .pagehead .eyebrow{color:var(--muted);font-size:max(11px, calc(13px * var(--fs)));font-weight:600;letter-spacing:0;text-transform:none}
 
-/* Tarjetas: superficie plana, sin borde ni sombra (listas agrupadas). */
-.chart,.hero,.routine-day,.perm-card,.pending-card,.set-box,.set-account,.rest-card{background:var(--s);border:0;border-radius:var(--r);box-shadow:none}
+/* Tarjetas: superficie plana,sin borde ni sombra (listas agrupadas). */
+.chart,.hero,.routine-day,.perm-card,.set-box,.set-account,.rest-card{background:var(--s);border:0;border-radius:var(--r);box-shadow:none}
 .chart{padding:14px 16px;margin-bottom:14px}
 .charttitle{margin-bottom:8px}
 .charttitle h2{font-size:calc(17px * var(--fs));font-weight:700;letter-spacing:-.01em}
@@ -1369,7 +1368,7 @@ button.series-row:active{transform:scale(.98)}
 :root{--glow:rgba(46,139,255,.16);--edge:rgba(255,255,255,.05)}
 :root[data-theme="light"]{--glow:rgba(31,111,229,.10);--edge:rgba(255,255,255,.9)}
 body::before{background:radial-gradient(120% 55% at 50% -12%,var(--glow),transparent 62%),var(--bg)}
-.chart,.routine-day,.perm-card,.pending-card,.set-box,.set-account,.rest-card,.stat-tiles{box-shadow:none}
+.chart,.routine-day,.perm-card,.set-box,.set-account,.rest-card,.stat-tiles{box-shadow:none}
 .hero{background:linear-gradient(135deg,color-mix(in srgb,var(--hero) 24%,var(--s)) 0%,var(--s) 72%);box-shadow:inset 4px 0 0 var(--hero)}
 
 /* ---- Hoy: el color del día en los títulos ---- */
@@ -1478,8 +1477,8 @@ button.week-dot.todo>span{box-shadow:inset 0 0 0 2px var(--dot);color:var(--text
 button.week-dot.rest>span{background:var(--s2)}
 button.week-dot.today>span{outline:2px solid var(--accent);outline-offset:2px}
 button.week-dot.selected>span{transform:scale(1.08)}
-.week-pending{min-height:32px;padding:0 10px;border:0;border-radius:999px;background:var(--warn-bg);color:var(--warn-text);font:inherit;font-size:max(11px, calc(12px * var(--fs)));font-weight:800}
-.week-pending.on{box-shadow:inset 0 0 0 1px var(--warn-text)}
+
+
 .day-panel{display:grid;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--hair)}
 .day-panel-title{font-size:calc(14px * var(--fs))}
 .day-panel-main{display:grid;gap:8px}
@@ -1492,4 +1491,4 @@ button.week-dot.selected>span{transform:scale(1.08)}
 .day-panel-link{justify-self:start;min-height:44px;padding:0;border:0;background:none;color:var(--accent);font:inherit;font-weight:700}
 .day-panel-date{display:grid;gap:4px;color:var(--muted);font-size:max(11px, calc(12px * var(--fs)));font-weight:700}
 .day-panel-date input{min-height:44px;padding:0 12px;border:1px solid var(--line2);border-radius:10px;background:var(--bg);color:var(--text);font:inherit}
-.week-strip-card .pending-list{margin:0}
+
