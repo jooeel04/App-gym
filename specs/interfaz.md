@@ -107,6 +107,9 @@ para que la app se vea igual en todas partes.
   → `src/app/styles.test.ts`, `src/components/rest-timer.test.tsx`, `tests/e2e/mobile-ux.test.ts`
 - **R7** No hay cabecera con el logo; el aviso de sincronización sale solo si hace falta.
   → `src/components/app-shell.test.tsx`
+- **R8** La zona segura de arriba (notch o Dynamic Island) se deja una sola vez, en `.app`:
+  ni `main` ni `.topbar` la vuelven a sumar, para que no quede un hueco vacío encima de
+  la fecha y la racha. → `src/app/styles.test.ts`
 
 ## Datos
 

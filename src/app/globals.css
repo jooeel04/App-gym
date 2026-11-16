@@ -1243,11 +1243,12 @@ body:is(:has(.dock>*),:has(.restbar)) .device-card{display:none}
 
 /* Fondo plano, sin brillos de color. */
 body::before{background:var(--bg)}
-main{padding-top:calc(env(safe-area-inset-top) + 18px)}
-.topbar{height:auto;padding:calc(env(safe-area-inset-top) + 8px) 0 0;border:0;justify-content:center}
+/* La zona segura de arriba ya la deja .app (spec interfaz R8): aquí solo un respiro. */
+main{padding-top:8px}
+.topbar{height:auto;padding:8px 0 0;border:0;justify-content:center}
 
 /* Título grande de cada pestaña, como en iOS. */
-.pagehead{align-items:center;margin:4px 0 16px}
+.pagehead{align-items:center;margin:0 0 16px}
 .pagehead h1{font-size:calc(32px * var(--fs));font-weight:800;letter-spacing:-.02em;line-height:1.1}
 .pagehead .eyebrow{color:var(--muted);font-size:max(11px, calc(13px * var(--fs)));font-weight:600;letter-spacing:0;text-transform:none}
 

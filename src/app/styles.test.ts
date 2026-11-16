@@ -32,3 +32,16 @@ describe("Interfaz · cristal solo en la barra de pestañas", () => {
     expect(blurred).toEqual([]);
   });
 });
+
+// Spec interfaz R8: la zona segura de arriba se suma una sola vez (en `.app`). Si `main` o
+// `.topbar` la vuelven a sumar, en el iPhone queda un hueco vacío encima de cada pestaña.
+describe("Interfaz · sin hueco arriba", () => {
+  it("solo .app deja la zona segura de arriba", () => {
+    const css = readFileSync("src/app/globals.css", "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    const doubled = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter(([, , body]) => /padding(-top)?\s*:[^;}]*safe-area-inset-top/.test(body))
+      .flatMap(([, sel]) => sel.split(",").map((s) => s.trim()))
+      .filter((s) => /^(main|\.topbar)$/.test(s));
+    expect(doubled).toEqual([]);
+  });
+});
